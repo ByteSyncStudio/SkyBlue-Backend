@@ -4,7 +4,7 @@ import { listCustomers } from "../repositories/customerRepository.js";
  * @swagger
  * /customers/top100:
  *   get:
- *     summary: Retrieve a list of customers
+ *     summary: Retrieve a list of top 100 customers
  *     responses:
  *       200:
  *         description: A list of customers.
