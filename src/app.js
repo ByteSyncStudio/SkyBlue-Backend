@@ -1,8 +1,13 @@
 import express from 'express';
-import tableRoutes from './routes/tableRoutes.js';
+import fileRoutes from './routes/fileRoutes.js';
+import customerRoutes from './routes/customerRoutes.js';
+import swaggerSetup from './config/swagger.js';
 
 const app = express();
 
-app.use('/', tableRoutes);
+swaggerSetup(app);
+
+app.use('/', fileRoutes);
+app.use('/customers', customerRoutes);
 
 export default app;
