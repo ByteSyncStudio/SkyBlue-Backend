@@ -5,6 +5,7 @@ import swaggerSetup from './config/swagger.js';
 
 const app = express();
 
+// Setup Swagger for API documentation; See endpoint: /api-docs
 swaggerSetup(app);
 
 app.use('/', fileRoutes);
