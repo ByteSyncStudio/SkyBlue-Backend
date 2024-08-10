@@ -1,44 +1,37 @@
 import { Client } from 'basic-ftp';
 
 let client = null;
+let connectionPromise = null;
 
 export async function connectFTPS() {
     if (client) return client;
-    
+    if (connectionPromise) return connectionPromise;
+
     client = new Client();
     client.ftp.verbose = true; // Enable verbose logging for testing purposes
-    try {
-        await client.access({
-            host: process.env.FTP_HOST,
-            user: process.env.FTP_USER,
-            password: process.env.FTP_PASSWORD,
-            secure: true,
-        });
+    client.ftp.timeout = 10000; // Set a timeout for the connection
+
+    connectionPromise = client.access({
+        host: process.env.FTP_HOST,
+        user: process.env.FTP_USER,
+        password: process.env.FTP_PASSWORD,
+        secure: true,
+    }).then(() => {
         console.log("Connected to FTPS server successfully");
+        connectionPromise = null;
         return client;
-    } catch (error) {
+    }).catch(error => {
         console.error("Failed to connect to FTPS server:", error);
+        client = null;
+        connectionPromise = null;
         throw error;
-    }
-}
+    });
 
-export async function uploadFile(localPath, remotePath) {
-    if (!client) await connectFTPS();
-    try {
-        await client.uploadFrom(localPath, remotePath);
-        console.log(`File uploaded: ${localPath} -> ${remotePath}`);
-    } catch (error) {
-        console.error("Failed to upload file:", error);
-        throw error;
-    }
-    finally {
-        closeFTPSConnection();
-    }
-
+    return connectionPromise;
 }
 
 export async function downloadFile(remotePath, localPath) {
-    if (!client) await connectFTPS();
+    const client = await connectFTPS();
     try {
         await client.downloadTo(localPath, remotePath);
         console.log(`File downloaded: ${remotePath} -> ${localPath}`);
@@ -46,26 +39,9 @@ export async function downloadFile(remotePath, localPath) {
         console.error("Failed to download file:", error);
         throw error;
     }
-    finally {
-        closeFTPSConnection();
-    }
 }
 
-export async function deleteFile(remotePath) {
-    if (!client) await connectFTPS();
-    try {
-        await client.remove(remotePath);
-        console.log(`File deleted: ${remotePath}`);
-    } catch (error) {
-        console.error("Failed to delete file:", error);
-        throw error;
-    }
-    finally {
-        closeFTPSConnection();
-    }
-}
-
-function closeFTPSConnection() {
+export function closeFTPSConnection() {
     if (client) {
         client.close();
         client = null;

@@ -1,18 +1,18 @@
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
-import { downloadFile } from '../config/ftpsClient.js';
+import { downloadFile, closeFTPSConnection } from '../config/ftpsClient.js';
 
 const router = express.Router();
 
-router.get('/download', async (req, res) => {
+router.get('/download/', async (req, res) => {
     const tempDir = path.join(process.cwd(), 'temp');
     if (!fs.existsSync(tempDir)) {
         fs.mkdirSync(tempDir);
     }
     
     const localPath = path.join(tempDir, '0000005_0.jpeg');
-    const remotePath = '/acc1845619052/SkyblueWholesale/Content/Images/0000005_0.jpeg';
+    const remotePath = '/acc1845619052/SkyblueWholesale/Content/Images/0012026_0.jpeg';
     
     try {
         await downloadFile(remotePath, localPath);
@@ -24,8 +24,9 @@ router.get('/download', async (req, res) => {
             if (err) {
                 console.error("Error sending file:", err);
             }
-            // Comment out the file deletion for now
-            // fs.unlinkSync(localPath);
+
+            // Comment it out to keep files in
+            fs.unlinkSync(localPath);
         });
     } catch (error) {
         console.error("Failed to download file:", error);

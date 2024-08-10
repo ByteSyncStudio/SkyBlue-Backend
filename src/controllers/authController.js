@@ -52,10 +52,11 @@ export const login = async (req, res, next) => {
 
         // Compare our Hash to stored hash
         if (hashedPassword === passwordRecord.Password) {
-            // Create a JWT token
+            
+            // Return a JWT token
             const token = jsonwebtoken.sign({ email }, JWT_SECRET, { expiresIn: JWT_EXPIRATION });
-
             return res.status(200).json({ message: 'Login successful', token });
+
         } else {
             return res.status(401).json({ message: 'Invalid email or password' });
         }
