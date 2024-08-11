@@ -4,12 +4,12 @@ let client = null;
 let connectionPromise = null;
 
 export async function connectFTPS() {
-    if (client) return client;
+    if (client && client.closed === false) return client;
     if (connectionPromise) return connectionPromise;
 
     client = new Client();
-    client.ftp.verbose = true; // Enable verbose logging for testing purposes
-    client.ftp.timeout = 10000; // Set a timeout for the connection
+    client.ftp.verbose = false; // Enable verbose logging for testing purposes
+    client.ftp.timeout = 100000; // Set a timeout for the connection
 
     connectionPromise = client.access({
         host: process.env.FTP_HOST,
@@ -30,15 +30,30 @@ export async function connectFTPS() {
     return connectionPromise;
 }
 
-export async function downloadFile(remotePath, localPath) {
-    const client = await connectFTPS();
-    try {
-        await client.downloadTo(localPath, remotePath);
-        console.log(`File downloaded: ${remotePath} -> ${localPath}`);
-    } catch (error) {
-        console.error("Failed to download file:", error);
-        throw error;
+export async function downloadFile(remotePath, localPath, retries = 3) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            const client = await connectFTPS();
+            await client.downloadTo(localPath, remotePath);
+            console.log(`File downloaded: ${remotePath} -> ${localPath}`);
+            return;
+        } catch (error) {
+            console.error(`Failed to download file (attempt ${attempt}):`, error);
+            if (attempt === retries || error.code !== 'ECONNRESET') {
+                throw error;
+            }
+            console.log(`Retrying download (attempt ${attempt + 1})...`);
+            await reconnectFTPS();
+        }
     }
+}
+
+async function reconnectFTPS() {
+    if (client) {
+        client.close();
+        client = null;
+    }
+    await connectFTPS();
 }
 
 export function closeFTPSConnection() {
