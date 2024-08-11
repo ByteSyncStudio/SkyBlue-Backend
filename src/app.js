@@ -3,6 +3,7 @@ import swaggerSetup from './config/swagger.js';
 import fileRoutes from './routes/fileRoutes.js';
 import customerRoutes from './routes/customerRoutes.js';
 import authRoutes from './routes/authRoutes.js';
+import productRoutes from "./routes/productRoutes.js"
 
 const app = express();
 
@@ -16,6 +17,7 @@ swaggerSetup(app);
 app.use('/', fileRoutes);
 app.use('/customers', customerRoutes);
 app.use('/auth', authRoutes);
+app.use('/product',productRoutes)
 
 
 // (Loose) Error Catcher
