@@ -23,8 +23,11 @@ async function getCategory(req, res) {
 async function getProductsFromCategories(req, res) {
     try {
         const categoryName = req.params.category;
+        const page = parseInt(req.query.page, 10) || 1;
+        const size = parseInt(req.query.size, 10) || 10;
         console.log(categoryName)
-        const products = await listProductsFromCategory(categoryName);
+        
+        const products = await listProductsFromCategory(categoryName, page, size);
         res.status(200).send(products);
     } catch (error) {
         console.error(error);
