@@ -1,8 +1,8 @@
-import { listCategory } from "../repositories/productRepository.js";
+import { listCategory, listProductsFromCategory } from "../repositories/productRepository.js";
 
 /**
  * @swagger
- * /category/all
+ * /category/all:
  *   get:
  *     summary: Retrieve a list of top 100 listCategory
  *     responses:
@@ -20,4 +20,16 @@ async function getCategory(req, res) {
 }
 
 
-export { getCategory };
+async function getProductsFromCategories(req, res) {
+    try {
+        const categoryName = req.params.category;
+        console.log(categoryName)
+        const products = await listProductsFromCategory(categoryName);
+        res.status(200).send(products);
+    } catch (error) {
+        console.error(error);
+        res.status(error.statusCode || 500).send(error.message || 'Server error');
+    }
+}
+
+export { getCategory, getProductsFromCategories };
