@@ -79,6 +79,8 @@ async function listCategory() {
  */
 async function listProductsFromCategory(category, page = 1, size = 10) {
   try {
+
+    //? Can eliminate this search by supplying the category id directly
     // First, find the category ID
     const categoryResult = await knex('Category')
       .select('Id')
@@ -114,8 +116,9 @@ async function listProductsFromCategory(category, page = 1, size = 10) {
     const offset = (page - 1) * size;
 
     // Finally, get all products in these categories
-    const products = await knex('Product')
+    let products = await knex('Product')
       .select([
+        'Product.Id',
         'Product.Name',
         'Product.Price',
         'Product.FullDescription',
@@ -128,6 +131,44 @@ async function listProductsFromCategory(category, page = 1, size = 10) {
       .orderBy('Product.Name')
       .limit(size)
       .offset(offset);
+
+    //Construct the Image link
+    products = await Promise.all(products.map(async (product) => {
+      console.log(`${product.Name} | ${product.Id}`);
+      const pictureMapping = await knex('Product_Picture_Mapping')
+        .select('PictureId')
+        .where('ProductId', product.Id)
+        .first();
+    
+      if (!pictureMapping) {
+        // If PictureId is not found, return the product without the Image property
+        return {
+          ...product,
+          Image: null
+        };
+      }
+    
+      const { PictureId } = pictureMapping;
+      console.log(PictureId);
+    
+      const picture = await knex('Picture')
+        .select('MimeType')
+        .where('Id', PictureId)
+        .first();
+    
+      const { MimeType } = picture;
+      console.log(MimeType);
+    
+      const formattedId = PictureId.toString().padStart(7, '0');
+      const fileExtension = MimeType.split('/')[1];
+      const fileName = `https://skybluewholesale.com/content/images/${formattedId}_0.${fileExtension}`;
+      console.log(fileName);
+    
+      return {
+        ...product,
+        Image: fileName
+      };
+    }));
 
     console.log('Page item count: ' + products.length)
     return products;
