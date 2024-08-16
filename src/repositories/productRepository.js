@@ -56,6 +56,19 @@ async function getSubcategories(categoryId) {
 }
 
 /**
+ * Generates the image URL for a product.
+ * 
+ * @param {number} pictureId - The ID of the picture.
+ * @param {string} mimeType - The MIME type of the picture.
+ * @returns {string} The generated image URL.
+ */
+function generateImageUrl(pictureId, mimeType) {
+  const formattedId = pictureId.toString().padStart(7, '0');
+  const fileExtension = mimeType ? mimeType.split('/')[1] : 'jpg';
+  return `https://skybluewholesale.com/content/images/${formattedId}_0.${fileExtension}`;
+}
+
+/**
  * Retrieves a list of products from the specified category with pagination.
  * 
  * @param {string} category - The name of the category.
@@ -72,12 +85,12 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
   }
 
   try {
-    // Calculate offset
+    //? Calculate offset for pagination
     const offset = (page - 1) * size;
 
     const subCategoryIds = await getSubcategories(categoryId);
 
-    // Fetch products with their images in a single query
+    //? Fetch products with their images in a single query
     const products = await knex('Product')
       .select([
         'Product.Id',
@@ -88,7 +101,9 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
         'Product.OrderMinimumQuantity',
         'Product.OrderMaximumQuantity',
         'Product_Picture_Mapping.PictureId',
-        'Picture.MimeType'
+        'Product.Stock',
+        'Picture.MimeType',
+        knex.raw('COUNT(*) OVER() AS total_count')
       ])
       .join('Product_Category_Mapping', 'Product.Id', 'Product_Category_Mapping.ProductId')
       .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
@@ -99,13 +114,11 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
       .offset(offset);
 
 
-    // Process the results
+    //? Process image for each product
     const processedProducts = products.map(product => {
       let image = null;
       if (product.PictureId) {
-        const formattedId = product.PictureId.toString().padStart(7, '0');
-        const fileExtension = product.MimeType ? product.MimeType.split('/')[1] : 'jpg';
-        image = `https://skybluewholesale.com/content/images/${formattedId}_0.${fileExtension}`;
+        image = generateImageUrl(product.PictureId, product.MimeType);
       }
 
       return {
@@ -116,13 +129,24 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
         ShortDescription: product.ShortDescription,
         OrderMinimumQuantity: product.OrderMinimumQuantity,
         OrderMaximumQuantity: product.OrderMaximumQuantity,
+        Stock: product.Stock,
         Image: image
       };
     });
 
+    const totalProducts = products.length > 0 ? products[0].total_count: 0;
+
+    const response = {
+      totalProducts,
+      pageNumber: page,
+      pageSize: size, 
+      data: processedProducts
+    }
+
+    //? Cache for future use
     cache.set(cacheKey, processedProducts);
 
-    return processedProducts;
+    return response;
 
   } catch (error) {
     console.error('Error in listProductsFromCategory:', error);

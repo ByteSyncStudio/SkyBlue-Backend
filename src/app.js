@@ -1,4 +1,5 @@
 import express from 'express';
+import helmet from 'helmet'
 import swaggerSetup from './config/swagger.js';
 import fileRoutes from './routes/fileRoutes.js';
 import customerRoutes from './routes/customerRoutes.js';
@@ -6,6 +7,10 @@ import authRoutes from './routes/authRoutes.js';
 import productRoutes from "./routes/productRoutes.js"
 
 const app = express();
+
+
+// Security Middleware
+app.use(helmet());
 
 // Parse JSON
 app.use(express.json());
