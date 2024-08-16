@@ -4,10 +4,12 @@ import { listCategory, listProductsFromCategory } from "../repositories/productR
  * @swagger
  * /category/all:
  *   get:
- *     summary: Retrieve a list of top 100 listCategory
+ *     summary: Retrieve a list of all categories
  *     responses:
  *       200:
- *         description: A list of customers.
+ *         description: A list of categories.
+ *       500:
+ *         description: Internal server error
  */
 async function getCategory(req, res) {
     try {
@@ -20,6 +22,36 @@ async function getCategory(req, res) {
 }
 
 
+/**
+ * @swagger
+ * /product/{categoryId}:
+ *   get:
+ *     summary: Retrieve a list of products from a category
+ *     parameters:
+ *       - in: path
+ *         name: categoryId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The ID of the category
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         schema:
+ *           type: integer
+ *         description: The page number
+ *       - in: query
+ *         name: size
+ *         required: false
+ *         schema:
+ *           type: integer
+ *         description: The number of items per page
+ *     responses:
+ *       200:
+ *         description: A list of products.
+ *       500:
+ *         description: Internal server error
+ */
 async function getProductsFromCategories(req, res) {
     try {
         const categoryId = req.params.category;

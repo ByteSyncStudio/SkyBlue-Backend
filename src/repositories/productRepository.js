@@ -2,12 +2,10 @@ import knex from '../config/knex.js';
 import cache from '../config/cache.js'
 
 /**
- * Retrieves a list of category from the database.
+ * Retrieves a list of categories from the database.
  * 
  * @returns {Promise<Array>} A promise that resolves to an array of category objects.
  */
-
-
 async function listCategory() {
   try {
     const categories = await knex('Category')
@@ -22,110 +20,11 @@ async function listCategory() {
 }
 
 /**
- * Retrieves a list of products from the specified category with pagination.
+ * Retrieves all subcategories of a given category, including the category itself.
  * 
- * @param {string} category - The name of the category.
- * @param {number} page - The page number.
- * @param {number} size - The number of items per page.
- * @returns {Promise<Array>} A promise that resolves to an array of product objects.
+ * @param {number} categoryId - The ID of the category.
+ * @returns {Promise<Array>} A promise that resolves to an array of subcategory IDs.
  */
-// async function listProductsFromCategory(categoryId, page = 1, size = 10) {
-//   try {
-
-//     //? Can eliminate this search by supplying the category id directly
-//     // First, find the category ID
-//     // const categoryResult = await knex('Category')
-//     //   .select('Id')
-//     //   .where('Name', category)
-//     //   .first();
-
-//     // if (!categoryResult) {
-//     //   const error = new Error('Category not found');
-//     //   error.statusCode = 404;
-//     //   throw error;
-//     // }
-
-//     // const { Id: categoryId } = categoryResult;
-
-//     // Then, get all subcategories (including the category itself)
-//     const subCategories = await knex('Category')
-//       .withRecursive('SubCategories', (qb) => {
-//         qb.select('Id')
-//           .from('Category')
-//           .where('Id', categoryId)
-//           .unionAll((qb) => {
-//             qb.select('c.Id')
-//               .from('Category as c')
-//               .innerJoin('SubCategories as sc', 'c.ParentCategoryId', 'sc.Id');
-//           });
-//       })
-//       .select('Id')
-//       .from('SubCategories');
-
-//     const subCategoryIds = subCategories.map(cat => cat.Id);
-
-//     // Calculate offset
-//     const offset = (page - 1) * size;
-
-//     // Finally, get all products in these categories
-//     let products = await knex('Product')
-//       .select([
-//         'Product.Id',
-//         'Product.Name',
-//         'Product.Price',
-//         'Product.FullDescription',
-//         'Product.ShortDescription',
-//         'Product.OrderMinimumQuantity',
-//         'Product.OrderMaximumQuantity'
-//       ])
-//       .join('Product_Category_Mapping', 'Product.Id', 'Product_Category_Mapping.ProductId')
-//       .whereIn('Product_Category_Mapping.CategoryId', subCategoryIds)
-//       .orderBy('Product.Name')
-//       .limit(size)
-//       .offset(offset);
-
-//     //Construct the Image link
-//     products = await Promise.all(products.map(async (product) => {
-//       const pictureMapping = await knex('Product_Picture_Mapping')
-//         .select('PictureId')
-//         .where('ProductId', product.Id)
-//         .first();
-
-//       if (!pictureMapping) {
-//         // If PictureId is not found, return the product without the Image property
-//         return {
-//           ...product,
-//           Image: null
-//         };
-//       }
-
-//       const { PictureId } = pictureMapping;
-
-//       const picture = await knex('Picture')
-//         .select('MimeType')
-//         .where('Id', PictureId)
-//         .first();
-
-//       const { MimeType } = picture;
-
-//       const formattedId = PictureId.toString().padStart(7, '0');
-//       const fileExtension = MimeType.split('/')[1];
-//       const fileName = `https://skybluewholesale.com/content/images/${formattedId}_0.${fileExtension}`;
-
-//       return {
-//         ...product,
-//         Image: fileName
-//       };
-//     }));
-
-//     console.log('Page item count: ' + products.length)
-//     return products;
-//   } catch (error) {
-//     console.error('Error in listProductsFromCategory:', error);
-//     throw error;
-//   }
-// }
-
 async function getSubcategories(categoryId) {
   const cacheKey = `subcategories_${categoryId}`;
   const cachedSubcategories = cache.get(cacheKey);
@@ -156,6 +55,14 @@ async function getSubcategories(categoryId) {
   return subCategoryIds;
 }
 
+/**
+ * Retrieves a list of products from the specified category with pagination.
+ * 
+ * @param {string} category - The name of the category.
+ * @param {number} page - The page number.
+ * @param {number} size - The number of items per page.
+ * @returns {Promise<Array>} A promise that resolves to an array of product objects.
+ */
 async function listProductsFromCategory(categoryId, page = 1, size = 10) {
   const cacheKey = `products_${categoryId}_${page}_${size}`;
   const cachedProducts = cache.get(cacheKey);
@@ -214,7 +121,7 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
     });
 
     cache.set(cacheKey, processedProducts);
-    
+
     return processedProducts;
 
   } catch (error) {
