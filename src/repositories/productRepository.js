@@ -1,6 +1,7 @@
 import knex from '../config/knex.js';
 import cache from '../config/cache.js'
 
+
 /**
  * Retrieves a list of categories from the database.
  * 
@@ -8,11 +9,22 @@ import cache from '../config/cache.js'
  */
 async function listCategory() {
   try {
+    const cacheKey = 'categories';
+    const cachedCategories = cache.get(cacheKey);
+
+    if (cachedCategories) {
+      logMemoryUsage();
+      return cachedCategories;
+    }
+
     const categories = await knex('Category')
       .select(['Id', 'Name'])
       .where('ParentCategoryId', 0)
       .orderBy('Id');
+
+    cache.set(cacheKey, categories);
     return categories;
+
   } catch (error) {
     console.error('Error in listCategory:', error);
     throw new Error('Database error');
