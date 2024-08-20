@@ -46,7 +46,7 @@ router.get("/category/all", getCategory);
  *       500:
  *         description: Internal server error
  */
-router.get("category/:category", getProductsFromCategories);
+router.get("/category/:category", getProductsFromCategories);
 
 /**
  * @swagger

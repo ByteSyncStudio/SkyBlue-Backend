@@ -14,7 +14,6 @@ async function listCategory() {
     const cachedCategories = cache.get(cacheKey);
 
     if (cachedCategories) {
-      logMemoryUsage();
       return cachedCategories;
     }
 
