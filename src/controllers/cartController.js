@@ -30,18 +30,12 @@ export const addToCartController = async (req, res) => {
     };
 
     const result = await addToCart(cartData);
-    //console.log("result", result);
     res.status(201).json(result);
-
-    /* 
-    const cartData = req.body;
-    const response = await addToCart(cartData);
-    res.status(201).json(response);
-    
-    */
   } catch (error) {
     console.error("Error adding product to the cart:", error);
-    res.status(500).json({ message: "Failed to add product to cart." });
+    res
+      .status(400)
+      .json({ message: error.message || "Failed to add product to cart." });
   }
 };
 
@@ -57,11 +51,11 @@ export const getCartItemsController = async (req, res) => {
 
 export const updateCartController = async (req, res) => {
   try {
-    const { id, quantity, shoppingCartTypeId } = req.body;
+    const { id, quantity, shoppingCartTypeId, productId } = req.body;
 
     // Validate input
-    if (!id || (quantity === undefined && shoppingCartTypeId === undefined)) {
-      return res.status(400).json({ message: "Invalid input data." });
+    if (!id || quantity === undefined || !productId) {
+      return res.status(400).json({ message: "Id, quantity, and productId are required." });
     }
 
     // Prepare the update data
@@ -69,19 +63,21 @@ export const updateCartController = async (req, res) => {
     if (quantity !== undefined) updateData.Quantity = quantity;
     if (shoppingCartTypeId !== undefined)
       updateData.ShoppingCartTypeId = shoppingCartTypeId;
+    if (productId !== undefined)
+      updateData.ProductId = productId; // Ensure ProductId is included
     updateData.UpdatedOnUTC = new Date().toISOString();
 
     // Update the cart item
     const result = await updateCart(id, updateData);
 
-    res
-      .status(200)
-      .json({ success: true, message: "Cart updated successfully.", result });
+    res.status(200).json({ success: true, message: "Cart updated successfully.", result });
   } catch (error) {
     console.error("Error updating cart:", error);
-    res.status(500).json({ message: "Failed to update cart." });
+    res.status(400).json({ message: error.message || "Failed to update cart." });
   }
 };
+
+
 
 // Controller to remove all cart items
 export const removeAllCartItemsController = async (req, res) => {
