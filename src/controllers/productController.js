@@ -58,15 +58,17 @@ async function getNewArrivals(req, res) {
             }
 
             return {
-                Id: product.Id,
-                Name: product.Name,
-                Price: product.Price,
-                FullDescription: product.FullDescription,
-                ShortDescription: product.ShortDescription,
-                OrderMinimumQuantity: product.OrderMinimumQuantity,
-                OrderMaximumQuantity: product.OrderMaximumQuantity,
-                Stock: product.Stock,
-                Image: image
+                data: {
+                    Id: product.Id,
+                    Name: product.Name,
+                    Price: product.Price,
+                    FullDescription: product.FullDescription,
+                    ShortDescription: product.ShortDescription,
+                    OrderMinimumQuantity: product.OrderMinimumQuantity,
+                    OrderMaximumQuantity: product.OrderMaximumQuantity,
+                    Stock: product.Stock,
+                    Image: image
+                }
             };
         });
 
