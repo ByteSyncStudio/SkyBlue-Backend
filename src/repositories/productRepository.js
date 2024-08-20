@@ -1,5 +1,6 @@
 import knex from '../config/knex.js';
 import cache from '../config/cache.js'
+import { generateImageUrl } from '../utils/imageUtils.js';
 
 
 /**
@@ -68,19 +69,6 @@ async function getSubcategories(categoryId) {
 }
 
 /**
- * Generates the image URL for a product.
- * 
- * @param {number} pictureId - The ID of the picture.
- * @param {string} mimeType - The MIME type of the picture.
- * @returns {string} The generated image URL.
- */
-function generateImageUrl(pictureId, mimeType) {
-  const formattedId = pictureId.toString().padStart(7, '0');
-  const fileExtension = mimeType ? mimeType.split('/')[1] : 'jpg';
-  return `https://skybluewholesale.com/content/images/${formattedId}_0.${fileExtension}`;
-}
-
-/**
  * Retrieves a list of products from the specified category with pagination.
  * 
  * @param {string} category - The name of the category.
@@ -146,12 +134,12 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
       };
     });
 
-    const totalProducts = products.length > 0 ? products[0].total_count: 0;
+    const totalProducts = products.length > 0 ? products[0].total_count : 0;
 
     const response = {
       totalProducts,
       pageNumber: page,
-      pageSize: size, 
+      pageSize: size,
       data: processedProducts
     }
 
@@ -166,5 +154,134 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
   }
 }
 
+async function bestsellersByQuantity() {
+  const cacheKey = 'bestsellers_by_quantity';
+  const cachedProducts = cache.get(cacheKey);
 
-export { listCategory, listProductsFromCategory };
+  if (cachedProducts) {
+    return cachedProducts;
+  }
+
+  const topProducts = await knex('OrderItem')
+    .select('ProductId')
+    .sum('Quantity as TotalQuantity')
+    .sum('PriceExclTax as TotalAmount')
+    .groupBy('ProductId')
+    .orderBy('TotalQuantity', 'desc')
+    .limit(5);
+
+  const productIds = topProducts.map(i => i.ProductId);
+
+  const products = await knex('Product')
+    .select([
+      'Product.Id',
+      'Product.Name',
+      'Product.Price',
+      'Product.FullDescription',
+      'Product.ShortDescription',
+      'Product.OrderMinimumQuantity',
+      'Product.OrderMaximumQuantity',
+      'Product_Picture_Mapping.PictureId',
+      'Product.Stock',
+      'Picture.MimeType'
+    ])
+    .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
+    .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
+    .whereIn('Product.Id', productIds);
+
+  const processedProducts = products.map(product => {
+    let image = null;
+    const topProduct = topProducts.find(p => p.ProductId === product.Id);
+    if (product.PictureId) {
+      image = generateImageUrl(product.PictureId, product.MimeType);
+    }
+
+    const data = {
+      Id: product.Id,
+      Name: product.Name,
+      Price: product.Price,
+      FullDescription: product.FullDescription,
+      ShortDescription: product.ShortDescription,
+      OrderMinimumQuantity: product.OrderMinimumQuantity,
+      OrderMaximumQuantity: product.OrderMaximumQuantity,
+      Stock: product.Stock,
+      Image: image
+    };
+
+    return {
+      Quantity: topProduct.TotalQuantity,
+      Amount: topProduct.TotalAmount,
+      data: data
+    };
+  });
+
+  cache.set(cacheKey, processedProducts);
+  return processedProducts;
+}
+
+async function bestsellersByAmount() {
+  const cacheKey = 'bestsellers_by_amount';
+  const cachedProducts = cache.get(cacheKey);
+
+  if (cachedProducts) {
+    return cachedProducts;
+  }
+
+  const topProducts = await knex('OrderItem')
+    .select('ProductId')
+    .sum('PriceExclTax as TotalAmount')
+    .sum('Quantity as TotalQuantity')
+    .groupBy('ProductId')
+    .orderBy('TotalAmount', 'desc')
+    .limit(5);
+
+  const productIds = topProducts.map(i => i.ProductId);
+
+  const products = await knex('Product')
+    .select([
+      'Product.Id',
+      'Product.Name',
+      'Product.Price',
+      'Product.FullDescription',
+      'Product.ShortDescription',
+      'Product.OrderMinimumQuantity',
+      'Product.OrderMaximumQuantity',
+      'Product_Picture_Mapping.PictureId',
+      'Product.Stock',
+      'Picture.MimeType'
+    ])
+    .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
+    .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
+    .whereIn('Product.Id', productIds);
+
+  const processedProducts = products.map(product => {
+    let image = null;
+    const topProduct = topProducts.find(p => p.ProductId === product.Id);
+    if (product.PictureId) {
+      image = generateImageUrl(product.PictureId, product.MimeType);
+    }
+
+    const data = {
+      Id: product.Id,
+      Name: product.Name,
+      Price: product.Price,
+      FullDescription: product.FullDescription,
+      ShortDescription: product.ShortDescription,
+      OrderMinimumQuantity: product.OrderMinimumQuantity,
+      OrderMaximumQuantity: product.OrderMaximumQuantity,
+      Stock: product.Stock,
+      Image: image
+    };
+
+    return {
+      Quantity: topProduct.TotalQuantity,
+      Amount: topProduct.TotalAmount,
+      data: data
+    };
+  });
+
+  cache.set(cacheKey, processedProducts);
+  return processedProducts;
+}
+
+export { listCategory, listProductsFromCategory, bestsellersByQuantity, bestsellersByAmount };

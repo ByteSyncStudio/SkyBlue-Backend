@@ -1,4 +1,4 @@
-import { listCategory, listProductsFromCategory } from "../repositories/productRepository.js";
+import { bestsellersByQuantity, listCategory, listProductsFromCategory, bestsellersByAmount } from "../repositories/productRepository.js";
 
 /**
  * @swagger
@@ -66,4 +66,24 @@ async function getProductsFromCategories(req, res) {
     }
 }
 
-export { getCategory, getProductsFromCategories };
+async function getBestSellersByQuantity(req, res) {
+    try {
+        const products = await bestsellersByQuantity();
+        res.status(200).send(products)
+    } catch (error) {
+        console.error(error);
+        res.status(error.statusCode || 500).send(error.message || 'Server error');
+    }
+}
+
+async function getBestSellersByAmount(req, res) {
+    try {
+        const products = await bestsellersByAmount();
+        res.status(200).send(products)
+    } catch (error) {
+        console.error(error);
+        res.status(error.statusCode || 500).send(error.message || 'Server error');
+    }
+}
+
+export { getCategory, getProductsFromCategories, getBestSellersByQuantity, getBestSellersByAmount };
