@@ -153,7 +153,7 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
   }
 }
 
-async function bestsellers(sortBy) {
+async function listBestsellers(sortBy) {
   const cacheKey = `bestsellers_by_${sortBy}`;
   const cachedBestSellers = cache.get(cacheKey);
 
@@ -219,4 +219,28 @@ async function bestsellers(sortBy) {
   return processedProducts;
 }
 
-export { listCategory, listProductsFromCategory, bestsellers };
+async function listNewArrivals() {
+  const result = knex('Product')
+  .select([
+    'Product.CreatedonUTC',
+    'Product.Id',
+    'Product.Name',
+    'Product.Price',
+    'Product.FullDescription',
+    'Product.ShortDescription',
+    'Product.OrderMinimumQuantity',
+    'Product.OrderMaximumQuantity',
+    'Product_Picture_Mapping.PictureId',
+    'Product.Stock',
+    'Picture.MimeType'
+  ])
+  .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
+  .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
+  .orderBy('Product.CreatedonUTC', 'desc')
+  .limit(5)
+
+  return result;
+}
+
+
+export { listCategory, listProductsFromCategory, listBestsellers, listNewArrivals };

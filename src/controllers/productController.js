@@ -1,4 +1,5 @@
-import { listCategory, listProductsFromCategory, bestsellers } from "../repositories/productRepository.js";
+import { listCategory, listProductsFromCategory, listBestsellers, listNewArrivals } from "../repositories/productRepository.js";
+import { generateImageUrl } from "../utils/imageUtils.js";
 
 /**
  * @swagger
@@ -21,55 +22,14 @@ async function getCategory(req, res) {
     }
 }
 
-
-/**
- * @swagger
- * /product/{categoryId}:
- *   get:
- *     summary: Retrieve a list of products from a category
- *     parameters:
- *       - in: path
- *         name: categoryId
- *         required: true
- *         schema:
- *           type: integer
- *         description: The ID of the category
- *       - in: query
- *         name: page
- *         required: false
- *         schema:
- *           type: integer
- *         description: The page number
- *       - in: query
- *         name: size
- *         required: false
- *         schema:
- *           type: integer
- *         description: The number of items per page
- *     responses:
- *       200:
- *         description: A list of products.
- *       500:
- *         description: Internal server error
- */
 async function getProductsFromCategories(req, res) {
     try {
         const categoryId = req.params.category;
         const page = parseInt(req.query.page, 10) || 1;
         const size = parseInt(req.query.size, 10) || 10;
-        
+
         const products = await listProductsFromCategory(categoryId, page, size);
         res.status(200).send(products);
-    } catch (error) {
-        console.error(error);
-        res.status(error.statusCode || 500).send(error.message || 'Server error');
-    }
-}
-
-async function getBestSellersByQuantity(req, res) {
-    try {
-        const products = await bestsellersByQuantity();
-        res.status(200).send(products)
     } catch (error) {
         console.error(error);
         res.status(error.statusCode || 500).send(error.message || 'Server error');
@@ -79,7 +39,7 @@ async function getBestSellersByQuantity(req, res) {
 async function getBestSellers(req, res) {
     try {
         const sortBy = req.query.sortBy || 'quantity';
-        const products = await bestsellers(sortBy);
+        const products = await listBestsellers(sortBy);
         res.status(200).send(products)
     } catch (error) {
         console.error(error);
@@ -87,4 +47,34 @@ async function getBestSellers(req, res) {
     }
 }
 
-export { getCategory, getProductsFromCategories, getBestSellers };
+async function getNewArrivals(req, res) {
+    try {
+        const data = await listNewArrivals();
+
+        const products = data.map(product => {
+            let image = null;
+            if (product.PictureId) {
+                image = generateImageUrl(product.PictureId, product.MimeType);
+            }
+
+            return {
+                Id: product.Id,
+                Name: product.Name,
+                Price: product.Price,
+                FullDescription: product.FullDescription,
+                ShortDescription: product.ShortDescription,
+                OrderMinimumQuantity: product.OrderMinimumQuantity,
+                OrderMaximumQuantity: product.OrderMaximumQuantity,
+                Stock: product.Stock,
+                Image: image
+            };
+        });
+
+        res.status(200).send(products);
+    } catch (error) {
+        console.error(error);
+        res.status(error.statusCode || 500).send(error.message || 'Server error');
+    }
+}
+
+export { getCategory, getProductsFromCategories, getBestSellers, getNewArrivals };

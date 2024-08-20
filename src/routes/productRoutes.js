@@ -1,11 +1,11 @@
 import express from 'express';
-import { getCategory, getProductsFromCategories, getBestSellers } from '../controllers/productController.js';
+import { getCategory, getProductsFromCategories, getBestSellers, getNewArrivals } from '../controllers/productController.js';
 
 const router = express.Router();
 
 /**
  * @swagger
- * /category/all:
+ * product/category/all:
  *   get:
  *     summary: Retrieve a list of all categories
  *     responses:
@@ -50,7 +50,7 @@ router.get("/category/:category", getProductsFromCategories);
 
 /**
  * @swagger
- * /bestseller:
+ * /product/bestseller:
  *   get:
  *     summary: Retrieve bestsellers sorted by quantity or amount
  *     parameters:
@@ -68,5 +68,18 @@ router.get("/category/:category", getProductsFromCategories);
  *         description: Internal server error
  */
 router.get('/bestseller', getBestSellers);
+
+/**
+ * @swagger
+ * /product/newarrivals:
+ *   get:
+ *     summary: Retrieve a list of all New Arrival products
+ *     responses:
+ *       200:
+ *         description: A list of products.
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/newarrivals', getNewArrivals)
 
 export default router;

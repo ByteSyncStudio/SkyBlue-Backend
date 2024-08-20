@@ -1,5 +1,6 @@
 import express from 'express';
 import helmet from 'helmet'
+import cors from 'cors';
 import swaggerSetup from './config/swagger.js';
 import fileRoutes from './routes/fileRoutes.js';
 import customerRoutes from './routes/customerRoutes.js';
@@ -8,6 +9,8 @@ import productRoutes from "./routes/productRoutes.js"
 
 const app = express();
 
+
+app.use(cors());
 
 // Security Middleware
 app.use(helmet());
