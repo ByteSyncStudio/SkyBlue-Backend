@@ -154,20 +154,21 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
   }
 }
 
-async function bestsellersByQuantity() {
-  const cacheKey = 'bestsellers_by_quantity';
-  const cachedProducts = cache.get(cacheKey);
+async function bestsellers(sortBy) {
+  const cacheKey = `bestsellers_by_${sortBy}`;
+  const cachedBestSellers = cache.get(cacheKey);
 
-  if (cachedProducts) {
-    return cachedProducts;
+  if (cachedBestSellers) {
+    return cachedBestSellers;
   }
 
+  const orderColumn = sortBy === 'quantity' ? 'TotalQuantity' : 'TotalAmount';
   const topProducts = await knex('OrderItem')
     .select('ProductId')
     .sum('Quantity as TotalQuantity')
     .sum('PriceExclTax as TotalAmount')
     .groupBy('ProductId')
-    .orderBy('TotalQuantity', 'desc')
+    .orderBy(orderColumn, 'desc')
     .limit(5);
 
   const productIds = topProducts.map(i => i.ProductId);
@@ -219,69 +220,4 @@ async function bestsellersByQuantity() {
   return processedProducts;
 }
 
-async function bestsellersByAmount() {
-  const cacheKey = 'bestsellers_by_amount';
-  const cachedProducts = cache.get(cacheKey);
-
-  if (cachedProducts) {
-    return cachedProducts;
-  }
-
-  const topProducts = await knex('OrderItem')
-    .select('ProductId')
-    .sum('PriceExclTax as TotalAmount')
-    .sum('Quantity as TotalQuantity')
-    .groupBy('ProductId')
-    .orderBy('TotalAmount', 'desc')
-    .limit(5);
-
-  const productIds = topProducts.map(i => i.ProductId);
-
-  const products = await knex('Product')
-    .select([
-      'Product.Id',
-      'Product.Name',
-      'Product.Price',
-      'Product.FullDescription',
-      'Product.ShortDescription',
-      'Product.OrderMinimumQuantity',
-      'Product.OrderMaximumQuantity',
-      'Product_Picture_Mapping.PictureId',
-      'Product.Stock',
-      'Picture.MimeType'
-    ])
-    .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
-    .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
-    .whereIn('Product.Id', productIds);
-
-  const processedProducts = products.map(product => {
-    let image = null;
-    const topProduct = topProducts.find(p => p.ProductId === product.Id);
-    if (product.PictureId) {
-      image = generateImageUrl(product.PictureId, product.MimeType);
-    }
-
-    const data = {
-      Id: product.Id,
-      Name: product.Name,
-      Price: product.Price,
-      FullDescription: product.FullDescription,
-      ShortDescription: product.ShortDescription,
-      OrderMinimumQuantity: product.OrderMinimumQuantity,
-      OrderMaximumQuantity: product.OrderMaximumQuantity,
-      Stock: product.Stock,
-      Image: image
-    };
-
-    return {
-      Quantity: topProduct.TotalQuantity,
-      Amount: topProduct.TotalAmount,
-      data: data
-    };
-  });
-
-  cache.set(cacheKey, processedProducts);
-  return processedProducts;
-}
-
-export { listCategory, listProductsFromCategory, bestsellersByQuantity, bestsellersByAmount };
+export { listCategory, listProductsFromCategory, bestsellers };
