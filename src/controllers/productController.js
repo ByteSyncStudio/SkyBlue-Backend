@@ -39,7 +39,8 @@ async function getProductsFromCategories(req, res) {
 async function getBestSellers(req, res) {
     try {
         const sortBy = req.query.sortBy || 'quantity';
-        const products = await listBestsellers(sortBy);
+        const size = req.query.size || 5;
+        const products = await listBestsellers(sortBy, size);
         res.status(200).send(products)
     } catch (error) {
         console.error(error);
@@ -49,7 +50,8 @@ async function getBestSellers(req, res) {
 
 async function getNewArrivals(req, res) {
     try {
-        const data = await listNewArrivals();
+        const size = req.query.size || 5;
+        const data = await listNewArrivals(size);
 
         const products = data.map(product => {
             let image = null;

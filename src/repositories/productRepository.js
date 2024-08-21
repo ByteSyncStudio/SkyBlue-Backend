@@ -153,8 +153,8 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
   }
 }
 
-async function listBestsellers(sortBy) {
-  const cacheKey = `bestsellers_by_${sortBy}`;
+async function listBestsellers(sortBy, size) {
+  const cacheKey = `bestsellers_by_${sortBy}_${size}`;
   const cachedBestSellers = cache.get(cacheKey);
 
   if (cachedBestSellers) {
@@ -168,7 +168,7 @@ async function listBestsellers(sortBy) {
     .sum('PriceExclTax as TotalAmount')
     .groupBy('ProductId')
     .orderBy(orderColumn, 'desc')
-    .limit(5);
+    .limit(size);
 
   const productIds = topProducts.map(i => i.ProductId);
 
@@ -219,7 +219,7 @@ async function listBestsellers(sortBy) {
   return processedProducts;
 }
 
-async function listNewArrivals() {
+async function listNewArrivals(size) {
   const result = knex('Product')
   .select([
     'Product.CreatedonUTC',
@@ -237,7 +237,7 @@ async function listNewArrivals() {
   .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
   .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
   .orderBy('Product.CreatedonUTC', 'desc')
-  .limit(5)
+  .limit(size)
 
   return result;
 }
