@@ -1,4 +1,5 @@
 import knex from "../config/knex.js";
+import { generateImageUrl } from "../utils/imageUtils.js";
 
 
 //add to cart
@@ -49,18 +50,40 @@ async function addToCart(cartData) {
 // Get Cart Items with Price
 async function getCartItems(customerId) {
   try {
-    // Join ShoppingCartItem with Product table to get the price
+    // Join ShoppingCartItem with Product table to get the price and image
     const cartItems = await knex("ShoppingCartItem")
       .where("CustomerId", customerId)
       .join("Product", "ShoppingCartItem.ProductId", "=", "Product.Id")
-      .select("ShoppingCartItem.*", "Product.Price"); // Select all fields from ShoppingCartItem and the Price from Product
+      .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
+      .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
+      .select(
+        "ShoppingCartItem.*", 
+        "Product.Price", 
+        "Product_Picture_Mapping.PictureId", 
+        "Picture.MimeType"
+      ); // Select all fields from ShoppingCartItem, the Price from Product, and image data
 
-    return { success: true, cartItems };
+    const cartItemsWithImages = cartItems.map(item => {
+      let image = null;
+      if (item.PictureId) {
+        image = generateImageUrl(item.PictureId, item.MimeType);
+      }
+
+      return {
+        ...item,
+        image,
+      };
+    });
+
+    //console.log("cartItemsWithImages:", cartItemsWithImages);
+    return { success: true, cartItems: cartItemsWithImages };
   } catch (error) {
     console.error("Error retrieving cart items:", error);
     throw new Error("Failed to retrieve cart items.");
   }
 }
+
+
 
 // Update cart with stock validation
 async function updateCart(id, updateData) {
