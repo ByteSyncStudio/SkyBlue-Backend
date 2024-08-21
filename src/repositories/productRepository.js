@@ -137,6 +137,7 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
 
     const response = {
       totalProducts,
+      totalPages: Math.ceil(totalProducts / size),
       pageNumber: page,
       pageSize: size,
       data: processedProducts
