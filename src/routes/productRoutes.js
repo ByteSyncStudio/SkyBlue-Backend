@@ -18,7 +18,7 @@ router.get("/category/all", getCategory);
 
 /**
  * @swagger
- * /product/{categoryId}:
+ * /product/category/{categoryId}:
  *   get:
  *     summary: Retrieve a list of products from a category
  *     parameters:

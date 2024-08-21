@@ -11,7 +11,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /add:
+ * /cart/add:
  *   post:
  *     summary: Add a product to the cart
  *     description: Adds a new product to the shopping cart for a customer.
@@ -44,7 +44,7 @@ router.post("/add", addToCartController);
 
 /**
  * @swagger
- * /items/{customerId}:
+ * /cart/items/{customerId}:
  *   get:
  *     summary: Get all cart items for a customer
  *     description: Retrieves all items currently in the shopping cart for a specific customer.
@@ -65,7 +65,7 @@ router.get("/items/:customerId", getCartItemsController);
 
 /**
  * @swagger
- * /update:
+ * /cart/update:
  *   put:
  *     summary: Update a cart item
  *     description: Updates the quantity or other details of a cart item.
@@ -105,7 +105,7 @@ router.put("/update", updateCartController);
 
 /**
  * @swagger
- * /remove-all/{customerId}:
+ * /cart/remove-all/{customerId}:
  *   delete:
  *     summary: Remove all cart items for a customer
  *     description: Deletes all items from the shopping cart for a specific customer.
@@ -128,7 +128,7 @@ router.delete("/remove-all/:customerId", removeAllCartItemsController);
 
 /**
  * @swagger
- * /remove/{id}:
+ * /cart/remove/{id}:
  *   delete:
  *     summary: Remove a single cart item
  *     description: Deletes a specific item from the shopping cart.

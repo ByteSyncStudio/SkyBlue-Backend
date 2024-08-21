@@ -27,7 +27,7 @@ app.use('/', fileRoutes);
 app.use('/customers', customerRoutes);
 app.use('/auth', authRoutes);
 app.use('/product',productRoutes)
-app.use('/api/cart',cartRoute)
+app.use('/cart',cartRoute)
 
 
 // (Loose) Error Catcher
