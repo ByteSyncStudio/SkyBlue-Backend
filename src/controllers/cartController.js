@@ -8,18 +8,21 @@ import {
 
 export const addToCartController = async (req, res) => {
   try {
-    const { productId, quantity } = req.body;
-    const customerId = 1; // Hard-coded for testing : This is userId1 email: admin@yourcompany.com from customerDB
+    const { productId, quantity, customerId } = req.body;
 
-    const storeId = 3;
-    const shoppingCartTypeId = 1; // Example value, could be from req.body as well
+    if (!customerId) {
+      return res.status(400).json({ message: "Customer ID is required." });
+    }
+
+    const storeId = 3; // Adjust as needed or get from req.body
+    const shoppingCartTypeId = 1; // Adjust as needed or get from req.body
     const createdAtUTC = new Date().toISOString();
     const updatedAtUTC = createdAtUTC;
 
     const cartData = {
       StoreId: storeId,
       ShoppingCartTypeId: shoppingCartTypeId,
-      CustomerId: customerId,
+      CustomerId: customerId, // Use customerId from req.body
       ProductId: productId,
       CustomerEnteredPrice: 0,
       Quantity: quantity,
@@ -30,14 +33,13 @@ export const addToCartController = async (req, res) => {
     };
 
     const result = await addToCart(cartData);
-    res.status(201).json(result);
+    res.status(result.success ? 201 : 400).json(result);
   } catch (error) {
     console.error("Error adding product to the cart:", error);
-    res
-      .status(400)
-      .json({ message: error.message || "Failed to add product to cart." });
+    res.status(500).json({ message: "Failed to add product to cart." });
   }
 };
+
 
 export const getCartItemsController = async (req, res) => {
   try {
@@ -51,11 +53,10 @@ export const getCartItemsController = async (req, res) => {
 
 export const updateCartController = async (req, res) => {
   try {
-    const { id, quantity, shoppingCartTypeId, productId } = req.body;
-
+    const { id, quantity, shoppingCartTypeId } = req.body;
     // Validate input
-    if (!id || quantity === undefined || !productId) {
-      return res.status(400).json({ message: "Id, quantity, and productId are required." });
+    if (!id || (quantity === undefined && shoppingCartTypeId === undefined)) {
+      return res.status(400).json({ message: "Invalid input data." });
     }
 
     // Prepare the update data
@@ -63,21 +64,19 @@ export const updateCartController = async (req, res) => {
     if (quantity !== undefined) updateData.Quantity = quantity;
     if (shoppingCartTypeId !== undefined)
       updateData.ShoppingCartTypeId = shoppingCartTypeId;
-    if (productId !== undefined)
-      updateData.ProductId = productId; // Ensure ProductId is included
     updateData.UpdatedOnUTC = new Date().toISOString();
 
     // Update the cart item
     const result = await updateCart(id, updateData);
 
-    res.status(200).json({ success: true, message: "Cart updated successfully.", result });
+    res
+      .status(200)
+      .json({ success: true, message: "Cart updated successfully.", result });
   } catch (error) {
     console.error("Error updating cart:", error);
-    res.status(400).json({ message: error.message || "Failed to update cart." });
+    res.status(500).json({ message: "Failed to update cart." });
   }
 };
-
-
 
 // Controller to remove all cart items
 export const removeAllCartItemsController = async (req, res) => {
