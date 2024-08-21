@@ -13,13 +13,13 @@ import { generateImageUrl } from "../utils/imageUtils.js";
  *         description: Internal server error
  */
 async function getCategory(req, res) {
-    try {
-        const category = await listCategory();
-        res.json(category);
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Server error');
-    }
+  try {
+    const category = await listCategory();
+    res.json(category);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error");
+  }
 }
 
 async function getProductsFromCategories(req, res) {

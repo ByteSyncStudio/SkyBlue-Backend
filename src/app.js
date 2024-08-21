@@ -6,6 +6,7 @@ import fileRoutes from './routes/fileRoutes.js';
 import customerRoutes from './routes/customerRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import productRoutes from "./routes/productRoutes.js"
+import cartRoute from "./routes/cartRoutes.js"
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use('/', fileRoutes);
 app.use('/customers', customerRoutes);
 app.use('/auth', authRoutes);
 app.use('/product',productRoutes)
+app.use('/api/cart',cartRoute)
 
 
 // (Loose) Error Catcher
