@@ -144,7 +144,7 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
     }
 
     //? Cache for future use
-    cache.set(cacheKey, processedProducts);
+    cache.set(cacheKey, response);
 
     return response;
 
