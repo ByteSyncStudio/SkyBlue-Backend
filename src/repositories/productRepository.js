@@ -80,6 +80,39 @@ async function getSubcategories(categoryId) {
 }
 
 /**
+ * Helper function to fetch and process products.
+ * 
+ * @param {Object} query - The Knex query object to fetch products.
+ * @param {Function} [processingFunction=null] - Optional function to further process each product.
+ * @returns {Promise<Array>} A promise that resolves to an array of processed product objects.
+ */
+async function fetchAndProcessProducts(query, processingFunction = null) {
+  const products = await query;
+
+  return products.map(product => {
+    let image = null;
+    if (product.PictureId) {
+      image = generateImageUrl(product.PictureId, product.MimeType);
+    }
+
+    const processedProduct = {
+      Id: product.Id,
+      Name: product.Name,
+      Price: product.Price,
+      FullDescription: product.FullDescription,
+      ShortDescription: product.ShortDescription,
+      OrderMinimumQuantity: product.OrderMinimumQuantity,
+      OrderMaximumQuantity: product.OrderMaximumQuantity,
+      Stock: product.Stock,
+      Image: image,
+      total_count: product.total_count
+    };
+
+    return processingFunction ? processingFunction(processedProduct, product) : processedProduct;
+  });
+}
+
+/**
  * Retrieves a list of products from the specified category with pagination.
  * 
  * @param {string} category - The name of the category.
@@ -96,13 +129,10 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
   }
 
   try {
-    //? Calculate offset for pagination
     const offset = (page - 1) * size;
-
     const subCategoryIds = await getSubcategories(categoryId);
 
-    //? Fetch products with their images in a single query
-    const products = await knex('Product')
+    const query = knex('Product')
       .select([
         'Product.Id',
         'Product.Name',
@@ -124,28 +154,9 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
       .limit(size)
       .offset(offset);
 
+    const processedProducts = await fetchAndProcessProducts(query);
 
-    //? Process image for each product
-    const processedProducts = products.map(product => {
-      let image = null;
-      if (product.PictureId) {
-        image = generateImageUrl(product.PictureId, product.MimeType);
-      }
-
-      return {
-        Id: product.Id,
-        Name: product.Name,
-        Price: product.Price,
-        FullDescription: product.FullDescription,
-        ShortDescription: product.ShortDescription,
-        OrderMinimumQuantity: product.OrderMinimumQuantity,
-        OrderMaximumQuantity: product.OrderMaximumQuantity,
-        Stock: product.Stock,
-        Image: image
-      };
-    });
-
-    const totalProducts = products.length > 0 ? products[0].total_count : 0;
+    const totalProducts = processedProducts.length > 0 ? processedProducts[0].total_count : 0;
 
     const response = {
       totalProducts,
@@ -155,9 +166,7 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
       data: processedProducts
     }
 
-    //? Cache for future use
     cache.set(cacheKey, response);
-
     return response;
 
   } catch (error) {
@@ -166,6 +175,13 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
   }
 }
 
+/**
+ * Retrieves a list of best-selling products sorted by a specified criterion.
+ * 
+ * @param {string} sortBy - The criterion to sort by ('quantity' or 'amount').
+ * @param {number} size - The number of items to retrieve.
+ * @returns {Promise<Array>} A promise that resolves to an array of best-selling product objects.
+ */
 async function listBestsellers(sortBy, size) {
   try {
     const cacheKey = `bestsellers_by_${sortBy}_${size}`;
@@ -186,7 +202,7 @@ async function listBestsellers(sortBy, size) {
 
     const productIds = topProducts.map(i => i.ProductId);
 
-    const products = await knex('Product')
+    const query = knex('Product')
       .select([
         'Product.Id',
         'Product.Name',
@@ -203,29 +219,12 @@ async function listBestsellers(sortBy, size) {
       .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
       .whereIn('Product.Id', productIds);
 
-    const processedProducts = products.map(product => {
-      let image = null;
+    const processedProducts = await fetchAndProcessProducts(query, (processedProduct, product) => {
       const topProduct = topProducts.find(p => p.ProductId === product.Id);
-      if (product.PictureId) {
-        image = generateImageUrl(product.PictureId, product.MimeType);
-      }
-
-      const data = {
-        Id: product.Id,
-        Name: product.Name,
-        Price: product.Price,
-        FullDescription: product.FullDescription,
-        ShortDescription: product.ShortDescription,
-        OrderMinimumQuantity: product.OrderMinimumQuantity,
-        OrderMaximumQuantity: product.OrderMaximumQuantity,
-        Stock: product.Stock,
-        Image: image
-      };
-
       return {
         Quantity: topProduct.TotalQuantity,
         Amount: topProduct.TotalAmount,
-        data: data
+        data: processedProduct
       };
     });
 
@@ -239,9 +238,16 @@ async function listBestsellers(sortBy, size) {
   }
 }
 
+
+/**
+ * Retrieves a list of new arrival products with pagination.
+ * 
+ * @param {number} size - The number of items per page.
+ * @returns {Promise<Array>} A promise that resolves to an array of new arrival product objects.
+ */
 async function listNewArrivals(size) {
   try {
-    const result = knex('Product')
+    const query = knex('Product')
       .select([
         'Product.CreatedonUTC',
         'Product.Id',
@@ -258,13 +264,13 @@ async function listNewArrivals(size) {
       .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
       .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
       .orderBy('Product.CreatedonUTC', 'desc')
-      .limit(size)
+      .limit(size);
 
-    return result;
+    return await fetchAndProcessProducts(query);
   }
   catch (error) {
     error.statusCode = 500;
-    error.message = "Error in BestSellers"
+    error.message = "Error in NewArrivals"
     throw error;
   }
 }
@@ -280,81 +286,41 @@ async function listNewArrivals(size) {
  */
 async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10) {
   try {
-    console.log(searchTerm);
-    console.log('Category ID:', categoryId);
     const offset = (page - 1) * size;
-    let products;
 
-    if (categoryId === -1) {
-      products = await knex('Product')
-        .select([
-          'Product.Id',
-          'Product.Name',
-          'Product.Price',
-          'Product.FullDescription',
-          'Product.ShortDescription',
-          'Product.OrderMinimumQuantity',
-          'Product.OrderMaximumQuantity',
-          'Product_Picture_Mapping.PictureId',
-          'Product.Stock',
-          'Picture.MimeType',
-          knex.raw('COUNT(*) OVER() AS total_count')
-        ])
-        .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
-        .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
-        .where('Product.Name', 'like', `%${searchTerm}%`)
-        .orderBy('Product.Name')
-        .limit(size)
-        .offset(offset);
-    } if ([36, 111, 189].includes(categoryId)) {
+    let query = knex('Product')
+      .select([
+        'Product.Id',
+        'Product.Name',
+        'Product.Price',
+        'Product.FullDescription',
+        'Product.ShortDescription',
+        'Product.OrderMinimumQuantity',
+        'Product.OrderMaximumQuantity',
+        'Product_Picture_Mapping.PictureId',
+        'Product.Stock',
+        'Picture.MimeType',
+        knex.raw('COUNT(*) OVER() AS total_count')
+      ])
+      .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
+      .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
+      .where('Product.Name', 'like', `%${searchTerm}%`)
+      .orderBy('Product.Name')
+      .limit(size)
+      .offset(offset);
+
+    if ([36, 111, 189].includes(categoryId)) {
       const subCategoryIds = await getSubcategories(categoryId);
-
-      products = await knex('Product')
-        .select([
-          'Product.Id',
-          'Product.Name',
-          'Product.Price',
-          'Product.FullDescription',
-          'Product.ShortDescription',
-          'Product.OrderMinimumQuantity',
-          'Product.OrderMaximumQuantity',
-          'Product_Picture_Mapping.PictureId',
-          'Product.Stock',
-          'Picture.MimeType',
-          knex.raw('COUNT(*) OVER() AS total_count')
-        ])
+      query = query
         .join('Product_Category_Mapping', 'Product.Id', 'Product_Category_Mapping.ProductId')
-        .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
-        .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
-        .whereIn('Product_Category_Mapping.CategoryId', subCategoryIds)
-        .andWhere('Product.Name', 'like', `%${searchTerm}%`)
-        .orderBy('Product.Name')
-        .limit(size)
-        .offset(offset);
+        .whereIn('Product_Category_Mapping.CategoryId', subCategoryIds);
     }
 
-    const processedProducts = products.map(product => {
-      let image = null;
-      if (product.PictureId) {
-        image = generateImageUrl(product.PictureId, product.MimeType);
-      }
+    const processedProducts = await fetchAndProcessProducts(query);
 
-      return {
-        Id: product.Id,
-        Name: product.Name,
-        Price: product.Price,
-        FullDescription: product.FullDescription,
-        ShortDescription: product.ShortDescription,
-        OrderMinimumQuantity: product.OrderMinimumQuantity,
-        OrderMaximumQuantity: product.OrderMaximumQuantity,
-        Stock: product.Stock,
-        Image: image
-      };
-    });
+    const totalProducts = processedProducts.length > 0 ? processedProducts[0].total_count : 0;
 
-    const totalProducts = products.length > 0 ? products[0].total_count : 0;
-
-    const response = {
+    return {
       totalProducts,
       totalPages: Math.ceil(totalProducts / size),
       pageNumber: page,
@@ -362,14 +328,13 @@ async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10) {
       data: processedProducts
     };
 
-    return response;
-
   } catch (error) {
     error.statusCode = 500
     error.message = "Error in searchProducts"
     throw error;
   }
 }
+
 
 
 export { listCategory, listProductsFromCategory, listBestsellers, listNewArrivals, listSearchProducts };

@@ -51,30 +51,8 @@ async function getBestSellers(req, res) {
 async function getNewArrivals(req, res) {
     try {
         const size = req.query.size || 5;
-        const data = await listNewArrivals(size);
-
-        const products = data.map(product => {
-            let image = null;
-            if (product.PictureId) {
-                image = generateImageUrl(product.PictureId, product.MimeType);
-            }
-
-            return {
-                data: {
-                    Id: product.Id,
-                    Name: product.Name,
-                    Price: product.Price,
-                    FullDescription: product.FullDescription,
-                    ShortDescription: product.ShortDescription,
-                    OrderMinimumQuantity: product.OrderMinimumQuantity,
-                    OrderMaximumQuantity: product.OrderMaximumQuantity,
-                    Stock: product.Stock,
-                    Image: image
-                }
-            };
-        });
-
-        res.status(200).send(products);
+        const products = await listNewArrivals(size);
+        res.status(200).send(products.map(product => ({ data: product })));
     } catch (error) {
         console.error(error);
         res.status(error.statusCode || 500).send(error.message || 'Server error');
