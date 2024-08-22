@@ -57,7 +57,8 @@ async function getSubcategories(categoryId) {
             .innerJoin('SubCategories as sc', 'c.ParentCategoryId', 'sc.Id');
         });
     })
-    .select('Id');
+    .select('Id')
+    .from('Subcategories');
 
   const subCategoryIds = subCategories.map(cat => cat.Id);
 
