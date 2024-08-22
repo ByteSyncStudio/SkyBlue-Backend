@@ -8,6 +8,11 @@ const options = {
             title: 'Customer API',
             version: '1.0.0',
         },
+        tags: [
+            { name: 'Auth', description: 'Authentication related endpoints' },
+            { name: 'Product', description: 'Product related endpoints' },
+            { name: 'Cart', description: 'Cart related endpoints' },
+        ],
     },
     apis: ['./src/routes/*.js'], 
 };

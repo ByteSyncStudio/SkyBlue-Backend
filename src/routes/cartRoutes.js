@@ -11,9 +11,13 @@ const router = express.Router();
 
 /**
  * @swagger
+ * tags:
+ *   - name: Cart
+ *     description: Cart related endpoints
  * /cart/add:
  *   post:
  *     summary: Add a product to the cart
+ *     tags: [Cart]
  *     description: Adds a new product to the shopping cart for a customer.
  *     requestBody:
  *       description: Product and cart details to be added.
@@ -44,9 +48,13 @@ router.post("/add", addToCartController);
 
 /**
  * @swagger
+ * tags:
+ *   - name: Cart
+ *     description: Cart related endpoints
  * /cart/items/{customerId}:
  *   get:
  *     summary: Get all cart items for a customer
+ *     tags: [Cart]
  *     description: Retrieves all items currently in the shopping cart for a specific customer.
  *     parameters:
  *       - name: customerId
@@ -65,9 +73,13 @@ router.get("/items/:customerId", getCartItemsController);
 
 /**
  * @swagger
+ * tags:
+ *   - name: Cart
+ *     description: Cart related endpoints
  * /cart/update:
  *   put:
  *     summary: Update a cart item
+ *     tags: [Cart]
  *     description: Updates the quantity or other details of a cart item.
  *     requestBody:
  *       description: Cart item details to update.
@@ -105,9 +117,13 @@ router.put("/update", updateCartController);
 
 /**
  * @swagger
+ * tags:
+ *   - name: Cart
+ *     description: Cart related endpoints
  * /cart/remove-all/{customerId}:
  *   delete:
  *     summary: Remove all cart items for a customer
+ *     tags: [Cart]
  *     description: Deletes all items from the shopping cart for a specific customer.
  *     parameters:
  *       - name: customerId
@@ -128,9 +144,13 @@ router.delete("/remove-all/:customerId", removeAllCartItemsController);
 
 /**
  * @swagger
+ * tags:
+ *   - name: Cart
+ *     description: Cart related endpoints
  * /cart/remove/{id}:
  *   delete:
  *     summary: Remove a single cart item
+ *     tags: [Cart]
  *     description: Deletes a specific item from the shopping cart.
  *     parameters:
  *       - name: id

@@ -5,30 +5,6 @@ import jsonwebtoken from 'jsonwebtoken';
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRATION = '1h';
 
-/**
- * @swagger
- * /auth/login:
- *   post:
- *     summary: Login a user
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               email:
- *                 type: string
- *               password:
- *                 type: string
- *     responses:
- *       200:
- *         description: Successful login
- *       401:
- *         description: Unauthorized
- *       500:
- *         description: Internal server error
- */
 
 export const login = async (req, res, next) => {
     try {
