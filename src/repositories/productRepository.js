@@ -4,11 +4,12 @@ import { generateImageUrl } from '../utils/imageUtils.js';
 
 
 /**
- * Retrieves a list of categories from the database.
+ * Retrieves a list of specific categories from the database.
  * 
  * @returns {Promise<Array>} A promise that resolves to an array of category objects.
  */
 async function listCategory() {
+  const specificCategories = ['Beverages', 'Candy', 'Essentials', 'Snacks']
   try {
     const cacheKey = 'categories';
     const cachedCategories = cache.get(cacheKey);
@@ -19,8 +20,10 @@ async function listCategory() {
 
     const categories = await knex('Category')
       .select(['Id', 'Name'])
-      .where('ParentCategoryId', 0)
+      .whereIn('Name', specificCategories)
       .orderBy('Id');
+
+    categories.push({Id: -1, Name: 'Miscellaneous Item'})
 
     cache.set(cacheKey, categories);
     return categories;
@@ -223,26 +226,128 @@ async function listBestsellers(sortBy, size) {
 
 async function listNewArrivals(size) {
   const result = knex('Product')
-  .select([
-    'Product.CreatedonUTC',
-    'Product.Id',
-    'Product.Name',
-    'Product.Price',
-    'Product.FullDescription',
-    'Product.ShortDescription',
-    'Product.OrderMinimumQuantity',
-    'Product.OrderMaximumQuantity',
-    'Product_Picture_Mapping.PictureId',
-    'Product.Stock',
-    'Picture.MimeType'
-  ])
-  .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
-  .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
-  .orderBy('Product.CreatedonUTC', 'desc')
-  .limit(size)
+    .select([
+      'Product.CreatedonUTC',
+      'Product.Id',
+      'Product.Name',
+      'Product.Price',
+      'Product.FullDescription',
+      'Product.ShortDescription',
+      'Product.OrderMinimumQuantity',
+      'Product.OrderMaximumQuantity',
+      'Product_Picture_Mapping.PictureId',
+      'Product.Stock',
+      'Picture.MimeType'
+    ])
+    .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
+    .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
+    .orderBy('Product.CreatedonUTC', 'desc')
+    .limit(size)
 
   return result;
 }
 
+/**
+ * Searches for products based on category IDs and a search term.
+ * 
+ * @param {Array<number>} categoryIds - The IDs of the categories to search within.
+ * @param {string} searchTerm - The term to search for in the product names.
+ * @param {number} page - The page number for pagination.
+ * @param {number} size - The number of items per page.
+ * @returns {Promise<Object>} A promise that resolves to an object containing the search results.
+ */
+async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10) {
+  try {
+    console.log(searchTerm);
+    console.log('Category ID:', categoryId);
+    const offset = (page - 1) * size;
+    let products;
 
-export { listCategory, listProductsFromCategory, listBestsellers, listNewArrivals };
+    if (categoryId === -1) {
+      products = await knex('Product')
+        .select([
+          'Product.Id',
+          'Product.Name',
+          'Product.Price',
+          'Product.FullDescription',
+          'Product.ShortDescription',
+          'Product.OrderMinimumQuantity',
+          'Product.OrderMaximumQuantity',
+          'Product_Picture_Mapping.PictureId',
+          'Product.Stock',
+          'Picture.MimeType',
+          knex.raw('COUNT(*) OVER() AS total_count')
+        ])
+        .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
+        .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
+        .where('Product.Name', 'like', `%${searchTerm}%`)
+        .orderBy('Product.Name')
+        .limit(size)
+        .offset(offset);
+    } if ([36, 111, 189].includes(categoryId)) {
+      const subCategoryIds = await getSubcategories(categoryId);
+      console.log(subCategoryIds)
+
+      products = await knex('Product')
+        .select([
+          'Product.Id',
+          'Product.Name',
+          'Product.Price',
+          'Product.FullDescription',
+          'Product.ShortDescription',
+          'Product.OrderMinimumQuantity',
+          'Product.OrderMaximumQuantity',
+          'Product_Picture_Mapping.PictureId',
+          'Product.Stock',
+          'Picture.MimeType',
+          knex.raw('COUNT(*) OVER() AS total_count')
+        ])
+        .join('Product_Category_Mapping', 'Product.Id', 'Product_Category_Mapping.ProductId')
+        .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
+        .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
+        .whereIn('Product_Category_Mapping.CategoryId', subCategoryIds)
+        .andWhere('Product.Name', 'like', `%${searchTerm}%`)
+        .orderBy('Product.Name')
+        .limit(size)
+        .offset(offset);
+    }
+
+    const processedProducts = products.map(product => {
+      let image = null;
+      if (product.PictureId) {
+        image = generateImageUrl(product.PictureId, product.MimeType);
+      }
+
+      return {
+        Id: product.Id,
+        Name: product.Name,
+        Price: product.Price,
+        FullDescription: product.FullDescription,
+        ShortDescription: product.ShortDescription,
+        OrderMinimumQuantity: product.OrderMinimumQuantity,
+        OrderMaximumQuantity: product.OrderMaximumQuantity,
+        Stock: product.Stock,
+        Image: image
+      };
+    });
+
+    const totalProducts = products.length > 0 ? products[0].total_count : 0;
+
+    const response = {
+      totalProducts,
+      totalPages: Math.ceil(totalProducts / size),
+      pageNumber: page,
+      pageSize: size,
+      data: processedProducts
+    };
+
+    return response;
+
+  } catch (error) {
+    console.error('Error in listSearchProducts:', error);
+    throw error;
+  }
+}
+
+
+export { listCategory, listProductsFromCategory, listBestsellers, listNewArrivals, listSearchProducts };

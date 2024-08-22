@@ -1,4 +1,4 @@
-import { listCategory, listProductsFromCategory, listBestsellers, listNewArrivals } from "../repositories/productRepository.js";
+import { listCategory, listProductsFromCategory, listBestsellers, listNewArrivals, listSearchProducts } from "../repositories/productRepository.js";
 import { generateImageUrl } from "../utils/imageUtils.js";
 
 /**
@@ -24,7 +24,7 @@ async function getCategory(req, res) {
 
 async function getProductsFromCategories(req, res) {
     try {
-        const categoryId = req.params.category;
+        const categoryId = parseInt(req.params.category);
         const page = parseInt(req.query.page, 10) || 1;
         const size = parseInt(req.query.size, 10) || 10;
 
@@ -81,4 +81,25 @@ async function getNewArrivals(req, res) {
     }
 }
 
-export { getCategory, getProductsFromCategories, getBestSellers, getNewArrivals };
+async function searchProducts(req, res) {
+    try {
+        if (!req.query.term) {
+            res.status(404).send("Search Term is required.")
+            return
+        }
+
+        const searchTerm = req.query.term;
+        const page = parseInt(req.query.page) || 1;
+        const size = parseInt(req.query.size) || 10;
+        const category = parseInt(req.params.category);
+        const products = await listSearchProducts(category, searchTerm, page, size);
+
+        res.status(200).send(products);
+    }
+    catch (error) {
+        console.error(error);
+        res.status(error.statusCode || 500).send(error.message || 'Server error');
+    }
+}
+
+export { getCategory, getProductsFromCategories, getBestSellers, getNewArrivals, searchProducts };

@@ -1,5 +1,5 @@
 import express from 'express';
-import { getCategory, getProductsFromCategories, getBestSellers, getNewArrivals } from '../controllers/productController.js';
+import { getCategory, getProductsFromCategories, getBestSellers, getNewArrivals, searchProducts } from '../controllers/productController.js';
 
 const router = express.Router();
 
@@ -81,5 +81,45 @@ router.get('/bestseller', getBestSellers);
  *         description: Internal server error
  */
 router.get('/newarrivals', getNewArrivals)
+
+/**
+ * @swagger
+ * /product/search/{category}:
+ *   get:
+ *     summary: Search for products within a category
+ *     parameters:
+ *       - in: path
+ *         name: category
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The ID of the category (-1 to search every product i.e. Miscellaneous Item)
+ *       - in: query
+ *         name: term
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The search term
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         schema:
+ *           type: integer
+ *         description: The page number
+ *       - in: query
+ *         name: size
+ *         required: false
+ *         schema:
+ *           type: integer
+ *         description: The number of items per page
+ *     responses:
+ *       200:
+ *         description: A list of products matching the search criteria.
+ *       404:
+ *         description: Search Term is required.
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/search/:category', searchProducts)
 
 export default router;
