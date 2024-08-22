@@ -23,14 +23,15 @@ async function listCategory() {
       .whereIn('Name', specificCategories)
       .orderBy('Id');
 
-    categories.push({Id: -1, Name: 'Miscellaneous Item'})
+    categories.push({ Id: -1, Name: 'Miscellaneous Item' })
 
     cache.set(cacheKey, categories);
     return categories;
 
   } catch (error) {
-    console.error('Error in listCategory:', error);
-    throw new Error('Database error');
+    error.statusCode = 500;
+    error.message = "List Category Error";
+    throw error;
   }
 }
 
@@ -41,34 +42,41 @@ async function listCategory() {
  * @returns {Promise<Array>} A promise that resolves to an array of subcategory IDs.
  */
 async function getSubcategories(categoryId) {
-  const cacheKey = `subcategories_${categoryId}`;
-  const cachedSubcategories = cache.get(cacheKey);
+  try {
+    const cacheKey = `subcategories_${categoryId}`;
+    const cachedSubcategories = cache.get(cacheKey);
 
-  if (cachedSubcategories) {
-    return cachedSubcategories;
+    if (cachedSubcategories) {
+      return cachedSubcategories;
+    }
+
+    // Get all subcategories (including the category itself)
+    const subCategories = await knex('Category')
+      .withRecursive('SubCategories', (qb) => {
+        qb.select('Id')
+          .from('Category')
+          .where('Id', categoryId)
+          .unionAll((qb) => {
+            qb.select('c.Id')
+              .from('Category as c')
+              .innerJoin('SubCategories as sc', 'c.ParentCategoryId', 'sc.Id');
+          });
+      })
+      .select('Id')
+      .from('Subcategories');
+
+    const subCategoryIds = subCategories.map(cat => cat.Id);
+
+    // Setting for future cache
+    cache.set(cacheKey, subCategoryIds);
+
+    return subCategoryIds;
   }
-
-  // Get all subcategories (including the category itself)
-  const subCategories = await knex('Category')
-    .withRecursive('SubCategories', (qb) => {
-      qb.select('Id')
-        .from('Category')
-        .where('Id', categoryId)
-        .unionAll((qb) => {
-          qb.select('c.Id')
-            .from('Category as c')
-            .innerJoin('SubCategories as sc', 'c.ParentCategoryId', 'sc.Id');
-        });
-    })
-    .select('Id')
-    .from('Subcategories');
-
-  const subCategoryIds = subCategories.map(cat => cat.Id);
-
-  // Setting for future cache
-  cache.set(cacheKey, subCategoryIds);
-
-  return subCategoryIds;
+  catch (error) {
+    error.statusCode = 500;
+    error.message = "Subcategories not found";
+    throw error;
+  }
 }
 
 /**
@@ -159,92 +167,106 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
 }
 
 async function listBestsellers(sortBy, size) {
-  const cacheKey = `bestsellers_by_${sortBy}_${size}`;
-  const cachedBestSellers = cache.get(cacheKey);
+  try {
+    const cacheKey = `bestsellers_by_${sortBy}_${size}`;
+    const cachedBestSellers = cache.get(cacheKey);
 
-  if (cachedBestSellers) {
-    return cachedBestSellers;
-  }
-
-  const orderColumn = sortBy === 'quantity' ? 'TotalQuantity' : 'TotalAmount';
-  const topProducts = await knex('OrderItem')
-    .select('ProductId')
-    .sum('Quantity as TotalQuantity')
-    .sum('PriceExclTax as TotalAmount')
-    .groupBy('ProductId')
-    .orderBy(orderColumn, 'desc')
-    .limit(size);
-
-  const productIds = topProducts.map(i => i.ProductId);
-
-  const products = await knex('Product')
-    .select([
-      'Product.Id',
-      'Product.Name',
-      'Product.Price',
-      'Product.FullDescription',
-      'Product.ShortDescription',
-      'Product.OrderMinimumQuantity',
-      'Product.OrderMaximumQuantity',
-      'Product_Picture_Mapping.PictureId',
-      'Product.Stock',
-      'Picture.MimeType'
-    ])
-    .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
-    .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
-    .whereIn('Product.Id', productIds);
-
-  const processedProducts = products.map(product => {
-    let image = null;
-    const topProduct = topProducts.find(p => p.ProductId === product.Id);
-    if (product.PictureId) {
-      image = generateImageUrl(product.PictureId, product.MimeType);
+    if (cachedBestSellers) {
+      return cachedBestSellers;
     }
 
-    const data = {
-      Id: product.Id,
-      Name: product.Name,
-      Price: product.Price,
-      FullDescription: product.FullDescription,
-      ShortDescription: product.ShortDescription,
-      OrderMinimumQuantity: product.OrderMinimumQuantity,
-      OrderMaximumQuantity: product.OrderMaximumQuantity,
-      Stock: product.Stock,
-      Image: image
-    };
+    const orderColumn = sortBy === 'quantity' ? 'TotalQuantity' : 'TotalAmount';
+    const topProducts = await knex('OrderItem')
+      .select('ProductId')
+      .sum('Quantity as TotalQuantity')
+      .sum('PriceExclTax as TotalAmount')
+      .groupBy('ProductId')
+      .orderBy(orderColumn, 'desc')
+      .limit(size);
 
-    return {
-      Quantity: topProduct.TotalQuantity,
-      Amount: topProduct.TotalAmount,
-      data: data
-    };
-  });
+    const productIds = topProducts.map(i => i.ProductId);
 
-  cache.set(cacheKey, processedProducts);
-  return processedProducts;
+    const products = await knex('Product')
+      .select([
+        'Product.Id',
+        'Product.Name',
+        'Product.Price',
+        'Product.FullDescription',
+        'Product.ShortDescription',
+        'Product.OrderMinimumQuantity',
+        'Product.OrderMaximumQuantity',
+        'Product_Picture_Mapping.PictureId',
+        'Product.Stock',
+        'Picture.MimeType'
+      ])
+      .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
+      .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
+      .whereIn('Product.Id', productIds);
+
+    const processedProducts = products.map(product => {
+      let image = null;
+      const topProduct = topProducts.find(p => p.ProductId === product.Id);
+      if (product.PictureId) {
+        image = generateImageUrl(product.PictureId, product.MimeType);
+      }
+
+      const data = {
+        Id: product.Id,
+        Name: product.Name,
+        Price: product.Price,
+        FullDescription: product.FullDescription,
+        ShortDescription: product.ShortDescription,
+        OrderMinimumQuantity: product.OrderMinimumQuantity,
+        OrderMaximumQuantity: product.OrderMaximumQuantity,
+        Stock: product.Stock,
+        Image: image
+      };
+
+      return {
+        Quantity: topProduct.TotalQuantity,
+        Amount: topProduct.TotalAmount,
+        data: data
+      };
+    });
+
+    cache.set(cacheKey, processedProducts);
+    return processedProducts;
+  }
+  catch (error) {
+    error.statusCode = 500;
+    error.message = "Error in BestSellers"
+    throw error;
+  }
 }
 
 async function listNewArrivals(size) {
-  const result = knex('Product')
-    .select([
-      'Product.CreatedonUTC',
-      'Product.Id',
-      'Product.Name',
-      'Product.Price',
-      'Product.FullDescription',
-      'Product.ShortDescription',
-      'Product.OrderMinimumQuantity',
-      'Product.OrderMaximumQuantity',
-      'Product_Picture_Mapping.PictureId',
-      'Product.Stock',
-      'Picture.MimeType'
-    ])
-    .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
-    .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
-    .orderBy('Product.CreatedonUTC', 'desc')
-    .limit(size)
+  try {
+    const result = knex('Product')
+      .select([
+        'Product.CreatedonUTC',
+        'Product.Id',
+        'Product.Name',
+        'Product.Price',
+        'Product.FullDescription',
+        'Product.ShortDescription',
+        'Product.OrderMinimumQuantity',
+        'Product.OrderMaximumQuantity',
+        'Product_Picture_Mapping.PictureId',
+        'Product.Stock',
+        'Picture.MimeType'
+      ])
+      .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
+      .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
+      .orderBy('Product.CreatedonUTC', 'desc')
+      .limit(size)
 
-  return result;
+    return result;
+  }
+  catch (error) {
+    error.statusCode = 500;
+    error.message = "Error in BestSellers"
+    throw error;
+  }
 }
 
 /**
@@ -286,7 +308,6 @@ async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10) {
         .offset(offset);
     } if ([36, 111, 189].includes(categoryId)) {
       const subCategoryIds = await getSubcategories(categoryId);
-      console.log(subCategoryIds)
 
       products = await knex('Product')
         .select([
@@ -344,7 +365,8 @@ async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10) {
     return response;
 
   } catch (error) {
-    console.error('Error in listSearchProducts:', error);
+    error.statusCode = 500
+    error.message = "Error in searchProducts"
     throw error;
   }
 }

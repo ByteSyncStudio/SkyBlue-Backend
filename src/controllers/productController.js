@@ -16,9 +16,9 @@ async function getCategory(req, res) {
     try {
         const category = await listCategory();
         res.json(category);
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Server error');
+    } catch (error) {
+        console.error(error);
+        res.status(error.statusCode || 500).send(error.message || 'Server error');
     }
 }
 
