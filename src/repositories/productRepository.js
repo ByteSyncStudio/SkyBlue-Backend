@@ -50,8 +50,15 @@ async function getSubcategories(categoryId) {
       return cachedSubcategories;
     }
 
+    let subCategories;
+
+    // Return all Categories if given 0
+    if (categoryId === 0) {
+      subCategories = await knex('Category')
+      .select('Id')
+    } else {
     // Get all subcategories (including the category itself)
-    const subCategories = await knex('Category')
+    subCategories = await knex('Category')
       .withRecursive('SubCategories', (qb) => {
         qb.select('Id')
           .from('Category')
@@ -64,6 +71,7 @@ async function getSubcategories(categoryId) {
       })
       .select('Id')
       .from('Subcategories');
+    }
 
     const subCategoryIds = subCategories.map(cat => cat.Id);
 
@@ -130,6 +138,11 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
 
   try {
     const offset = (page - 1) * size;
+
+    if (categoryId === -1) {
+      categoryId = 0;
+    }
+
     const subCategoryIds = await getSubcategories(categoryId);
 
     const query = knex('Product')
