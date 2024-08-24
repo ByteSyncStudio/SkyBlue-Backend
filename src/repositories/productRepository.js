@@ -33,7 +33,7 @@ async function listCategory() {
             .whereIn('Name', specificCategories)
             .orderBy('Id');
 
-
+            
         // Add 'All Items' where we dont want to specifically categorize
         categories.push({ Id: -1, Name: getMiscellaneousName() })
 
@@ -41,7 +41,6 @@ async function listCategory() {
         return categories;
 
     } catch (error) {
-        console.error(error);
         error.statusCode = 500;
         error.message = "List Category Error";
         throw error;
@@ -64,43 +63,36 @@ async function getSubcategories(categoryId) {
         }
 
         let subCategories;
-        let categoryName;
 
         // Return all Categories if given 0
         if (categoryId === 0) {
             subCategories = await knex('Category')
-                .select('Id');
-            categoryName = getMiscellaneousName();
+                .select('Id')
         } else {
             // Get all subcategories (including the category itself)
-            const result = await knex('Category')
+            subCategories = await knex('Category')
                 .withRecursive('SubCategories', (qb) => {
-                    qb.select('Id', 'ParentCategoryId', 'Name')
+                    qb.select('Id')
                         .from('Category')
                         .where('Id', categoryId)
                         .unionAll((qb) => {
-                            qb.select('c.Id', 'c.ParentCategoryId', 'c.Name')
+                            qb.select('c.Id')
                                 .from('Category as c')
                                 .innerJoin('SubCategories as sc', 'c.ParentCategoryId', 'sc.Id');
                         });
                 })
-                .select('Id', 'Name')
-                .from('SubCategories');
-
-            subCategories = result.map(row => ({ Id: row.Id }));
-            categoryName = result.length > 0 ? result[0].Name : 'Unknown';
+                .select('Id')
+                .from('Subcategories');
         }
 
         const subCategoryIds = subCategories.map(cat => cat.Id);
 
         // Setting for future cache
-        const cacheValue = { subCategoryIds, categoryName }
-        cache.set(cacheKey, cacheValue);
+        cache.set(cacheKey, subCategoryIds);
 
-        return { subCategoryIds, categoryName };
+        return subCategoryIds;
     }
     catch (error) {
-        console.error('Error in subcategories func: ' + error)
         error.statusCode = 500;
         error.message = "Subcategories not found";
         throw error;
@@ -163,7 +155,7 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
             categoryId = 0;
         }
 
-        const { subCategoryIds, categoryName } = await getSubcategories(categoryId);
+        const subCategoryIds = await getSubcategories(categoryId);
 
         const query = knex('Product')
             .select([
@@ -192,7 +184,6 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
         const totalProducts = processedProducts.length > 0 ? processedProducts[0].total_count : 0;
 
         const response = {
-            categoryName: categoryName,
             totalProducts,
             totalPages: Math.ceil(totalProducts / size),
             pageNumber: page,
