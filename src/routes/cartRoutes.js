@@ -7,7 +7,14 @@ import {
   updateCartController,
 } from "../controllers/cartController.js";
 
+import { authenticateToken, authorizeRoles } from "../middleware/authMiddleware.js";
+
 const router = express.Router();
+
+router.use(authenticateToken);
+
+const cartAccess = authorizeRoles(['Registered', 'Administrators'])
+
 
 /**
  * @swagger
@@ -44,7 +51,7 @@ const router = express.Router();
  *       500:
  *         description: Server error.
  */
-router.post("/add", addToCartController);
+router.post("/add", cartAccess, addToCartController);
 
 /**
  * @swagger
@@ -69,7 +76,7 @@ router.post("/add", addToCartController);
  *       500:
  *         description: Server error.
  */
-router.get("/items/:customerId", getCartItemsController);
+router.get("/items/:customerId", cartAccess, getCartItemsController);
 
 /**
  * @swagger
@@ -113,7 +120,7 @@ router.get("/items/:customerId", getCartItemsController);
  *       500:
  *         description: Server error.
  */
-router.put("/update", updateCartController);
+router.put("/update", cartAccess, updateCartController);
 
 /**
  * @swagger
@@ -140,7 +147,7 @@ router.put("/update", updateCartController);
  *       500:
  *         description: Server error.
  */
-router.delete("/remove-all/:customerId", removeAllCartItemsController);
+router.delete("/remove-all/:customerId", cartAccess, removeAllCartItemsController);
 
 /**
  * @swagger
@@ -167,6 +174,6 @@ router.delete("/remove-all/:customerId", removeAllCartItemsController);
  *       500:
  *         description: Server error.
  */
-router.delete("/remove/:id", removeSingleCartItemController);
+router.delete("/remove/:id", cartAccess, removeSingleCartItemController);
 
 export default router;
