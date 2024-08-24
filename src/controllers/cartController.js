@@ -14,15 +14,15 @@ export const addToCartController = async (req, res) => {
       return res.status(400).json({ message: "Customer ID is required." });
     }
 
-    const storeId = 3; // Adjust as needed or get from req.body
-    const shoppingCartTypeId = 1; // Adjust as needed or get from req.body
+    const storeId = 3;
+    const shoppingCartTypeId = 1;
     const createdAtUTC = new Date().toISOString();
     const updatedAtUTC = createdAtUTC;
 
     const cartData = {
       StoreId: storeId,
       ShoppingCartTypeId: shoppingCartTypeId,
-      CustomerId: customerId, // Use customerId from req.body
+      CustomerId: customerId,
       ProductId: productId,
       CustomerEnteredPrice: 0,
       Quantity: quantity,
@@ -40,11 +40,11 @@ export const addToCartController = async (req, res) => {
   }
 };
 
-
 export const getCartItemsController = async (req, res) => {
   try {
     const customerId = req.params.customerId;
-    const response = await getCartItems(customerId);
+    const email = req.body.email; 
+    const response = await getCartItems(customerId, email);
     res.status(200).json(response);
   } catch (error) {
     res.status(500).json({ message: "Failed to retrieve cart items." });
@@ -53,35 +53,34 @@ export const getCartItemsController = async (req, res) => {
 
 export const updateCartController = async (req, res) => {
   try {
-    const { id, quantity, shoppingCartTypeId } = req.body;
-    // Validate input
+    const { id, quantity, shoppingCartTypeId, email } = req.body;
     if (!id || (quantity === undefined && shoppingCartTypeId === undefined)) {
       return res.status(400).json({ message: "Invalid input data." });
     }
 
-    // Prepare the update data
     const updateData = {};
     if (quantity !== undefined) updateData.Quantity = quantity;
     if (shoppingCartTypeId !== undefined)
       updateData.ShoppingCartTypeId = shoppingCartTypeId;
     updateData.UpdatedOnUTC = new Date().toISOString();
 
-    // Update the cart item
-    const result = await updateCart(id, updateData);
+    const result = await updateCart(id, updateData, email);
 
-    res
-      .status(200)
-      .json({ success: true, message: "Cart updated successfully.", result });
+    res.status(200).json(result);
   } catch (error) {
     console.error("Error updating cart:", error);
     res.status(500).json({ message: "Failed to update cart." });
   }
 };
 
-// Controller to remove all cart items
 export const removeAllCartItemsController = async (req, res) => {
   try {
-    const { customerId } = req.params;
+    const customerId = req.params.customerId;
+
+    if (!customerId) {
+      return res.status(400).json({ message: "Customer ID is required." });
+    }
+
     const result = await removeAllCartItems(customerId);
     res.status(result.success ? 200 : 404).json(result);
   } catch (error) {
@@ -90,11 +89,11 @@ export const removeAllCartItemsController = async (req, res) => {
   }
 };
 
-// Controller to remove a single cart item
 export const removeSingleCartItemController = async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await removeSingleCartItem(id);
+    const email = req.body.email; // Assuming you pass the email in the request body
+    const result = await removeSingleCartItem(id, email);
     res.status(result.success ? 200 : 404).json(result);
   } catch (error) {
     console.error("Error removing cart item:", error);

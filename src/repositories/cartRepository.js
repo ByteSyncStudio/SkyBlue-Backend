@@ -1,8 +1,9 @@
 import knex from "../config/knex.js";
 import { generateImageUrl } from "../utils/imageUtils.js";
+import { calculateTotalPriceWithTax } from "../utils/taxUtils.js";
 
 
-//add to cart
+// Add product to cart with validation
 async function addToCart(cartData) {
   try {
     const product = await knex("Product")
@@ -10,34 +11,30 @@ async function addToCart(cartData) {
       .select("StockQuantity", "OrderMaximumQuantity", "OrderMinimumQuantity")
       .first();
 
-    if (!product) {
-      throw new Error("Product not found.");
-    }
+    if (!product) throw new Error("Product not found.");
 
     if (cartData.Quantity > product.StockQuantity) {
       return {
         success: false,
-        message: `Out of stock. Please enter a quantity below ${product.StockQuantity} under ${product.OrderMaximumQuantity}.`
+        message: `Out of stock. Please enter a quantity below ${product.StockQuantity}.`,
       };
     }
 
     if (cartData.Quantity < product.OrderMinimumQuantity) {
       return {
         success: false,
-        message: `Below minimum order limit. Please enter a quantity of at least ${product.OrderMinimumQuantity}.`
+        message: `Below minimum order limit. Please enter a quantity of at least ${product.OrderMinimumQuantity}.`,
       };
     }
 
     if (cartData.Quantity > product.OrderMaximumQuantity) {
       return {
         success: false,
-        message: `Exceeds maximum order limit. Please enter a quantity below ${product.OrderMaximumQuantity}.`
+        message: `Exceeds maximum order limit. Please enter a quantity below ${product.OrderMaximumQuantity}.`,
       };
     }
 
-    const [cart] = await knex("ShoppingCartItem")
-      .insert(cartData)
-      .returning("*");
+    const [cart] = await knex("ShoppingCartItem").insert(cartData).returning("*");
     return { success: true, message: "Product added to cart", cart };
   } catch (error) {
     console.error("Error adding product to cart:", error);
@@ -45,38 +42,29 @@ async function addToCart(cartData) {
   }
 }
 
-
-
-// Get Cart Items with Price
-async function getCartItems(customerId) {
+// Get Cart Items with Price and Tax
+async function getCartItems(customerId, email) {
   try {
-    // Join ShoppingCartItem with Product table to get the price and image
     const cartItems = await knex("ShoppingCartItem")
       .where("CustomerId", customerId)
-      .join("Product", "ShoppingCartItem.ProductId", "=", "Product.Id")
-      .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
-      .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
-      .select(
-        "ShoppingCartItem.*", 
-        "Product.Price", 
-        "Product_Picture_Mapping.PictureId", 
-        "Picture.MimeType"
-      ); // Select all fields from ShoppingCartItem, the Price from Product, and image data
+      .join("Product", "ShoppingCartItem.ProductId", "Product.Id")
+      .leftJoin("Product_Picture_Mapping", "Product.Id", "Product_Picture_Mapping.ProductId")
+      .leftJoin("Picture", "Product_Picture_Mapping.PictureId", "Picture.Id")
+      .select("ShoppingCartItem.*", "Product.Price", "Product_Picture_Mapping.PictureId", "Picture.MimeType");
 
-    const cartItemsWithImages = cartItems.map(item => {
+    const cartItemsWithImages = cartItems.map((item) => {
       let image = null;
       if (item.PictureId) {
         image = generateImageUrl(item.PictureId, item.MimeType);
       }
 
-      return {
-        ...item,
-        image,
-      };
+      return { ...item, image };
     });
 
-    //console.log("cartItemsWithImages:", cartItemsWithImages);
-    return { success: true, cartItems: cartItemsWithImages };
+    // Calculate total price, tax, and final price
+    const { totalPrice, taxAmount, finalPrice } = await calculateTotalPriceWithTax(email, cartItemsWithImages);
+
+    return { success: true, cartItems: cartItemsWithImages, totalPrice, taxAmount, finalPrice };
   } catch (error) {
     console.error("Error retrieving cart items:", error);
     throw new Error("Failed to retrieve cart items.");
@@ -84,13 +72,12 @@ async function getCartItems(customerId) {
 }
 
 
-
-// Update cart with stock validation
-async function updateCart(id, updateData) {
+// Update cart with tax calculation
+async function updateCart(id, updateData, email) {
   try {
     const cartItem = await knex("ShoppingCartItem")
       .where({ Id: id })
-      .select("ProductId", "Quantity")
+      .select("ProductId", "Quantity", "CustomerId")
       .first();
 
     if (!cartItem) {
@@ -99,7 +86,7 @@ async function updateCart(id, updateData) {
 
     const product = await knex("Product")
       .where({ Id: cartItem.ProductId })
-      .select("StockQuantity", "OrderMaximumQuantity", "OrderMinimumQuantity")
+      .select("StockQuantity", "OrderMaximumQuantity", "OrderMinimumQuantity", "Price")
       .first();
 
     if (!product) {
@@ -108,32 +95,18 @@ async function updateCart(id, updateData) {
 
     const newQuantity = updateData.Quantity || cartItem.Quantity;
 
-    if (newQuantity > product.StockQuantity) {
-      return {
-        success: false,
-        message: `Out of stock. Please enter a quantity below ${product.StockQuantity} under ${product.OrderMaximumQuantity}.`
-      };
-    }
-
-    if (newQuantity < product.OrderMinimumQuantity) {
-      return {
-        success: false,
-        message: `Below minimum order limit. Please enter a quantity of at least ${product.OrderMinimumQuantity}.`
-      };
-    }
-
-    if (newQuantity > product.OrderMaximumQuantity) {
-      return {
-        success: false,
-        message: `Exceeds maximum order limit. Please enter a quantity below ${product.OrderMaximumQuantity}.`
-      };
+    if (newQuantity > product.StockQuantity || newQuantity > product.OrderMaximumQuantity || newQuantity < product.OrderMinimumQuantity) {
+      throw new Error("Invalid quantity.");
     }
 
     const [updatedCart] = await knex("ShoppingCartItem")
       .where({ Id: id })
       .update(updateData)
       .returning("*");
-    return { success: true, message: "Cart updated successfully", updatedCart };
+
+    const cartItems = await getCartItems(cartItem.CustomerId, email);
+
+    return { success: true, message: "Cart updated successfully", updatedCart, ...cartItems };
   } catch (error) {
     console.error("Error updating cart in database:", error);
     throw new Error("Failed to update cart.");
@@ -141,31 +114,51 @@ async function updateCart(id, updateData) {
 }
 
 
-
 // Remove all cart items for a customer
 async function removeAllCartItems(customerId) {
   try {
-    const deletedCount = await knex("ShoppingCartItem")
-      .where({ CustomerId: customerId })
-      .del();
-    return { success: deletedCount > 0, message: deletedCount > 0 ? "All cart items removed successfully." : "No cart items found for this customer." };
+    const deletedCount = await knex("ShoppingCartItem").where({ CustomerId: customerId }).del();
+    return {
+      success: deletedCount > 0,
+      message: deletedCount > 0 ? "All cart items removed successfully." : "No cart items found for this customer.",
+    };
   } catch (error) {
     console.error("Error removing all cart items:", error);
     throw new Error("Failed to remove all cart items.");
   }
 }
 
-// Remove a single cart item by ID
-async function removeSingleCartItem(id) {
+// Remove a single cart item and recalculate tax
+async function removeSingleCartItem(id, email) {
   try {
-    const deletedCount = await knex("ShoppingCartItem")
+    const cartItem = await knex("ShoppingCartItem")
       .where({ Id: id })
-      .del();
-    return { success: deletedCount > 0, message: deletedCount > 0 ? "Cart item removed successfully." : "Cart item not found." };
+      .select("CustomerId")
+      .first();
+
+    if (!cartItem) {
+      throw new Error("Cart item not found.");
+    }
+
+    const deletedCount = await knex("ShoppingCartItem").where({ Id: id }).del();
+
+    const cartItems = await getCartItems(cartItem.CustomerId, email);
+
+    return {
+      success: deletedCount > 0,
+      message: deletedCount > 0 ? "Cart item removed successfully." : "Cart item not found.",
+      ...cartItems,
+    };
   } catch (error) {
     console.error("Error removing cart item:", error);
     throw new Error("Failed to remove cart item.");
   }
 }
 
-export { addToCart, getCartItems, updateCart, removeAllCartItems, removeSingleCartItem };
+export {
+  addToCart,
+  getCartItems,
+  updateCart,
+  removeAllCartItems,
+  removeSingleCartItem,
+};
