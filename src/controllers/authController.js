@@ -1,9 +1,9 @@
-import { getUserByEmail, getPasswordRecordByCustomerId } from '../repositories/authRepository.js';
+import { getUserByEmail, getPasswordRecordByCustomerId, getUserRoles } from '../repositories/authRepository.js';
 import crypto from 'crypto';
 import jsonwebtoken from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_EXPIRATION = '1h';
+const JWT_EXPIRATION = '24h';
 
 
 export const login = async (req, res, next) => {
@@ -28,9 +28,18 @@ export const login = async (req, res, next) => {
 
         // Compare our Hash to stored hash
         if (hashedPassword === passwordRecord.Password) {
-            
+            const roles = await getUserRoles(user.Id);
+
             // Return a JWT token
-            const token = jsonwebtoken.sign({ email }, JWT_SECRET, { expiresIn: JWT_EXPIRATION });
+            const token = jsonwebtoken.sign(
+                {
+                    email: user.Email,
+                    id: user.Id,
+                    roles: roles.map(role => role.Name)
+
+                },
+                JWT_SECRET, { expiresIn: JWT_EXPIRATION });
+
             return res.status(200).json({ message: 'Login successful', token });
 
         } else {

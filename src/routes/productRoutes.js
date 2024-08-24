@@ -1,7 +1,12 @@
 import express from 'express';
+import { authenticateToken, authorizeRoles } from '../middleware/authMiddleware.js';
 import { getCategory, getProductsFromCategories, getBestSellers, getNewArrivals, searchProducts } from '../controllers/productController.js';
 
 const router = express.Router();
+
+router.use(authenticateToken);
+
+const productAccess = authorizeRoles(['Registered', 'Administrators'])
 
 /**
  * @swagger
@@ -18,7 +23,7 @@ const router = express.Router();
  *       500:
  *         description: Internal server error
  */
-router.get("/category/all", getCategory);
+router.get("/category/all", productAccess, getCategory);
 
 /**
  * @swagger

@@ -32,3 +32,16 @@ export const getPasswordRecordByCustomerId = async (customerId) => {
         console.error("Error fetching password record by customer ID:\n", error);
     }
 };
+
+export const getUserRoles = async (userId) => {
+    try {
+        return await knex('Customer_CustomerRole_Mapping')
+            .join('CustomerRole', 'Customer_CustomerRole_Mapping.CustomerRole_Id', '=', 'CustomerRole.Id')
+            .where('Customer_CustomerRole_Mapping.Customer_Id', userId)
+            .select('CustomerRole.Name', 'CustomerRole.SystemName');
+
+    } catch (error) {
+        console.error('Error fetching user roles:\n', error);
+        throw error;
+    }
+}

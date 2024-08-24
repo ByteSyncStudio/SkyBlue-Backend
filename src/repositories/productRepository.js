@@ -23,7 +23,7 @@ async function listCategory() {
       .whereIn('Name', specificCategories)
       .orderBy('Id');
 
-    categories.push({ Id: -1, Name: 'Miscellaneous Item' })
+    categories.push({ Id: -1, Name: 'All Items' })
 
     cache.set(cacheKey, categories);
     return categories;
@@ -55,22 +55,22 @@ async function getSubcategories(categoryId) {
     // Return all Categories if given 0
     if (categoryId === 0) {
       subCategories = await knex('Category')
-      .select('Id')
+        .select('Id')
     } else {
-    // Get all subcategories (including the category itself)
-    subCategories = await knex('Category')
-      .withRecursive('SubCategories', (qb) => {
-        qb.select('Id')
-          .from('Category')
-          .where('Id', categoryId)
-          .unionAll((qb) => {
-            qb.select('c.Id')
-              .from('Category as c')
-              .innerJoin('SubCategories as sc', 'c.ParentCategoryId', 'sc.Id');
-          });
-      })
-      .select('Id')
-      .from('Subcategories');
+      // Get all subcategories (including the category itself)
+      subCategories = await knex('Category')
+        .withRecursive('SubCategories', (qb) => {
+          qb.select('Id')
+            .from('Category')
+            .where('Id', categoryId)
+            .unionAll((qb) => {
+              qb.select('c.Id')
+                .from('Category as c')
+                .innerJoin('SubCategories as sc', 'c.ParentCategoryId', 'sc.Id');
+            });
+        })
+        .select('Id')
+        .from('Subcategories');
     }
 
     const subCategoryIds = subCategories.map(cat => cat.Id);
