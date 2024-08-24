@@ -33,7 +33,7 @@ async function listCategory() {
             .whereIn('Name', specificCategories)
             .orderBy('Id');
 
-            
+
         // Add 'All Items' where we dont want to specifically categorize
         categories.push({ Id: -1, Name: getMiscellaneousName() })
 
@@ -169,7 +169,11 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
                 'Product_Picture_Mapping.PictureId',
                 'Product.Stock',
                 'Picture.MimeType',
-                knex.raw('COUNT(*) OVER() AS total_count')
+                knex.raw('COUNT(*) OVER() AS total_count'),
+                knex.raw(`CASE 
+                    WHEN ? = 0 THEN ?
+                    ELSE (SELECT Name FROM Category WHERE Id = ?)
+                END as CategoryName`, [categoryId, getMiscellaneousName(), categoryId])
             ])
             .join('Product_Category_Mapping', 'Product.Id', 'Product_Category_Mapping.ProductId')
             .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
@@ -179,11 +183,33 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
             .limit(size)
             .offset(offset);
 
-        const processedProducts = await fetchAndProcessProducts(query);
+        const products = await query;
+
+        const processedProducts = products.map(product => {
+            let image = null;
+            if (product.PictureId) {
+                image = generateImageUrl(product.PictureId, product.MimeType);
+            }
+
+            return {
+                Id: product.Id,
+                Name: product.Name,
+                Price: product.Price,
+                FullDescription: product.FullDescription,
+                ShortDescription: product.ShortDescription,
+                OrderMinimumQuantity: product.OrderMinimumQuantity,
+                OrderMaximumQuantity: product.OrderMaximumQuantity,
+                Stock: product.Stock,
+                Image: image,
+                total_count: product.total_count
+            };
+        });
 
         const totalProducts = processedProducts.length > 0 ? processedProducts[0].total_count : 0;
+        const categoryName = products.length > 0 ? products[0].CategoryName : getMiscellaneousName();
 
         const response = {
+            categoryName: categoryName,
             totalProducts,
             totalPages: Math.ceil(totalProducts / size),
             pageNumber: page,
