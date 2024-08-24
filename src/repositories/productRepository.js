@@ -3,36 +3,49 @@ import cache from '../config/cache.js'
 import { generateImageUrl } from '../utils/imageUtils.js';
 
 
+// Hardcoded Specific Categories as per requirements
+function getSpecificCategories() {
+    return ['Beverages', 'Candy', 'Essentials', 'Snacks'];
+}
+
+// Hardcoded name for miscellaneous items
+function getMiscellaneousName() {
+    return 'All Items';
+}
+
 /**
  * Retrieves a list of specific categories from the database.
  * 
  * @returns {Promise<Array>} A promise that resolves to an array of category objects.
  */
 async function listCategory() {
-  const specificCategories = ['Beverages', 'Candy', 'Essentials', 'Snacks']
-  try {
-    const cacheKey = 'categories';
-    const cachedCategories = cache.get(cacheKey);
+    const specificCategories = getSpecificCategories();
+    try {
+        const cacheKey = 'categories';
+        const cachedCategories = cache.get(cacheKey);
 
-    if (cachedCategories) {
-      return cachedCategories;
+        if (cachedCategories) {
+            return cachedCategories;
+        }
+
+        const categories = await knex('Category')
+            .select(['Id', 'Name'])
+            .whereIn('Name', specificCategories)
+            .orderBy('Id');
+
+
+        // Add 'All Items' where we dont want to specifically categorize
+        categories.push({ Id: -1, Name: getMiscellaneousName() })
+
+        cache.set(cacheKey, categories);
+        return categories;
+
+    } catch (error) {
+        console.error(error);
+        error.statusCode = 500;
+        error.message = "List Category Error";
+        throw error;
     }
-
-    const categories = await knex('Category')
-      .select(['Id', 'Name'])
-      .whereIn('Name', specificCategories)
-      .orderBy('Id');
-
-    categories.push({ Id: -1, Name: 'All Items' })
-
-    cache.set(cacheKey, categories);
-    return categories;
-
-  } catch (error) {
-    error.statusCode = 500;
-    error.message = "List Category Error";
-    throw error;
-  }
 }
 
 /**
@@ -42,49 +55,56 @@ async function listCategory() {
  * @returns {Promise<Array>} A promise that resolves to an array of subcategory IDs.
  */
 async function getSubcategories(categoryId) {
-  try {
-    const cacheKey = `subcategories_${categoryId}`;
-    const cachedSubcategories = cache.get(cacheKey);
+    try {
+        const cacheKey = `subcategories_${categoryId}`;
+        const cachedSubcategories = cache.get(cacheKey);
 
-    if (cachedSubcategories) {
-      return cachedSubcategories;
+        if (cachedSubcategories) {
+            return cachedSubcategories;
+        }
+
+        let subCategories;
+        let categoryName;
+
+        // Return all Categories if given 0
+        if (categoryId === 0) {
+            subCategories = await knex('Category')
+                .select('Id');
+            categoryName = getMiscellaneousName();
+        } else {
+            // Get all subcategories (including the category itself)
+            const result = await knex('Category')
+                .withRecursive('SubCategories', (qb) => {
+                    qb.select('Id', 'ParentCategoryId', 'Name')
+                        .from('Category')
+                        .where('Id', categoryId)
+                        .unionAll((qb) => {
+                            qb.select('c.Id', 'c.ParentCategoryId', 'c.Name')
+                                .from('Category as c')
+                                .innerJoin('SubCategories as sc', 'c.ParentCategoryId', 'sc.Id');
+                        });
+                })
+                .select('Id', 'Name')
+                .from('SubCategories');
+
+            subCategories = result.map(row => ({ Id: row.Id }));
+            categoryName = result.length > 0 ? result[0].Name : 'Unknown';
+        }
+
+        const subCategoryIds = subCategories.map(cat => cat.Id);
+
+        // Setting for future cache
+        const cacheValue = { subCategoryIds, categoryName }
+        cache.set(cacheKey, cacheValue);
+
+        return { subCategoryIds, categoryName };
     }
-
-    let subCategories;
-
-    // Return all Categories if given 0
-    if (categoryId === 0) {
-      subCategories = await knex('Category')
-        .select('Id')
-    } else {
-      // Get all subcategories (including the category itself)
-      subCategories = await knex('Category')
-        .withRecursive('SubCategories', (qb) => {
-          qb.select('Id')
-            .from('Category')
-            .where('Id', categoryId)
-            .unionAll((qb) => {
-              qb.select('c.Id')
-                .from('Category as c')
-                .innerJoin('SubCategories as sc', 'c.ParentCategoryId', 'sc.Id');
-            });
-        })
-        .select('Id')
-        .from('Subcategories');
+    catch (error) {
+        console.error('Error in subcategories func: ' + error)
+        error.statusCode = 500;
+        error.message = "Subcategories not found";
+        throw error;
     }
-
-    const subCategoryIds = subCategories.map(cat => cat.Id);
-
-    // Setting for future cache
-    cache.set(cacheKey, subCategoryIds);
-
-    return subCategoryIds;
-  }
-  catch (error) {
-    error.statusCode = 500;
-    error.message = "Subcategories not found";
-    throw error;
-  }
 }
 
 /**
@@ -95,29 +115,29 @@ async function getSubcategories(categoryId) {
  * @returns {Promise<Array>} A promise that resolves to an array of processed product objects.
  */
 async function fetchAndProcessProducts(query, processingFunction = null) {
-  const products = await query;
+    const products = await query;
 
-  return products.map(product => {
-    let image = null;
-    if (product.PictureId) {
-      image = generateImageUrl(product.PictureId, product.MimeType);
-    }
+    return products.map(product => {
+        let image = null;
+        if (product.PictureId) {
+            image = generateImageUrl(product.PictureId, product.MimeType);
+        }
 
-    const processedProduct = {
-      Id: product.Id,
-      Name: product.Name,
-      Price: product.Price,
-      FullDescription: product.FullDescription,
-      ShortDescription: product.ShortDescription,
-      OrderMinimumQuantity: product.OrderMinimumQuantity,
-      OrderMaximumQuantity: product.OrderMaximumQuantity,
-      Stock: product.Stock,
-      Image: image,
-      total_count: product.total_count
-    };
+        const processedProduct = {
+            Id: product.Id,
+            Name: product.Name,
+            Price: product.Price,
+            FullDescription: product.FullDescription,
+            ShortDescription: product.ShortDescription,
+            OrderMinimumQuantity: product.OrderMinimumQuantity,
+            OrderMaximumQuantity: product.OrderMaximumQuantity,
+            Stock: product.Stock,
+            Image: image,
+            total_count: product.total_count
+        };
 
-    return processingFunction ? processingFunction(processedProduct, product) : processedProduct;
-  });
+        return processingFunction ? processingFunction(processedProduct, product) : processedProduct;
+    });
 }
 
 /**
@@ -129,63 +149,64 @@ async function fetchAndProcessProducts(query, processingFunction = null) {
  * @returns {Promise<Array>} A promise that resolves to an array of product objects.
  */
 async function listProductsFromCategory(categoryId, page = 1, size = 10) {
-  const cacheKey = `products_${categoryId}_${page}_${size}`;
-  const cachedProducts = cache.get(cacheKey);
+    const cacheKey = `products_${categoryId}_${page}_${size}`;
+    const cachedProducts = cache.get(cacheKey);
 
-  if (cachedProducts) {
-    return cachedProducts;
-  }
-
-  try {
-    const offset = (page - 1) * size;
-
-    if (categoryId === -1) {
-      categoryId = 0;
+    if (cachedProducts) {
+        return cachedProducts;
     }
 
-    const subCategoryIds = await getSubcategories(categoryId);
+    try {
+        const offset = (page - 1) * size;
 
-    const query = knex('Product')
-      .select([
-        'Product.Id',
-        'Product.Name',
-        'Product.Price',
-        'Product.FullDescription',
-        'Product.ShortDescription',
-        'Product.OrderMinimumQuantity',
-        'Product.OrderMaximumQuantity',
-        'Product_Picture_Mapping.PictureId',
-        'Product.Stock',
-        'Picture.MimeType',
-        knex.raw('COUNT(*) OVER() AS total_count')
-      ])
-      .join('Product_Category_Mapping', 'Product.Id', 'Product_Category_Mapping.ProductId')
-      .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
-      .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
-      .whereIn('Product_Category_Mapping.CategoryId', subCategoryIds)
-      .orderBy('Product.Name')
-      .limit(size)
-      .offset(offset);
+        if (categoryId === -1) {
+            categoryId = 0;
+        }
 
-    const processedProducts = await fetchAndProcessProducts(query);
+        const { subCategoryIds, categoryName } = await getSubcategories(categoryId);
 
-    const totalProducts = processedProducts.length > 0 ? processedProducts[0].total_count : 0;
+        const query = knex('Product')
+            .select([
+                'Product.Id',
+                'Product.Name',
+                'Product.Price',
+                'Product.FullDescription',
+                'Product.ShortDescription',
+                'Product.OrderMinimumQuantity',
+                'Product.OrderMaximumQuantity',
+                'Product_Picture_Mapping.PictureId',
+                'Product.Stock',
+                'Picture.MimeType',
+                knex.raw('COUNT(*) OVER() AS total_count')
+            ])
+            .join('Product_Category_Mapping', 'Product.Id', 'Product_Category_Mapping.ProductId')
+            .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
+            .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
+            .whereIn('Product_Category_Mapping.CategoryId', subCategoryIds)
+            .orderBy('Product.Name')
+            .limit(size)
+            .offset(offset);
 
-    const response = {
-      totalProducts,
-      totalPages: Math.ceil(totalProducts / size),
-      pageNumber: page,
-      pageSize: size,
-      data: processedProducts
+        const processedProducts = await fetchAndProcessProducts(query);
+
+        const totalProducts = processedProducts.length > 0 ? processedProducts[0].total_count : 0;
+
+        const response = {
+            categoryName: categoryName,
+            totalProducts,
+            totalPages: Math.ceil(totalProducts / size),
+            pageNumber: page,
+            pageSize: size,
+            data: processedProducts
+        }
+
+        cache.set(cacheKey, response);
+        return response;
+
+    } catch (error) {
+        console.error('Error in listProductsFromCategory:', error);
+        throw error;
     }
-
-    cache.set(cacheKey, response);
-    return response;
-
-  } catch (error) {
-    console.error('Error in listProductsFromCategory:', error);
-    throw error;
-  }
 }
 
 /**
@@ -196,59 +217,59 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
  * @returns {Promise<Array>} A promise that resolves to an array of best-selling product objects.
  */
 async function listBestsellers(sortBy, size) {
-  try {
-    const cacheKey = `bestsellers_by_${sortBy}_${size}`;
-    const cachedBestSellers = cache.get(cacheKey);
+    try {
+        const cacheKey = `bestsellers_by_${sortBy}_${size}`;
+        const cachedBestSellers = cache.get(cacheKey);
 
-    if (cachedBestSellers) {
-      return cachedBestSellers;
+        if (cachedBestSellers) {
+            return cachedBestSellers;
+        }
+
+        const orderColumn = sortBy === 'quantity' ? 'TotalQuantity' : 'TotalAmount';
+        const topProducts = await knex('OrderItem')
+            .select('ProductId')
+            .sum('Quantity as TotalQuantity')
+            .sum('PriceExclTax as TotalAmount')
+            .groupBy('ProductId')
+            .orderBy(orderColumn, 'desc')
+            .limit(size);
+
+        const productIds = topProducts.map(i => i.ProductId);
+
+        const query = knex('Product')
+            .select([
+                'Product.Id',
+                'Product.Name',
+                'Product.Price',
+                'Product.FullDescription',
+                'Product.ShortDescription',
+                'Product.OrderMinimumQuantity',
+                'Product.OrderMaximumQuantity',
+                'Product_Picture_Mapping.PictureId',
+                'Product.Stock',
+                'Picture.MimeType'
+            ])
+            .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
+            .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
+            .whereIn('Product.Id', productIds);
+
+        const processedProducts = await fetchAndProcessProducts(query, (processedProduct, product) => {
+            const topProduct = topProducts.find(p => p.ProductId === product.Id);
+            return {
+                Quantity: topProduct.TotalQuantity,
+                Amount: topProduct.TotalAmount,
+                data: processedProduct
+            };
+        });
+
+        cache.set(cacheKey, processedProducts);
+        return processedProducts;
     }
-
-    const orderColumn = sortBy === 'quantity' ? 'TotalQuantity' : 'TotalAmount';
-    const topProducts = await knex('OrderItem')
-      .select('ProductId')
-      .sum('Quantity as TotalQuantity')
-      .sum('PriceExclTax as TotalAmount')
-      .groupBy('ProductId')
-      .orderBy(orderColumn, 'desc')
-      .limit(size);
-
-    const productIds = topProducts.map(i => i.ProductId);
-
-    const query = knex('Product')
-      .select([
-        'Product.Id',
-        'Product.Name',
-        'Product.Price',
-        'Product.FullDescription',
-        'Product.ShortDescription',
-        'Product.OrderMinimumQuantity',
-        'Product.OrderMaximumQuantity',
-        'Product_Picture_Mapping.PictureId',
-        'Product.Stock',
-        'Picture.MimeType'
-      ])
-      .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
-      .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
-      .whereIn('Product.Id', productIds);
-
-    const processedProducts = await fetchAndProcessProducts(query, (processedProduct, product) => {
-      const topProduct = topProducts.find(p => p.ProductId === product.Id);
-      return {
-        Quantity: topProduct.TotalQuantity,
-        Amount: topProduct.TotalAmount,
-        data: processedProduct
-      };
-    });
-
-    cache.set(cacheKey, processedProducts);
-    return processedProducts;
-  }
-  catch (error) {
-    error.statusCode = 500;
-    error.message = "Error in BestSellers"
-    throw error;
-  }
+    catch (error) {
+        error.statusCode = 500;
+        error.message = "Error in BestSellers"
+        throw error;
+    }
 }
 
 
@@ -259,33 +280,33 @@ async function listBestsellers(sortBy, size) {
  * @returns {Promise<Array>} A promise that resolves to an array of new arrival product objects.
  */
 async function listNewArrivals(size) {
-  try {
-    const query = knex('Product')
-      .select([
-        'Product.CreatedonUTC',
-        'Product.Id',
-        'Product.Name',
-        'Product.Price',
-        'Product.FullDescription',
-        'Product.ShortDescription',
-        'Product.OrderMinimumQuantity',
-        'Product.OrderMaximumQuantity',
-        'Product_Picture_Mapping.PictureId',
-        'Product.Stock',
-        'Picture.MimeType'
-      ])
-      .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
-      .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
-      .orderBy('Product.CreatedonUTC', 'desc')
-      .limit(size);
+    try {
+        const query = knex('Product')
+            .select([
+                'Product.CreatedonUTC',
+                'Product.Id',
+                'Product.Name',
+                'Product.Price',
+                'Product.FullDescription',
+                'Product.ShortDescription',
+                'Product.OrderMinimumQuantity',
+                'Product.OrderMaximumQuantity',
+                'Product_Picture_Mapping.PictureId',
+                'Product.Stock',
+                'Picture.MimeType'
+            ])
+            .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
+            .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
+            .orderBy('Product.CreatedonUTC', 'desc')
+            .limit(size);
 
-    return await fetchAndProcessProducts(query);
-  }
-  catch (error) {
-    error.statusCode = 500;
-    error.message = "Error in NewArrivals"
-    throw error;
-  }
+        return await fetchAndProcessProducts(query);
+    }
+    catch (error) {
+        error.statusCode = 500;
+        error.message = "Error in NewArrivals"
+        throw error;
+    }
 }
 
 /**
@@ -298,54 +319,54 @@ async function listNewArrivals(size) {
  * @returns {Promise<Object>} A promise that resolves to an object containing the search results.
  */
 async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10) {
-  try {
-    const offset = (page - 1) * size;
+    try {
+        const offset = (page - 1) * size;
 
-    let query = knex('Product')
-      .select([
-        'Product.Id',
-        'Product.Name',
-        'Product.Price',
-        'Product.FullDescription',
-        'Product.ShortDescription',
-        'Product.OrderMinimumQuantity',
-        'Product.OrderMaximumQuantity',
-        'Product_Picture_Mapping.PictureId',
-        'Product.Stock',
-        'Picture.MimeType',
-        knex.raw('COUNT(*) OVER() AS total_count')
-      ])
-      .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
-      .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
-      .where('Product.Name', 'like', `%${searchTerm}%`)
-      .orderBy('Product.Name')
-      .limit(size)
-      .offset(offset);
+        let query = knex('Product')
+            .select([
+                'Product.Id',
+                'Product.Name',
+                'Product.Price',
+                'Product.FullDescription',
+                'Product.ShortDescription',
+                'Product.OrderMinimumQuantity',
+                'Product.OrderMaximumQuantity',
+                'Product_Picture_Mapping.PictureId',
+                'Product.Stock',
+                'Picture.MimeType',
+                knex.raw('COUNT(*) OVER() AS total_count')
+            ])
+            .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
+            .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
+            .where('Product.Name', 'like', `%${searchTerm}%`)
+            .orderBy('Product.Name')
+            .limit(size)
+            .offset(offset);
 
-    if ([36, 111, 189].includes(categoryId)) {
-      const subCategoryIds = await getSubcategories(categoryId);
-      query = query
-        .join('Product_Category_Mapping', 'Product.Id', 'Product_Category_Mapping.ProductId')
-        .whereIn('Product_Category_Mapping.CategoryId', subCategoryIds);
+        if ([36, 111, 189].includes(categoryId)) {
+            const subCategoryIds = await getSubcategories(categoryId);
+            query = query
+                .join('Product_Category_Mapping', 'Product.Id', 'Product_Category_Mapping.ProductId')
+                .whereIn('Product_Category_Mapping.CategoryId', subCategoryIds);
+        }
+
+        const processedProducts = await fetchAndProcessProducts(query);
+
+        const totalProducts = processedProducts.length > 0 ? processedProducts[0].total_count : 0;
+
+        return {
+            totalProducts,
+            totalPages: Math.ceil(totalProducts / size),
+            pageNumber: page,
+            pageSize: size,
+            data: processedProducts
+        };
+
+    } catch (error) {
+        error.statusCode = 500
+        error.message = "Error in searchProducts"
+        throw error;
     }
-
-    const processedProducts = await fetchAndProcessProducts(query);
-
-    const totalProducts = processedProducts.length > 0 ? processedProducts[0].total_count : 0;
-
-    return {
-      totalProducts,
-      totalPages: Math.ceil(totalProducts / size),
-      pageNumber: page,
-      pageSize: size,
-      data: processedProducts
-    };
-
-  } catch (error) {
-    error.statusCode = 500
-    error.message = "Error in searchProducts"
-    throw error;
-  }
 }
 
 
