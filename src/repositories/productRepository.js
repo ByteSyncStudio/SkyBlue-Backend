@@ -123,7 +123,7 @@ async function fetchAndProcessProducts(query, processingFunction = null) {
             ShortDescription: product.ShortDescription,
             OrderMinimumQuantity: product.OrderMinimumQuantity,
             OrderMaximumQuantity: product.OrderMaximumQuantity,
-            Stock: product.Stock,
+            Stock: product.StockQuantity,
             Image: image,
             total_count: product.total_count
         };
@@ -167,7 +167,7 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
                 'Product.OrderMinimumQuantity',
                 'Product.OrderMaximumQuantity',
                 'Product_Picture_Mapping.PictureId',
-                'Product.Stock',
+                'product.StockQuantity',
                 'Picture.MimeType',
                 knex.raw('COUNT(*) OVER() AS total_count'),
                 knex.raw(`CASE 
@@ -199,7 +199,7 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
                 ShortDescription: product.ShortDescription,
                 OrderMinimumQuantity: product.OrderMinimumQuantity,
                 OrderMaximumQuantity: product.OrderMaximumQuantity,
-                Stock: product.Stock,
+                Stock: product.StockQuantity,
                 Image: image,
                 total_count: product.total_count
             };
@@ -263,7 +263,7 @@ async function listBestsellers(sortBy, size) {
                 'Product.OrderMinimumQuantity',
                 'Product.OrderMaximumQuantity',
                 'Product_Picture_Mapping.PictureId',
-                'Product.Stock',
+                'product.StockQuantity',
                 'Picture.MimeType'
             ])
             .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
@@ -309,7 +309,7 @@ async function listNewArrivals(size) {
                 'Product.OrderMinimumQuantity',
                 'Product.OrderMaximumQuantity',
                 'Product_Picture_Mapping.PictureId',
-                'Product.Stock',
+                'product.StockQuantity',
                 'Picture.MimeType'
             ])
             .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
@@ -349,7 +349,7 @@ async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10) {
                 'Product.OrderMinimumQuantity',
                 'Product.OrderMaximumQuantity',
                 'Product_Picture_Mapping.PictureId',
-                'Product.Stock',
+                'product.StockQuantity',
                 'Picture.MimeType',
                 knex.raw('COUNT(*) OVER() AS total_count')
             ])
