@@ -2,9 +2,8 @@ import knex from "../config/knex.js";
 import { generateImageUrl } from "../utils/imageUtils.js";
 import { calculateTotalPriceWithTax } from "../utils/taxUtils.js";
 
-
 // Add product to cart with validation
-async function addToCart(cartData) {
+async function addToCart(cartData, user) {
   try {
     const product = await knex("Product")
       .where({ Id: cartData.ProductId })
@@ -34,7 +33,10 @@ async function addToCart(cartData) {
       };
     }
 
-    const [cart] = await knex("ShoppingCartItem").insert(cartData).returning("*");
+    cartData.CustomerId = user.id; // Use CustomerId from authenticated user
+    const [cart] = await knex("ShoppingCartItem")
+      .insert(cartData)
+      .returning("*");
     return { success: true, message: "Product added to cart", cart };
   } catch (error) {
     console.error("Error adding product to cart:", error);
@@ -43,40 +45,53 @@ async function addToCart(cartData) {
 }
 
 // Get Cart Items with Price and Tax
-async function getCartItems(customerId, email) {
+async function getCartItems(user) {
   try {
     const cartItems = await knex("ShoppingCartItem")
-      .where("CustomerId", customerId)
+      .where("CustomerId", user.id) // Use CustomerId from authenticated user
       .join("Product", "ShoppingCartItem.ProductId", "Product.Id")
-      .leftJoin("Product_Picture_Mapping", "Product.Id", "Product_Picture_Mapping.ProductId")
+      .leftJoin(
+        "Product_Picture_Mapping",
+        "Product.Id",
+        "Product_Picture_Mapping.ProductId"
+      )
       .leftJoin("Picture", "Product_Picture_Mapping.PictureId", "Picture.Id")
-      .select("ShoppingCartItem.*", "Product.Price", "Product_Picture_Mapping.PictureId", "Picture.MimeType");
+      .select(
+        "ShoppingCartItem.*",
+        "Product.Price",
+        "Product_Picture_Mapping.PictureId",
+        "Picture.MimeType"
+      );
 
     const cartItemsWithImages = cartItems.map((item) => {
       let image = null;
       if (item.PictureId) {
         image = generateImageUrl(item.PictureId, item.MimeType);
       }
-
       return { ...item, image };
     });
 
-    // Calculate total price, tax, and final price
-    const { totalPrice, taxAmount, finalPrice } = await calculateTotalPriceWithTax(email, cartItemsWithImages);
+    const { totalPrice, taxAmount, finalPrice } =
+      await calculateTotalPriceWithTax(user.email, cartItemsWithImages);
 
-    return { success: true, cartItems: cartItemsWithImages, totalPrice, taxAmount, finalPrice };
+    return {
+      success: true,
+      cartItems: cartItemsWithImages,
+      totalPrice,
+      taxAmount,
+      finalPrice,
+    };
   } catch (error) {
     console.error("Error retrieving cart items:", error);
     throw new Error("Failed to retrieve cart items.");
   }
 }
 
-
 // Update cart with tax calculation
-async function updateCart(id, updateData, email) {
+async function updateCart(id, updateData, user) {
   try {
     const cartItem = await knex("ShoppingCartItem")
-      .where({ Id: id })
+      .where({ Id: id, CustomerId: user.id }) // Ensure the item belongs to the authenticated user
       .select("ProductId", "Quantity", "CustomerId")
       .first();
 
@@ -86,7 +101,12 @@ async function updateCart(id, updateData, email) {
 
     const product = await knex("Product")
       .where({ Id: cartItem.ProductId })
-      .select("StockQuantity", "OrderMaximumQuantity", "OrderMinimumQuantity", "Price")
+      .select(
+        "StockQuantity",
+        "OrderMaximumQuantity",
+        "OrderMinimumQuantity",
+        "Price"
+      )
       .first();
 
     if (!product) {
@@ -95,7 +115,11 @@ async function updateCart(id, updateData, email) {
 
     const newQuantity = updateData.Quantity || cartItem.Quantity;
 
-    if (newQuantity > product.StockQuantity || newQuantity > product.OrderMaximumQuantity || newQuantity < product.OrderMinimumQuantity) {
+    if (
+      newQuantity > product.StockQuantity ||
+      newQuantity > product.OrderMaximumQuantity ||
+      newQuantity < product.OrderMinimumQuantity
+    ) {
       throw new Error("Invalid quantity.");
     }
 
@@ -104,35 +128,25 @@ async function updateCart(id, updateData, email) {
       .update(updateData)
       .returning("*");
 
-    const cartItems = await getCartItems(cartItem.CustomerId, email);
+    const cartItems = await getCartItems(user);
 
-    return { success: true, message: "Cart updated successfully", updatedCart, ...cartItems };
+    return {
+      success: true,
+      message: "Cart updated successfully",
+      updatedCart,
+      ...cartItems,
+    };
   } catch (error) {
     console.error("Error updating cart in database:", error);
     throw new Error("Failed to update cart.");
   }
 }
 
-
-// Remove all cart items for a customer
-async function removeAllCartItems(customerId) {
-  try {
-    const deletedCount = await knex("ShoppingCartItem").where({ CustomerId: customerId }).del();
-    return {
-      success: deletedCount > 0,
-      message: deletedCount > 0 ? "All cart items removed successfully." : "No cart items found for this customer.",
-    };
-  } catch (error) {
-    console.error("Error removing all cart items:", error);
-    throw new Error("Failed to remove all cart items.");
-  }
-}
-
 // Remove a single cart item and recalculate tax
-async function removeSingleCartItem(id, email) {
+async function removeSingleCartItem(id, user) {
   try {
     const cartItem = await knex("ShoppingCartItem")
-      .where({ Id: id })
+      .where({ Id: id, CustomerId: user.id }) // Ensure the item belongs to the authenticated user
       .select("CustomerId")
       .first();
 
@@ -142,11 +156,14 @@ async function removeSingleCartItem(id, email) {
 
     const deletedCount = await knex("ShoppingCartItem").where({ Id: id }).del();
 
-    const cartItems = await getCartItems(cartItem.CustomerId, email);
+    const cartItems = await getCartItems(user);
 
     return {
       success: deletedCount > 0,
-      message: deletedCount > 0 ? "Cart item removed successfully." : "Cart item not found.",
+      message:
+        deletedCount > 0
+          ? "Cart item removed successfully."
+          : "Cart item not found.",
       ...cartItems,
     };
   } catch (error) {
@@ -155,10 +172,4 @@ async function removeSingleCartItem(id, email) {
   }
 }
 
-export {
-  addToCart,
-  getCartItems,
-  updateCart,
-  removeAllCartItems,
-  removeSingleCartItem,
-};
+export { addToCart, getCartItems, updateCart, removeSingleCartItem };

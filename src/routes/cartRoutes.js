@@ -2,7 +2,6 @@ import express from "express";
 import {
   addToCartController,
   getCartItemsController,
-  removeAllCartItemsController,
   removeSingleCartItemController,
   updateCartController,
 } from "../controllers/cartController.js";
@@ -13,8 +12,7 @@ const router = express.Router();
 
 router.use(authenticateToken);
 
-const cartAccess = authorizeRoles(['Registered', 'Administrators'])
-
+const cartAccess = authorizeRoles(['Registered', 'Administrators']);
 
 /**
  * @swagger
@@ -25,7 +23,7 @@ const cartAccess = authorizeRoles(['Registered', 'Administrators'])
  *   post:
  *     summary: Add a product to the cart
  *     tags: [Cart]
- *     description: Adds a new product to the shopping cart for a customer.
+ *     description: Adds a new product to the shopping cart for the authenticated customer.
  *     requestBody:
  *       description: Product and cart details to be added.
  *       required: true
@@ -58,25 +56,18 @@ router.post("/add", cartAccess, addToCartController);
  * tags:
  *   - name: Cart
  *     description: Cart related endpoints
- * /cart/items/{customerId}:
+ * /cart/items:
  *   get:
- *     summary: Get all cart items for a customer
+ *     summary: Get all cart items for the authenticated customer
  *     tags: [Cart]
- *     description: Retrieves all items currently in the shopping cart for a specific customer.
- *     parameters:
- *       - name: customerId
- *         in: path
- *         required: true
- *         schema:
- *           type: integer
- *         description: The ID of the customer whose cart items are to be retrieved.
+ *     description: Retrieves all items currently in the shopping cart for the authenticated customer.
  *     responses:
  *       200:
  *         description: Successfully retrieved cart items.
  *       500:
  *         description: Server error.
  */
-router.get("/items/:customerId", cartAccess, getCartItemsController);
+router.get("/items", cartAccess, getCartItemsController);
 
 /**
  * @swagger
@@ -102,16 +93,12 @@ router.get("/items/:customerId", cartAccess, getCartItemsController);
  *               quantity:
  *                 type: integer
  *                 description: The new quantity for the cart item.
- *               productId:
- *                 type: integer
- *                 description: The ID of the product to update (must match the original product).
  *               shoppingCartTypeId:
  *                 type: integer
  *                 description: The type of the shopping cart (optional).
  *             required:
  *               - id
  *               - quantity
- *               - productId
  *     responses:
  *       200:
  *         description: Cart item updated successfully.
@@ -121,33 +108,6 @@ router.get("/items/:customerId", cartAccess, getCartItemsController);
  *         description: Server error.
  */
 router.put("/update", cartAccess, updateCartController);
-
-/**
- * @swagger
- * tags:
- *   - name: Cart
- *     description: Cart related endpoints
- * /cart/remove-all/{customerId}:
- *   delete:
- *     summary: Remove all cart items for a customer
- *     tags: [Cart]
- *     description: Deletes all items from the shopping cart for a specific customer.
- *     parameters:
- *       - name: customerId
- *         in: path
- *         required: true
- *         schema:
- *           type: integer
- *         description: The ID of the customer whose cart items are to be removed.
- *     responses:
- *       200:
- *         description: All cart items removed successfully.
- *       404:
- *         description: No cart items found for the customer.
- *       500:
- *         description: Server error.
- */
-router.delete("/remove-all/:customerId", cartAccess, removeAllCartItemsController);
 
 /**
  * @swagger
