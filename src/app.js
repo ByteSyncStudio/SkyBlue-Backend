@@ -1,15 +1,15 @@
-import express from 'express';
-import helmet from 'helmet'
-import cors from 'cors';
-import swaggerSetup from './config/swagger.js';
-import fileRoutes from './routes/fileRoutes.js';
-import customerRoutes from './routes/customerRoutes.js';
-import authRoutes from './routes/authRoutes.js';
-import productRoutes from "./routes/productRoutes.js"
-import cartRoute from "./routes/cartRoutes.js"
+import express from "express";
+import helmet from "helmet";
+import cors from "cors";
+import swaggerSetup from "./config/swagger.js";
+import fileRoutes from "./routes/fileRoutes.js";
+import customerRoutes from "./routes/customerRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
+import productRoutes from "./routes/productRoutes.js";
+import cartRoute from "./routes/cartRoutes.js";
+import checkoutRoute from "./routes/checkoutRoute.js";
 
 const app = express();
-
 
 app.use(cors());
 
@@ -23,18 +23,18 @@ app.use(express.json());
 swaggerSetup(app);
 
 // Endpoints
-app.use('/', fileRoutes);
-app.use('/customers', customerRoutes);
-app.use('/auth', authRoutes);
-app.use('/product',productRoutes)
-app.use('/cart',cartRoute)
-
+app.use("/", fileRoutes);
+app.use("/customers", customerRoutes);
+app.use("/auth", authRoutes);
+app.use("/product", productRoutes);
+app.use("/cart", cartRoute);
+app.use("/checkout", checkoutRoute);
 
 // (Loose) Error Catcher
 app.use((err, req, res, next) => {
-    console.error('Error stack:', err.stack);
-    console.error('Error message:', err.message);
-    res.status(500).json({ error: 'Internal Server Error' });
+  console.error("Error stack:", err.stack);
+  console.error("Error message:", err.message);
+  res.status(500).json({ error: "Internal Server Error" });
 });
 
 export default app;

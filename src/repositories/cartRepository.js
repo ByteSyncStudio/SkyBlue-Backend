@@ -12,13 +12,7 @@ async function addToCart(cartData, user) {
 
     if (!product) throw new Error("Product not found.");
 
-    if (cartData.Quantity > product.StockQuantity) {
-      return {
-        success: false,
-        message: `Out of stock. Please enter a quantity below ${product.StockQuantity}.`,
-      };
-    }
-
+    // Validate quantity against product-specific limits
     if (cartData.Quantity < product.OrderMinimumQuantity) {
       return {
         success: false,
@@ -30,6 +24,13 @@ async function addToCart(cartData, user) {
       return {
         success: false,
         message: `Exceeds maximum order limit. Please enter a quantity below ${product.OrderMaximumQuantity}.`,
+      };
+    }
+
+    if (cartData.Quantity > product.StockQuantity) {
+      return {
+        success: false,
+        message: `Out of stock. Please enter a quantity below ${product.StockQuantity}.`,
       };
     }
 
@@ -58,6 +59,7 @@ async function getCartItems(user) {
       .leftJoin("Picture", "Product_Picture_Mapping.PictureId", "Picture.Id")
       .select(
         "ShoppingCartItem.*",
+        "Product.Name",
         "Product.Price",
         "Product_Picture_Mapping.PictureId",
         "Picture.MimeType"
@@ -96,7 +98,7 @@ async function updateCart(id, updateData, user) {
       .first();
 
     if (!cartItem) {
-      throw new Error("Cart item not found.");
+      return { success: false, message: "Cart item not found." };
     }
 
     const product = await knex("Product")
@@ -110,19 +112,34 @@ async function updateCart(id, updateData, user) {
       .first();
 
     if (!product) {
-      throw new Error("Product not found.");
+      return { success: false, message: "Product not found." };
     }
 
     const newQuantity = updateData.Quantity || cartItem.Quantity;
 
-    if (
-      newQuantity > product.StockQuantity ||
-      newQuantity > product.OrderMaximumQuantity ||
-      newQuantity < product.OrderMinimumQuantity
-    ) {
-      throw new Error("Invalid quantity.");
+    // Validate against stock, minimum, and maximum order quantities
+    if (newQuantity > product.StockQuantity) {
+      return {
+        success: false,
+        message: `Out of stock. Maximum available quantity is ${product.StockQuantity}.`,
+      };
     }
 
+    if (newQuantity > product.OrderMaximumQuantity) {
+      return {
+        success: false,
+        message: `Exceeds maximum order limit. Maximum allowed quantity is ${product.OrderMaximumQuantity}.`,
+      };
+    }
+
+    if (newQuantity < product.OrderMinimumQuantity) {
+      return {
+        success: false,
+        message: `Below minimum order limit. Minimum required quantity is ${product.OrderMinimumQuantity}.`,
+      };
+    }
+
+    // Update cart item with valid quantity
     const [updatedCart] = await knex("ShoppingCartItem")
       .where({ Id: id })
       .update(updateData)
@@ -132,15 +149,17 @@ async function updateCart(id, updateData, user) {
 
     return {
       success: true,
-      message: "Cart updated successfully",
+      message: "Cart updated successfully.",
       updatedCart,
       ...cartItems,
     };
   } catch (error) {
     console.error("Error updating cart in database:", error);
-    throw new Error("Failed to update cart.");
+    return { success: false, message: "Failed to update cart." };
   }
 }
+
+
 
 // Remove a single cart item and recalculate tax
 async function removeSingleCartItem(id, user) {
