@@ -340,8 +340,8 @@ async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10) {
         const offset = (page - 1) * size;
 
         let query = knex('Product')
+            .distinct('Product.Id') // Ensure distinct products
             .select([
-                'Product.Id',
                 'Product.Name',
                 'Product.Price',
                 'Product.FullDescription',
