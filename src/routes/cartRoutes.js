@@ -6,13 +6,16 @@ import {
   updateCartController,
 } from "../controllers/cartController.js";
 
-import { authenticateToken, authorizeRoles } from "../middleware/authMiddleware.js";
+import {
+  authenticateToken,
+  authorizeRoles,
+} from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 router.use(authenticateToken);
 
-const cartAccess = authorizeRoles(['Registered', 'Administrators']);
+const cartAccess = authorizeRoles(["Registered", "Administrators"]);
 
 /**
  * @swagger

@@ -3,9 +3,11 @@ import knex from "../config/knex.js";
 // Calculate total price with tax
 async function calculateTotalPriceWithTax(email, cartItems) {
   try {
-    // Fetch customer address details
+    //console.log("Email:", email); // Debug output
+
+    // Fetch customer address details based on email
     const address = await knex("Address")
-      .where("Email", email)
+      .where("Email", email) // Ensure email is treated as a string
       .select("StateProvinceId")
       .first();
 
@@ -37,16 +39,24 @@ async function calculateTotalPriceWithTax(email, cartItems) {
       throw new Error("Tax rate not found for the given state province and country.");
     }
 
+    //console.log("Tax Rate Percentage:", taxRate.Percentage); // Debug output
+
     // Calculate total price
     let totalPrice = 0;
     cartItems.forEach(item => {
-      totalPrice += item.Price * item.Quantity;
+      console.log("Item Price:", item.Price, "Item Quantity:", item.Quantity); // Debug output
+      if (typeof item.Price === 'number' && typeof item.Quantity === 'number') {
+        totalPrice += item.Price * item.Quantity;
+      } else {
+        console.error("Invalid item data:", item);
+      }
     });
 
     // Calculate tax amount and final price
-    //console.log("taxRate.Percentage", taxRate.Percentage)
     const taxAmount = (totalPrice * taxRate.Percentage) / 100;
     const finalPrice = totalPrice + taxAmount;
+
+    console.log("Total Price:", totalPrice, "Tax Amount:", taxAmount, "Final Price:", finalPrice); // Debug output
 
     return {
       totalPrice,
