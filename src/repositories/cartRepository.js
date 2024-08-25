@@ -61,6 +61,8 @@ async function getCartItems(user) {
         "ShoppingCartItem.*",
         "Product.Name",
         "Product.Price",
+        'Product.OrderMinimumQuantity',
+        'Product.OrderMaximumQuantity',
         "Product_Picture_Mapping.PictureId",
         "Picture.MimeType"
       );
