@@ -1,5 +1,6 @@
 import express from 'express';
-import { login } from '../controllers/authController.js';
+import { login } from '../controllers/auth/loginController.js';
+import { signUp } from '../controllers/auth/signupController.js';
 
 const router = express.Router();
 
@@ -30,5 +31,8 @@ const router = express.Router();
  *         description: Internal server error
  */
 router.post('/login', login);
+
+
+router.post('/signup', signUp);
 
 export default router;

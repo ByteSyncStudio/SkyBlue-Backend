@@ -1,4 +1,4 @@
-import { getUserByEmail, getPasswordRecordByCustomerId, getUserRoles } from '../repositories/authRepository.js';
+import { getUserByEmail, getPasswordRecordByCustomerId, getUserRoles} from '../../repositories/auth/loginRepository.js';
 import crypto from 'crypto';
 import jsonwebtoken from 'jsonwebtoken';
 
@@ -13,9 +13,19 @@ export const login = async (req, res, next) => {
 
         // Fetch user by email to get their ID
         const user = await getUserByEmail(email);
+        console.log(user)
         if (!user) {
             return res.status(401).json({ message: 'Invalid email or password' });
         }
+        
+        if(!user.IsApproved) {
+            return res.status(401).json({ message: 'Account awaiting approval' });
+        }
+
+        if (!user.Active) {
+            return res.status(401).json({ message: 'Account Inactive' });
+        }
+
 
         // Using the user's ID, fetch their most recent password record
         const passwordRecord = await getPasswordRecordByCustomerId(user.Id);

@@ -1,4 +1,4 @@
-import knex from '../config/knex.js';
+import knex from '../../config/knex.js';
 
 /**
  * Fetches a user by their email from the 'Customer' table.
