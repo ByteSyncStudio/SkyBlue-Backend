@@ -34,7 +34,6 @@ async function calculateTotalPriceWithTax(email, cartItems) {
       .where({ StateProvinceId, CountryId })
       .select("Percentage")
       .first();
-
     if (!taxRate) {
       throw new Error("Tax rate not found for the given state province and country.");
     }
@@ -44,7 +43,7 @@ async function calculateTotalPriceWithTax(email, cartItems) {
     // Calculate total price
     let totalPrice = 0;
     cartItems.forEach(item => {
-      console.log("Item Price:", item.Price, "Item Quantity:", item.Quantity); // Debug output
+      //console.log("Item Price:", item.Price, "Item Quantity:", item.Quantity); // Debug output
       if (typeof item.Price === 'number' && typeof item.Quantity === 'number') {
         totalPrice += item.Price * item.Quantity;
       } else {
@@ -56,7 +55,7 @@ async function calculateTotalPriceWithTax(email, cartItems) {
     const taxAmount = (totalPrice * taxRate.Percentage) / 100;
     const finalPrice = totalPrice + taxAmount;
 
-    console.log("Total Price:", totalPrice, "Tax Amount:", taxAmount, "Final Price:", finalPrice); // Debug output
+    //console.log("Total Price:", totalPrice, "Tax Amount:", taxAmount, "Final Price:", finalPrice); // Debug output
 
     return {
       totalPrice,
