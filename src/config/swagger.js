@@ -10,11 +10,12 @@ const options = {
         },
         tags: [
             { name: 'Auth', description: 'Authentication related endpoints' },
+            { name: 'Admin', description: 'Admin related endpoints' },
             { name: 'Product', description: 'Product related endpoints' },
             { name: 'Cart', description: 'Cart related endpoints' },
         ],
     },
-    apis: ['./src/routes/*.js'], 
+    apis: ['./src/routes/*.js', './src/routes/admin/*.js'],
 };
 
 const specs = swaggerJsdoc(options);

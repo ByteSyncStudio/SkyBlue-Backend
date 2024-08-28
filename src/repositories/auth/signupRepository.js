@@ -113,6 +113,13 @@ export const assignDefaultRole = async (customerId, trx) => {
     }
 };
 
+/**
+ * Stores document information in the 'GenericAttribute' table.
+ * 
+ * @param {Object} info - The information object containing customer ID, key, value, and store ID.
+ * @param {Object} trx - The transaction object.
+ * @returns {Promise<void>}
+ */
 export const storeDocuments = async (info, trx) => {
     try {
         for (const fileName of info.value) {
@@ -130,27 +137,6 @@ export const storeDocuments = async (info, trx) => {
     }
 }
 
-/**
- * Stores additional information in the 'GenericAttribute' table.
- * 
- * @param {Object} info - The information object containing customer ID and business license.
- * @param {Object} trx - The transaction object.
- * @returns {Promise<void>}
- */
-// export const storeAdditionalInfo = async (info, trx) => {
-//     try {
-//         await trx('GenericAttribute').insert({
-//             EntityId: info.customerId,
-//             KeyGroup: 'Customer',
-//             Key: 'BusinessLicense',
-//             Value: info.businessLicense,
-//             StoreId: 0
-//         });
-//     } catch (error) {
-//         console.error("Error storing additional information:\n", error);
-//         throw error;
-//     }
-// };
 
 // Helper functions
 async function getCountryId(countryName, trx) {

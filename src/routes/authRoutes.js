@@ -32,7 +32,33 @@ const router = express.Router();
  */
 router.post('/login', login);
 
-
+/**
+ * @swagger
+ * /signup:
+ *   post:
+ *     summary: User signup
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email: 
+ *                 type: string
+ *                 example: user@example.com
+ *               password: 
+ *                 type: string
+ *                 example: password123
+ *     responses:
+ *       201:
+ *         description: Successful signup
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
 router.post('/signup', signUp);
 
 export default router;
