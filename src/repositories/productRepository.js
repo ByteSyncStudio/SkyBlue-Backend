@@ -178,6 +178,7 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
             .join('Product_Category_Mapping', 'Product.Id', 'Product_Category_Mapping.ProductId')
             .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
             .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
+            .where('Product.Published', true)
             .whereIn('Product_Category_Mapping.CategoryId', subCategoryIds)
             .orderBy('Product.Name')
             .limit(size)
