@@ -7,6 +7,7 @@ import authRoutes from "./routes/authRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import cartRoute from "./routes/cartRoutes.js";
 import checkoutRoute from "./routes/checkoutRoute.js";
+import adminRoutes from "./routes/admin/adminRoutes.js"
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use("/auth", authRoutes);
 app.use("/product", productRoutes);
 app.use("/cart", cartRoute);
 app.use("/checkout", checkoutRoute);
+app.use("/admin", adminRoutes);
 
 // (Loose) Error Catcher
 app.use((err, req, res, next) => {
