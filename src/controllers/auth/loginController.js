@@ -17,7 +17,7 @@ export const login = async (req, res, next) => {
         if (!user) {
             return res.status(401).json({ message: 'Invalid email or password' });
         }
-        
+
         if(!user.IsApproved) {
             return res.status(401).json({ message: 'Account awaiting approval' });
         }
@@ -25,7 +25,6 @@ export const login = async (req, res, next) => {
         if (!user.Active) {
             return res.status(401).json({ message: 'Account Inactive' });
         }
-
 
         // Using the user's ID, fetch their most recent password record
         const passwordRecord = await getPasswordRecordByCustomerId(user.Id);

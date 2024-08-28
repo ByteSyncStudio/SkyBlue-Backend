@@ -87,7 +87,7 @@ export const createCustomerPassword = async (passwordData, trx) => {
             PasswordSalt: salt,
             CreatedOnUtc: new Date()
         });
-        
+
     } catch (error) {
         console.error("Error creating customer password:\n", error);
         throw error;
@@ -112,6 +112,23 @@ export const assignDefaultRole = async (customerId, trx) => {
         throw error;
     }
 };
+
+export const storeDocuments = async (info, trx) => {
+    try {
+        for (const fileName of info.value) {
+            await trx('GenericAttribute').insert({
+                EntityId: info.customerId,
+                KeyGroup: 'Customer',
+                Key: info.key,
+                Value: fileName,
+                StoreId: info.storeId
+            });
+        }
+    } catch (error) {
+        console.error("Error storing additional information:\n", error);
+        throw error;
+    }
+}
 
 /**
  * Stores additional information in the 'GenericAttribute' table.
@@ -147,7 +164,7 @@ async function getStateProvinceId(stateName, trx) {
 }
 
 function generateGuid() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
         var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
         return v.toString(16);
     });

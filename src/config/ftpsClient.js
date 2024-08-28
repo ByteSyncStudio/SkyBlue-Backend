@@ -48,6 +48,18 @@ export async function downloadFile(remotePath, localPath, retries = 3) {
     }
 }
 
+export async function uploadFile(localPath, remotePath) {
+    const client = await connectFTPS();
+    try {
+        await client.uploadFrom(localPath, remotePath);
+        console.log(`File uploaded: ${localPath} -> ${remotePath}`);
+    } catch (error) {
+        console.error(`Failed to upload file: ${localPath} -> ${remotePath}`, error);
+        throw error;
+    } finally {
+        closeFTPSConnection();
+    }
+}
 async function reconnectFTPS() {
     if (client) {
         client.close();
