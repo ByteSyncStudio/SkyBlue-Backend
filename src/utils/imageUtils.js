@@ -10,4 +10,4 @@ export function generateImageUrl(pictureId, mimeType) {
     const formattedId = pictureId.toString().padStart(7, '0');
     const fileExtension = mimeType ? mimeType.split('/')[1] : 'jpg';
     return `https://skybluewholesale.com/content/images/${formattedId}_0.${fileExtension}`;
-  }
+}

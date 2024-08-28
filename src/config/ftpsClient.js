@@ -1,77 +1,93 @@
 import { Client } from 'basic-ftp';
+import fs from 'fs/promises';
 
-let client = null;
-let connectionPromise = null;
+const MAX_CONNECTIONS = 5;
+const connectionPool = [];
+const uploadQueue = [];
+let isProcessing = false;
 
-export async function connectFTPS() {
-    if (client && client.closed === false) return client;
-    if (connectionPromise) return connectionPromise;
+async function getConnection() {
+    if (connectionPool.length < MAX_CONNECTIONS) {
+        const client = new Client();
+        client.ftp.verbose = false;
+        client.ftp.timeout = 100000;
 
-    client = new Client();
-    client.ftp.verbose = false; // Enable verbose logging for testing purposes
-    client.ftp.timeout = 100000; // Set a timeout for the connection
+        await client.access({
+            host: process.env.FTP_HOST,
+            user: process.env.FTP_USER,
+            password: process.env.FTP_PASSWORD,
+            secure: true,
+        });
 
-    connectionPromise = client.access({
-        host: process.env.FTP_HOST,
-        user: process.env.FTP_USER,
-        password: process.env.FTP_PASSWORD,
-        secure: true,
-    }).then(() => {
-        console.log("Connected to FTPS server successfully");
-        connectionPromise = null;
+        console.log("New FTPS connection created");
+        connectionPool.push(client);
         return client;
-    }).catch(error => {
-        console.error("Failed to connect to FTPS server:", error);
-        client = null;
-        connectionPromise = null;
-        throw error;
-    });
-
-    return connectionPromise;
-}
-
-export async function downloadFile(remotePath, localPath, retries = 3) {
-    for (let attempt = 1; attempt <= retries; attempt++) {
-        try {
-            const client = await connectFTPS();
-            await client.downloadTo(localPath, remotePath);
-            console.log(`File downloaded: ${remotePath} -> ${localPath}`);
-            return;
-        } catch (error) {
-            console.error(`Failed to download file (attempt ${attempt}):`, error);
-            if (attempt === retries || error.code !== 'ECONNRESET') {
-                throw error;
-            }
-            console.log(`Retrying download (attempt ${attempt + 1})...`);
-            await reconnectFTPS();
-        }
     }
+
+    // Wait for an available connection
+    while (connectionPool.every(conn => conn.busy)) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    return connectionPool.find(conn => !conn.busy);
 }
 
-export async function uploadFile(localPath, remotePath) {
-    const client = await connectFTPS();
+async function releaseConnection(client) {
+    client.busy = false;
+}
+
+async function uploadFile(localPath, remotePath, retries = 3) {
+    let client;
     try {
+        client = await getConnection();
+        client.busy = true;
+
         await client.uploadFrom(localPath, remotePath);
         console.log(`File uploaded: ${localPath} -> ${remotePath}`);
     } catch (error) {
         console.error(`Failed to upload file: ${localPath} -> ${remotePath}`, error);
-        throw error;
+        if (retries > 0) {
+            console.log(`Retrying upload (${retries} attempts left)...`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await uploadFile(localPath, remotePath, retries - 1);
+        } else {
+            throw error;
+        }
     } finally {
-        closeFTPSConnection();
+        if (client) {
+            releaseConnection(client);
+        }
     }
-}
-async function reconnectFTPS() {
-    if (client) {
-        client.close();
-        client = null;
-    }
-    await connectFTPS();
 }
 
-export function closeFTPSConnection() {
-    if (client) {
-        client.close();
-        client = null;
-        console.log("FTPS connection closed");
+export function queueFileUpload(localPath, remotePath) {
+    uploadQueue.push({ localPath, remotePath });
+    if (!isProcessing) {
+        processQueue();
     }
 }
+
+async function processQueue() {
+    if (isProcessing) return;
+    isProcessing = true;
+
+    while (uploadQueue.length > 0) {
+        const { localPath, remotePath } = uploadQueue.shift();
+        try {
+            await uploadFile(localPath, remotePath);
+            await fs.unlink(localPath);
+        } catch (error) {
+            console.error('Error processing upload:', error);
+            // Optionally, you could implement a "dead letter queue" here
+            // to store failed uploads for later retry or manual intervention
+        }
+    }
+
+    isProcessing = false;
+}
+
+process.on('SIGTERM', () => {
+    connectionPool.forEach(client => client.close());
+});
+
+export { uploadFile };

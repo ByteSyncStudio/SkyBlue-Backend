@@ -2,7 +2,6 @@ import express from "express";
 import helmet from "helmet";
 import cors from "cors";
 import swaggerSetup from "./config/swagger.js";
-import fileRoutes from "./routes/fileRoutes.js";
 import customerRoutes from "./routes/customerRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
@@ -23,7 +22,6 @@ app.use(express.json());
 swaggerSetup(app);
 
 // Endpoints
-app.use("/", fileRoutes);
 app.use("/customers", customerRoutes);
 app.use("/auth", authRoutes);
 app.use("/product", productRoutes);

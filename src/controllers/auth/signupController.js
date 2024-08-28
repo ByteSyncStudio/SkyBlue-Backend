@@ -1,7 +1,7 @@
 import { createAddress, createUser, createCustomerPassword, assignDefaultRole, storeDocuments } from '../../repositories/auth/signupRepository.js';
 import knex from '../../config/knex.js';
 import multer from 'multer';
-import { uploadFile } from '../../config/ftpsClient.js';
+import { queueFileUpload } from '../../config/ftpsClient.js';
 import fs from 'fs/promises';
 
 const upload = multer({ dest: 'uploads/' })
@@ -16,6 +16,7 @@ export const signUp = [
 
     const files = req.files;
 
+    let customerId;
     try {
         // Start a transaction
         await knex.transaction(async (trx) => {
@@ -25,7 +26,7 @@ export const signUp = [
             }, trx);
 
             // 2. Create Customer
-            const customerId = await createUser({
+            customerId = await createUser({
                 email, addressId
             }, trx);
 
@@ -37,19 +38,12 @@ export const signUp = [
             // 4. Assign default role (e.g., "Registered")
             await assignDefaultRole(customerId, trx);
 
-            // 5. Upload images to FTPS server (IONOS)
+            // 5. Store document information
             if (files && files.length > 0) {
-                const fileLinks = [];
-                for (let i = 0; i < files.length; i++) {
-                    const file = files[i];
+                const fileLinks = files.map((file, index) => {
                     const fileExtension = file.mimetype.split('/')[1];
-                    const fileName = `${customerId}_${i + 1}.${fileExtension}`;
-                    const remotePath = `/acc1845619052/SkyblueWholesale/Content/Images/ForApproval/${fileName}`;
-                    await uploadFile(file.path, remotePath);
-                    fileLinks.push(fileName);
-
-                    await fs.unlink(file.path);
-                }
+                    return `${customerId}_${index + 1}.${fileExtension}`;
+                });
 
                 await storeDocuments({
                     customerId,
@@ -58,12 +52,27 @@ export const signUp = [
                     storeId: 3
                 }, trx);
             }
-
-            res.status(201).json({ message: 'Signup successful. Awaiting admin approval.' });
         });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'An error occurred during signup.' });
-    }
 
+        // Send immediate response
+        res.status(201).json({ message: 'Signup successful. Documents are being processed. Awaiting admin approval.' });
+
+        // Queue file uploads after sending the response
+        if (files && files.length > 0) {
+            console.log('Uploading files for new customer:', customerId);
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const fileExtension = file.mimetype.split('/')[1];
+                const fileName = `${customerId}_${i + 1}.${fileExtension}`;
+                const remotePath = `/acc1845619052/SkyblueWholesale/Content/Images/ForApproval/${fileName}`;
+                queueFileUpload(file.path, remotePath);
+            }
+        }
+    } catch (error) {
+        console.error('Error during signup:', error);
+        // Only send error response if headers haven't been sent
+        if (!res.headersSent) {
+            res.status(500).json({ message: 'An error occurred during signup.' });
+        }
+    }
 }];
