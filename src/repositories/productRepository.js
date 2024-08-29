@@ -16,7 +16,7 @@ function getMiscellaneousName() {
 async function getTierPrices(productIds, userRoles) {
     const tierPricingRoles = [6, 7, 8, 9, 10];
     const userTierRole = userRoles.find(role => tierPricingRoles.includes(role.Id));
-    
+
     if (!userTierRole || productIds.length === 0) return {};
 
     try {
@@ -24,11 +24,11 @@ async function getTierPrices(productIds, userRoles) {
             .select('ProductId', 'Price')
             .whereIn('ProductId', productIds)
             .where('CustomerRoleId', userTierRole.Id)
-            .where(function() {
+            .where(function () {
                 this.whereNull('StartDateTimeUtc')
                     .orWhere('StartDateTimeUtc', '<=', knex.fn.now());
             })
-            .where(function() {
+            .where(function () {
                 this.whereNull('EndDateTimeUtc')
                     .orWhere('EndDateTimeUtc', '>=', knex.fn.now());
             })
@@ -193,7 +193,12 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user) {
         const tierPrices = await getTierPrices(productIds, user.roles);
 
         const processedProducts = products.reduce((acc, product) => {
-            const imageUrl = generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename);
+            let imageUrl;
+            if (product.PictureId) {
+                imageUrl = generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename);
+            } else {
+                imageUrl = null;
+            }
             const existingProduct = acc.find(p => p.Id === product.Id);
 
             const price = product.HasTierPrices ? (tierPrices[product.Id] || product.Price) : product.Price;
