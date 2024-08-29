@@ -1,6 +1,6 @@
 import knex from '../config/knex.js';
 import cache from '../config/cache.js'
-import { generateImageUrl } from '../utils/imageUtils.js';
+import { generateImageUrl2 } from '../utils/imageUtils.js';
 
 
 // Hardcoded Specific Categories as per requirements
@@ -100,39 +100,6 @@ async function getSubcategories(categoryId) {
 }
 
 /**
- * Helper function to fetch and process products.
- * 
- * @param {Object} query - The Knex query object to fetch products.
- * @param {Function} [processingFunction=null] - Optional function to further process each product.
- * @returns {Promise<Array>} A promise that resolves to an array of processed product objects.
- */
-async function fetchAndProcessProducts(query, processingFunction = null) {
-    const products = await query;
-
-    return products.map(product => {
-        let image = null;
-        if (product.PictureId) {
-            image = generateImageUrl(product.PictureId, product.MimeType);
-        }
-
-        const processedProduct = {
-            Id: product.Id,
-            Name: product.Name,
-            Price: product.Price,
-            FullDescription: product.FullDescription,
-            ShortDescription: product.ShortDescription,
-            OrderMinimumQuantity: product.OrderMinimumQuantity,
-            OrderMaximumQuantity: product.OrderMaximumQuantity,
-            Stock: product.StockQuantity,
-            Image: image,
-            total_count: product.total_count
-        };
-
-        return processingFunction ? processingFunction(processedProduct, product) : processedProduct;
-    });
-}
-
-/**
  * Retrieves a list of products from the specified category with pagination.
  * 
  * @param {string} category - The name of the category.
@@ -169,6 +136,7 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
                 'Product_Picture_Mapping.PictureId',
                 'product.StockQuantity',
                 'Picture.MimeType',
+                'Picture.SeoFilename',
                 knex.raw('COUNT(*) OVER() AS total_count'),
                 knex.raw(`CASE 
                     WHEN ? = 0 THEN ?
@@ -186,25 +154,29 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
 
         const products = await query;
 
-        const processedProducts = products.map(product => {
-            let image = null;
-            if (product.PictureId) {
-                image = generateImageUrl(product.PictureId, product.MimeType);
+        const processedProducts = products.reduce((acc, product) => {
+            const imageUrl = generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename);
+            const existingProduct = acc.find(p => p.Id === product.Id);
+
+            if (existingProduct) {
+                existingProduct.Images.push(imageUrl);
+            } else {
+                acc.push({
+                    Id: product.Id,
+                    Name: product.Name,
+                    Price: product.Price,
+                    FullDescription: product.FullDescription,
+                    ShortDescription: product.ShortDescription,
+                    OrderMinimumQuantity: product.OrderMinimumQuantity,
+                    OrderMaximumQuantity: product.OrderMaximumQuantity,
+                    Stock: product.StockQuantity,
+                    Images: [imageUrl],
+                    total_count: product.total_count
+                });
             }
 
-            return {
-                Id: product.Id,
-                Name: product.Name,
-                Price: product.Price,
-                FullDescription: product.FullDescription,
-                ShortDescription: product.ShortDescription,
-                OrderMinimumQuantity: product.OrderMinimumQuantity,
-                OrderMaximumQuantity: product.OrderMaximumQuantity,
-                Stock: product.StockQuantity,
-                Image: image,
-                total_count: product.total_count
-            };
-        });
+            return acc;
+        }, []);
 
         const totalProducts = processedProducts.length > 0 ? processedProducts[0].total_count : 0;
         const categoryName = products.length > 0 ? products[0].CategoryName : getMiscellaneousName();
@@ -216,7 +188,7 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
             pageNumber: page,
             pageSize: size,
             data: processedProducts
-        }
+        };
 
         cache.set(cacheKey, response);
         return response;
@@ -265,31 +237,49 @@ async function listBestsellers(sortBy, size) {
                 'Product.OrderMaximumQuantity',
                 'Product_Picture_Mapping.PictureId',
                 'product.StockQuantity',
-                'Picture.MimeType'
+                'Picture.MimeType',
+                'Picture.SeoFilename'
             ])
             .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
             .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
             .whereIn('Product.Id', productIds);
 
-        const processedProducts = await fetchAndProcessProducts(query, (processedProduct, product) => {
-            const topProduct = topProducts.find(p => p.ProductId === product.Id);
-            return {
-                Quantity: topProduct.TotalQuantity,
-                Amount: topProduct.TotalAmount,
-                data: processedProduct
-            };
-        });
+        const products = await query;
+
+        const processedProducts = products.reduce((acc, product) => {
+            const imageUrl = generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename);
+            const existingProduct = acc.find(p => p.Id === product.Id);
+
+            if (existingProduct) {
+                existingProduct.Images.push(imageUrl);
+            } else {
+                const topProduct = topProducts.find(p => p.ProductId === product.Id);
+                acc.push({
+                    Id: product.Id,
+                    Name: product.Name,
+                    Price: product.Price,
+                    FullDescription: product.FullDescription,
+                    ShortDescription: product.ShortDescription,
+                    OrderMinimumQuantity: product.OrderMinimumQuantity,
+                    OrderMaximumQuantity: product.OrderMaximumQuantity,
+                    Stock: product.StockQuantity,
+                    Images: [imageUrl],
+                    Quantity: topProduct.TotalQuantity,
+                    Amount: topProduct.TotalAmount
+                });
+            }
+
+            return acc;
+        }, []);
 
         cache.set(cacheKey, processedProducts);
         return processedProducts;
-    }
-    catch (error) {
+    } catch (error) {
         error.statusCode = 500;
-        error.message = "Error in BestSellers"
+        error.message = "Error in BestSellers";
         throw error;
     }
 }
-
 
 /**
  * Retrieves a list of new arrival products with pagination.
@@ -311,18 +301,43 @@ async function listNewArrivals(size) {
                 'Product.OrderMaximumQuantity',
                 'Product_Picture_Mapping.PictureId',
                 'product.StockQuantity',
-                'Picture.MimeType'
+                'Picture.MimeType',
+                'Picture.SeoFilename'
             ])
             .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
             .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
             .orderBy('Product.CreatedonUTC', 'desc')
             .limit(size);
 
-        return await fetchAndProcessProducts(query);
-    }
-    catch (error) {
+        const products = await query;
+
+        const processedProducts = products.reduce((acc, product) => {
+            const imageUrl = generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename);
+            const existingProduct = acc.find(p => p.Id === product.Id);
+
+            if (existingProduct) {
+                existingProduct.Images.push(imageUrl);
+            } else {
+                acc.push({
+                    Id: product.Id,
+                    Name: product.Name,
+                    Price: product.Price,
+                    FullDescription: product.FullDescription,
+                    ShortDescription: product.ShortDescription,
+                    OrderMinimumQuantity: product.OrderMinimumQuantity,
+                    OrderMaximumQuantity: product.OrderMaximumQuantity,
+                    Stock: product.StockQuantity,
+                    Images: [imageUrl]
+                });
+            }
+
+            return acc;
+        }, []);
+
+        return processedProducts;
+    } catch (error) {
         error.statusCode = 500;
-        error.message = "Error in NewArrivals"
+        error.message = "Error in NewArrivals";
         throw error;
     }
 }
@@ -352,11 +367,13 @@ async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10) {
                 'Product_Picture_Mapping.PictureId',
                 'product.StockQuantity',
                 'Picture.MimeType',
+                'Picture.SeoFilename',
                 knex.raw('COUNT(*) OVER() AS total_count')
             ])
             .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
             .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
             .where('Product.Name', 'like', `%${searchTerm}%`)
+            .where('Product.Published', true)
             .orderBy('Product.Name')
             .limit(size)
             .offset(offset);
@@ -368,7 +385,31 @@ async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10) {
                 .whereIn('Product_Category_Mapping.CategoryId', subCategoryIds);
         }
 
-        const processedProducts = await fetchAndProcessProducts(query);
+        const products = await query;
+
+        const processedProducts = products.reduce((acc, product) => {
+            const imageUrl = generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename);
+            const existingProduct = acc.find(p => p.Id === product.Id);
+
+            if (existingProduct) {
+                existingProduct.Images.push(imageUrl);
+            } else {
+                acc.push({
+                    Id: product.Id,
+                    Name: product.Name,
+                    Price: product.Price,
+                    FullDescription: product.FullDescription,
+                    ShortDescription: product.ShortDescription,
+                    OrderMinimumQuantity: product.OrderMinimumQuantity,
+                    OrderMaximumQuantity: product.OrderMaximumQuantity,
+                    Stock: product.StockQuantity,
+                    Images: [imageUrl],
+                    total_count: product.total_count
+                });
+            }
+
+            return acc;
+        }, []);
 
         const totalProducts = processedProducts.length > 0 ? processedProducts[0].total_count : 0;
 
@@ -379,10 +420,9 @@ async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10) {
             pageSize: size,
             data: processedProducts
         };
-
     } catch (error) {
-        error.statusCode = 500
-        error.message = "Error in searchProducts"
+        error.statusCode = 500;
+        error.message = "Error in searchProducts";
         throw error;
     }
 }
