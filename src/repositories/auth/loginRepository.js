@@ -38,7 +38,7 @@ export const getUserRoles = async (userId) => {
         return await knex('Customer_CustomerRole_Mapping')
             .join('CustomerRole', 'Customer_CustomerRole_Mapping.CustomerRole_Id', '=', 'CustomerRole.Id')
             .where('Customer_CustomerRole_Mapping.Customer_Id', userId)
-            .select('CustomerRole.Name', 'CustomerRole.SystemName');
+            .select('CustomerRole.Id', 'CustomerRole.Name');
 
     } catch (error) {
         console.error('Error fetching user roles:\n', error);

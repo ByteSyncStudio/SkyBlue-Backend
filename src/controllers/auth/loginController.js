@@ -44,7 +44,7 @@ export const login = async (req, res, next) => {
                 {
                     email: user.Email,
                     id: user.Id,
-                    roles: roles.map(role => role.Name)
+                    roles: roles
 
                 },
                 JWT_SECRET, { expiresIn: JWT_EXPIRATION });

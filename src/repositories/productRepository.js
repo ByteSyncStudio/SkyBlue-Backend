@@ -13,6 +13,39 @@ function getMiscellaneousName() {
     return 'All Items';
 }
 
+async function getTierPrices(productIds, userRoles) {
+    const tierPricingRoles = [6, 7, 8, 9, 10];
+    const userTierRole = userRoles.find(role => tierPricingRoles.includes(role.Id));
+    
+    if (!userTierRole || productIds.length === 0) return {};
+
+    try {
+        const tierPrices = await knex('TierPrice')
+            .select('ProductId', 'Price')
+            .whereIn('ProductId', productIds)
+            .where('CustomerRoleId', userTierRole.Id)
+            .where(function() {
+                this.whereNull('StartDateTimeUtc')
+                    .orWhere('StartDateTimeUtc', '<=', knex.fn.now());
+            })
+            .where(function() {
+                this.whereNull('EndDateTimeUtc')
+                    .orWhere('EndDateTimeUtc', '>=', knex.fn.now());
+            })
+            .orderBy('Quantity', 'asc');
+
+        return tierPrices.reduce((acc, tp) => {
+            if (!acc[tp.ProductId]) {
+                acc[tp.ProductId] = tp.Price;
+            }
+            return acc;
+        }, {});
+    } catch (error) {
+        console.error('Error fetching tier prices:', error);
+        return {};
+    }
+}
+
 /**
  * Retrieves a list of specific categories from the database.
  * 
@@ -107,8 +140,9 @@ async function getSubcategories(categoryId) {
  * @param {number} size - The number of items per page.
  * @returns {Promise<Array>} A promise that resolves to an array of product objects.
  */
-async function listProductsFromCategory(categoryId, page = 1, size = 10) {
-    const cacheKey = `products_${categoryId}_${page}_${size}`;
+async function listProductsFromCategory(categoryId, page = 1, size = 10, user) {
+    //! CACHING CHANGE
+    const cacheKey = `products_${categoryId}_${page}_${size}_${user.roles.map(r => r.Id).join('_')}`;
     const cachedProducts = cache.get(cacheKey);
 
     if (cachedProducts) {
@@ -128,6 +162,7 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
             .select([
                 'Product.Id',
                 'Product.Name',
+                'Product.HasTierPrices',
                 'Product.Price',
                 'Product.FullDescription',
                 'Product.ShortDescription',
@@ -154,9 +189,14 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
 
         const products = await query;
 
+        const productIds = products.filter(p => p.HasTierPrices).map(p => p.Id);
+        const tierPrices = await getTierPrices(productIds, user.roles);
+
         const processedProducts = products.reduce((acc, product) => {
             const imageUrl = generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename);
             const existingProduct = acc.find(p => p.Id === product.Id);
+
+            const price = product.HasTierPrices ? (tierPrices[product.Id] || product.Price) : product.Price;
 
             if (existingProduct) {
                 existingProduct.Images.push(imageUrl);
@@ -164,7 +204,7 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
                 acc.push({
                     Id: product.Id,
                     Name: product.Name,
-                    Price: product.Price,
+                    Price: price,
                     FullDescription: product.FullDescription,
                     ShortDescription: product.ShortDescription,
                     OrderMinimumQuantity: product.OrderMinimumQuantity,
@@ -206,9 +246,9 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10) {
  * @param {number} size - The number of items to retrieve.
  * @returns {Promise<Array>} A promise that resolves to an array of best-selling product objects.
  */
-async function listBestsellers(sortBy, size) {
+async function listBestsellers(sortBy, size, user) {
     try {
-        const cacheKey = `bestsellers_by_${sortBy}_${size}`;
+        const cacheKey = `bestsellers_by_${sortBy}_${size}_${user.roles.map(r => r.Id).join('_')}`;
         const cachedBestSellers = cache.get(cacheKey);
 
         if (cachedBestSellers) {
@@ -225,11 +265,13 @@ async function listBestsellers(sortBy, size) {
             .limit(size);
 
         const productIds = topProducts.map(i => i.ProductId);
+        const tierPrices = await getTierPrices(productIds, user.roles);
 
         const query = knex('Product')
             .select([
                 'Product.Id',
                 'Product.Name',
+                'Product.HasTierPrices',
                 'Product.Price',
                 'Product.FullDescription',
                 'Product.ShortDescription',
@@ -249,6 +291,7 @@ async function listBestsellers(sortBy, size) {
         const processedProducts = products.reduce((acc, product) => {
             const imageUrl = generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename);
             const existingProduct = acc.find(p => p.Id === product.Id);
+            const price = product.HasTierPrices ? (tierPrices[product.Id] || product.Price) : product.Price;
 
             if (existingProduct) {
                 existingProduct.Images.push(imageUrl);
@@ -257,7 +300,7 @@ async function listBestsellers(sortBy, size) {
                 acc.push({
                     Id: product.Id,
                     Name: product.Name,
-                    Price: product.Price,
+                    Price: price,
                     FullDescription: product.FullDescription,
                     ShortDescription: product.ShortDescription,
                     OrderMinimumQuantity: product.OrderMinimumQuantity,
@@ -287,13 +330,14 @@ async function listBestsellers(sortBy, size) {
  * @param {number} size - The number of items per page.
  * @returns {Promise<Array>} A promise that resolves to an array of new arrival product objects.
  */
-async function listNewArrivals(size) {
+async function listNewArrivals(size, user) {
     try {
         const query = knex('Product')
             .select([
                 'Product.CreatedonUTC',
                 'Product.Id',
                 'Product.Name',
+                'Product.HasTierPrices',
                 'Product.Price',
                 'Product.FullDescription',
                 'Product.ShortDescription',
@@ -311,9 +355,14 @@ async function listNewArrivals(size) {
 
         const products = await query;
 
+        const productIds = products.filter(p => p.HasTierPrices).map(p => p.Id);
+        const tierPrices = await getTierPrices(productIds, user.roles);
+
         const processedProducts = products.reduce((acc, product) => {
             const imageUrl = generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename);
             const existingProduct = acc.find(p => p.Id === product.Id);
+
+            const price = product.HasTierPrices ? (tierPrices[product.Id] || product.Price) : product.Price;
 
             if (existingProduct) {
                 existingProduct.Images.push(imageUrl);
@@ -321,7 +370,7 @@ async function listNewArrivals(size) {
                 acc.push({
                     Id: product.Id,
                     Name: product.Name,
-                    Price: product.Price,
+                    Price: price,
                     FullDescription: product.FullDescription,
                     ShortDescription: product.ShortDescription,
                     OrderMinimumQuantity: product.OrderMinimumQuantity,
@@ -351,7 +400,7 @@ async function listNewArrivals(size) {
  * @param {number} size - The number of items per page.
  * @returns {Promise<Object>} A promise that resolves to an object containing the search results.
  */
-async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10) {
+async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10, user) {
     try {
         const offset = (page - 1) * size;
 
@@ -360,6 +409,7 @@ async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10) {
             .select([
                 'Product.Name',
                 'Product.Price',
+                'Product.HasTierPrices',
                 'Product.FullDescription',
                 'Product.ShortDescription',
                 'Product.OrderMinimumQuantity',
@@ -387,9 +437,16 @@ async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10) {
 
         const products = await query;
 
+        const productIds = products.filter(p => p.HasTierPrices).map(p => p.Id);
+        const tierPrices = await getTierPrices(productIds, user.roles);
+
+        console.log(tierPrices)
+
         const processedProducts = products.reduce((acc, product) => {
             const imageUrl = generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename);
             const existingProduct = acc.find(p => p.Id === product.Id);
+
+            const price = product.HasTierPrices ? (tierPrices[product.Id] || product.Price) : product.Price;
 
             if (existingProduct) {
                 existingProduct.Images.push(imageUrl);
@@ -397,7 +454,7 @@ async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10) {
                 acc.push({
                     Id: product.Id,
                     Name: product.Name,
-                    Price: product.Price,
+                    Price: price,
                     FullDescription: product.FullDescription,
                     ShortDescription: product.ShortDescription,
                     OrderMinimumQuantity: product.OrderMinimumQuantity,
@@ -421,6 +478,7 @@ async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10) {
             data: processedProducts
         };
     } catch (error) {
+        console.error(error)
         error.statusCode = 500;
         error.message = "Error in searchProducts";
         throw error;
