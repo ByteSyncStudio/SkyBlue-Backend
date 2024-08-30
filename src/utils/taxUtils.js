@@ -1,15 +1,17 @@
 import knex from "../config/knex.js";
 
 // Calculate total price with tax
-async function calculateTotalPriceWithTax(email, cartItems) {
+async function calculateTotalPriceWithTax(customerEmail, cartItems) {
   try {
-    //console.log("Email:", email); // Debug output
+    // Determine if customerEmail is an object or a string
+    const email = typeof customerEmail === 'object' ? customerEmail.Email : customerEmail;
 
     // Fetch customer address details based on email
     const address = await knex("Address")
       .where("Email", email) // Ensure email is treated as a string
       .select("StateProvinceId")
       .first();
+    console.log("Address:", address); // Debug output
 
     if (!address) {
       throw new Error("Address not found for the given email.");
@@ -35,16 +37,15 @@ async function calculateTotalPriceWithTax(email, cartItems) {
       .select("Percentage")
       .first();
     if (!taxRate) {
-      throw new Error("Tax rate not found for the given state province and country.");
+      throw new Error(
+        "Tax rate not found for the given state province and country."
+      );
     }
-
-    //console.log("Tax Rate Percentage:", taxRate.Percentage); // Debug output
 
     // Calculate total price
     let totalPrice = 0;
-    cartItems.forEach(item => {
-      //console.log("Item Price:", item.Price, "Item Quantity:", item.Quantity); // Debug output
-      if (typeof item.Price === 'number' && typeof item.Quantity === 'number') {
+    cartItems.forEach((item) => {
+      if (typeof item.Price === "number" && typeof item.Quantity === "number") {
         totalPrice += item.Price * item.Quantity;
       } else {
         console.error("Invalid item data:", item);
@@ -55,12 +56,20 @@ async function calculateTotalPriceWithTax(email, cartItems) {
     const taxAmount = (totalPrice * taxRate.Percentage) / 100;
     const finalPrice = totalPrice + taxAmount;
 
-    //console.log("Total Price:", totalPrice, "Tax Amount:", taxAmount, "Final Price:", finalPrice); // Debug output
+    console.log(
+      "Total Price:",
+      totalPrice,
+      "Tax Amount:",
+      taxAmount,
+      "Final Price:",
+      finalPrice
+    ); // Debug output
 
     return {
       totalPrice,
       taxAmount,
       finalPrice,
+      taxRate: taxRate.Percentage,
     };
   } catch (error) {
     console.error("Error calculating total price with tax:", error);

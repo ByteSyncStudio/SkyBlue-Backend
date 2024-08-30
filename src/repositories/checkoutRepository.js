@@ -1,126 +1,109 @@
+import { calculateTotalPriceWithTax } from "../utils/taxUtils.js";
 import knex from "../config/knex.js";
 import { v4 as uuidv4 } from "uuid";
-import { calculateTotalPriceWithTax } from "../utils/taxUtils.js";
 
 async function createCheckoutOrder(
   customerId,
+  customerEmail,
   shippingAddressId,
   billingAddressId,
-  paymentDetails
+  customerIps
 ) {
-  return await knex.transaction(async (trx) => {
-    // Retrieve customer email
-    console.log('Retrieving customer email...');
-    const customer = await trx("Customer")
-      .where({ Id: customerId })
-      .select("Email")
-      .first();
+  const countryCurrencyData = {
+    1: { currencyCode: "USD", currencyRate: 1.0 },
+    2: { currencyCode: "CAD", currencyRate: 1.0 },
+  };
 
-    if (!customer) throw new Error("Customer not found.");
-    const { Email } = customer;
-    console.log('Customer email retrieved:', Email);
-
-    // Retrieve customer roles
-    console.log('Retrieving customer roles...');
-    const customerRoles = await trx("Customer_CustomerRole_Mapping")
+  const [customer, customerRoles, discount] = await Promise.all([
+    knex("Customer").where({ Id: customerId }).select("Email").first(),
+    knex("Customer_CustomerRole_Mapping")
       .where({ Customer_Id: customerId })
-      .pluck("CustomerRole_Id");
-    console.log('Customer roles retrieved:', customerRoles);
+      .pluck("CustomerRole_Id"),
+    knex("Discount").where({ Id: 12 }).select("DiscountAmount").first(),
+  ]);
 
-    // Fetch cart items
-    console.log('Fetching cart items...');
+  if (!customer) throw new Error("Customer not found.");
+  if (customerRoles.length === 0) throw new Error("Customer roles not found.");
+
+  return await knex.transaction(async (trx) => {
     const cartItems = await trx("ShoppingCartItem")
       .join("Product", "ShoppingCartItem.ProductId", "Product.Id")
       .where({ "ShoppingCartItem.CustomerId": customerId })
       .select(
         "ShoppingCartItem.Quantity",
-        "Product.Id as ProductId"
+        "Product.Id as ProductId",
+        "ShoppingCartItem.ShoppingCartTypeId"
       );
 
     if (cartItems.length === 0) throw new Error("No items in cart.");
-    console.log('Cart items retrieved:', cartItems);
 
-    // Fetch tier prices for cart items
-    console.log('Fetching tier prices...');
     const tierPrices = await trx("TierPrice")
       .whereIn("CustomerRoleId", customerRoles)
-      .whereIn("ProductId", cartItems.map(row => row.ProductId))
+      .whereIn(
+        "ProductId",
+        cartItems.map((row) => row.ProductId)
+      )
       .select("ProductId", "CustomerRoleId", "Price");
 
-    // Map tier prices to products
-    const tierPriceMap = tierPrices.reduce((acc, tierPrice) => {
-      const key = `${tierPrice.ProductId}-${tierPrice.CustomerRoleId}`;
-      acc[key] = tierPrice.Price;
-      return acc;
-    }, {});
-    console.log('Tier prices mapped:', tierPriceMap);
+    const tierPriceMap = new Map();
+    tierPrices.forEach((tierPrice) => {
+      tierPriceMap.set(
+        `${tierPrice.ProductId}-${tierPrice.CustomerRoleId}`,
+        tierPrice.Price
+      );
+    });
 
-    // Calculate prices with tiered pricing
-    console.log('Calculating prices with tiered pricing...');
-    const updatedCartItems = await Promise.all(cartItems.map(async (row) => {
-      const key = `${row.ProductId}-${customerRoles[0]}`;
-      const tieredPrice = tierPriceMap[key];
+    // Resolve prices for each cart item
+    const updatedCartItems = await Promise.all(
+      cartItems.map(async (item) => {
+        const price = customerRoles.reduce((acc, roleId) => {
+          const tieredPrice = tierPriceMap.get(`${item.ProductId}-${roleId}`);
+          return tieredPrice !== undefined ? Math.min(acc, tieredPrice) : acc;
+        }, Infinity);
 
-      const price = tieredPrice ?? await trx("Product")
-        .where({ Id: row.ProductId })
-        .select("Price")
-        .first()
-        .then(p => p.Price);
+        const resolvedPrice = isFinite(price)
+          ? price
+          : await trx("Product")
+              .where({ Id: item.ProductId })
+              .select("Price")
+              .first()
+              .then((p) => p.Price);
 
-      console.log(`ProductId: ${row.ProductId}, Quantity: ${row.Quantity}, Price: ${price}`);
-      return {
-        ProductId: row.ProductId,
-        Quantity: row.Quantity,
-        Price: price,
-      };
-    }));
+        return {
+          ...item,
+          Price: resolvedPrice,
+        };
+      })
+    );
 
-    // Calculate total price, tax amount, and final price
-    console.log('Calculating total price with tax...');
-    const { totalPrice, taxAmount, finalPrice } =
-      await calculateTotalPriceWithTax(Email, updatedCartItems);
-    console.log('Total price:', totalPrice);
-    console.log('Tax amount:', taxAmount);
-    console.log('Final price:', finalPrice);
+    const { totalPrice, taxAmount, finalPrice, taxRate } =
+      await calculateTotalPriceWithTax(customerEmail, updatedCartItems);
 
-    const customOrderNumber = `Ord-${Math.floor(1000 + Math.random() * 9000)}`;
-    console.log('Generated custom order number:', customOrderNumber);
+    //console.log("Updated Cart Items:", updatedCartItems); // Log the updated cart items
 
-    // Retrieve address
-    console.log('Retrieving address...');
     const address = await trx("Address")
-      .where({ Email })
+      .where({ Email: customerEmail })
       .select("CountryId")
       .first();
 
     if (!address) throw new Error("Address not found.");
-    console.log('Address retrieved:', address);
-
-    const currency = "CAD"; //hardcoded for now
-    console.log('Currency:', currency);
-
-    // Retrieve discount
-    console.log('Retrieving discount...');
-    const discount = await trx("Discount")
-      .where({ Id: 12 })
-      .select("DiscountAmount")
-      .first();
-    console.log('Discount retrieved:', discount);
-
-    // Retrieve shipping method
-    console.log('Retrieving shipping method...');
-    const cartItem = await trx("ShoppingCartItem")
-      .where({ CustomerId: customerId })
-      .first();
+    const currencyData = countryCurrencyData[address.CountryId];
+    if (!currencyData)
+      throw new Error("Currency data not found for the given country.");
 
     const shippingMethod = await trx("ShippingMethod")
-      .where({ Id: cartItem.ShoppingCartTypeId })
+      .where({ Id: cartItems[0].ShoppingCartTypeId })
       .select("Name")
       .first();
-    console.log('Shipping method retrieved:', shippingMethod);
 
-    // Insert order
-    console.log('Inserting order...');
+    if (!shippingMethod) {
+      throw new Error(
+        `Shipping method not found for ShoppingCartTypeId: ${cartItems[0].ShoppingCartTypeId}`
+      );
+    }
+
+    const formattedTaxRates = `${taxRate.toFixed(4)}:${taxAmount.toFixed(2)};`;
+
     const [order] = await trx("Order")
       .insert({
         OrderGuid: uuidv4(),
@@ -132,11 +115,10 @@ async function createCheckoutOrder(
         OrderStatusId: 20,
         ShippingStatusId: 20,
         PaymentStatusId: 10,
-        PaymentMethodSystemName: paymentDetails?.method,
-        CustomerCurrencyCode: currency,
-        CurrencyRate: 1,
+        PaymentMethodSystemName: "Payments.CheckMoneyOrder",
+        CustomerCurrencyCode: currencyData.currencyCode,
+        CurrencyRate: currencyData.currencyRate,
         CustomerTaxDisplayTypeId: 10,
-        VatNumber: "",
         OrderSubtotalInclTax: finalPrice,
         OrderSubtotalExclTax: totalPrice,
         OrderSubTotalDiscountInclTax: 0,
@@ -145,17 +127,15 @@ async function createCheckoutOrder(
         OrderShippingExclTax: 0,
         PaymentMethodAdditionalFeeInclTax: 0,
         PaymentMethodAdditionalFeeExclTax: 0,
-        TaxRates: "",
+        TaxRates: formattedTaxRates,
         OrderTax: taxAmount,
         OrderDiscount: discount.DiscountAmount,
         OrderTotal: finalPrice,
         RefundedAmount: 0,
-        RewardPointsHistoryEntryId: null,
         CheckoutAttributeDescription: "",
-        CheckoutAttributesXml: "",
         CustomerLanguageId: 1,
         AffiliateId: 0,
-        CustomerIp: "",
+        CustomerIp: customerIps,
         AllowStoringCreditCardNumber: 0,
         CardType: "",
         CardName: "",
@@ -164,44 +144,45 @@ async function createCheckoutOrder(
         CardCvv2: "",
         CardExpirationMonth: "",
         CardExpirationYear: "",
-        AuthorizationTransactionId: "",
-        AuthorizationTransactionCode: "",
-        AuthorizationTransactionResult: "",
-        CaptureTransactionId: "",
-        CaptureTransactionResult: "",
-        SubscriptionTransactionId: "",
         PaidDateUtc: null,
-        ShippingMethod: shippingMethod?.Name || "",
-        ShippingRateComputationMethodSystemName: "",
-        CustomValuesXml: "",
+        ShippingMethod: shippingMethod.Name,
+        ShippingRateComputationMethodSystemName: "Shipping.FixedOrByWeight",
         Deleted: 0,
         CreatedOnUtc: new Date(),
         CustomOrderNumber: "",
       })
       .returning("*");
-    console.log('Order inserted:', order);
 
+    await trx("Order")
+      .where({ Id: order.Id })
+      .update({ CustomOrderNumber: order.Id });
 
-    // Update the CustomOrderNumber with the generated Id
-await trx("Order")
-.where({ Id: order.Id })
-.update({ CustomOrderNumber: order.Id });
+    const orderItemsPromises = updatedCartItems.map(async (item) => {
+      const product = await trx("Product")
+        .where({ Id: item.ProductId })
+        .select("BoxQty", "Price")
+        .first();
 
-console.log('Order updated with CustomOrderNumber:', order.Id);
+      if (!product) {
+        throw new Error(`Product not found for ProductId: ${item.ProductId}`);
+      }
 
-    // Insert order items
-    console.log('Inserting order items...');
-    for (const item of updatedCartItems) {
-      const unitPriceExclTax = item.Price / (1 + taxAmount / totalPrice);
-      const priceInclTax = item.Price * item.Quantity;
+      const unitPriceExclTax =
+        product.BoxQty === 0
+          ? item.Price
+          : item.Price / product.BoxQty / (1 + taxRate);
+      const unitPriceInclTax = unitPriceExclTax * (1 + taxRate);
+      const priceInclTax = unitPriceInclTax * item.Quantity;
       const priceExclTax = unitPriceExclTax * item.Quantity;
 
-      await trx("OrderItem").insert({
+      console.log("Item", item);
+
+      return trx("OrderItem").insert({
         OrderItemGuid: uuidv4(),
         OrderId: order.Id,
         ProductId: item.ProductId,
         Quantity: item.Quantity,
-        UnitPriceInclTax: item.Price,
+        UnitPriceInclTax: unitPriceInclTax,
         UnitPriceExclTax: unitPriceExclTax,
         PriceInclTax: priceInclTax,
         PriceExclTax: priceExclTax,
@@ -217,13 +198,15 @@ console.log('Order updated with CustomOrderNumber:', order.Id);
         RentalStartDateUtc: null,
         RentalEndDateUtc: null,
       });
-    }
-    console.log('Order items inserted successfully.');
+    });
+
+    await Promise.all(orderItemsPromises);
+
+    // Remove items from the ShoppingCartItem table for the given customerId
+    await trx("ShoppingCartItem").where({ CustomerId: customerId }).del();
 
     return order;
   });
 }
 
 export { createCheckoutOrder };
-
-//todo - add more functions to checkoutRepo.js

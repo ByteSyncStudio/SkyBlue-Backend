@@ -49,41 +49,52 @@ async function addToCart(cartData, user) {
 // Get Cart Items with Price and Tax
 async function getCartItems(user) {
   try {
+    // Subquery to get a single picture per product
+    const subquery = knex("Product_Picture_Mapping")
+      .select(
+        "Product_Picture_Mapping.ProductId",
+        knex.raw("MIN(Picture.Id) as PictureId"),
+        knex.raw("MIN(Picture.MimeType) as MimeType")
+      )
+      .leftJoin("Picture", "Product_Picture_Mapping.PictureId", "Picture.Id")
+      .groupBy("Product_Picture_Mapping.ProductId")
+      .as("PictureData");
+
     // Fetch cart items and join with related tables
     const cartItems = await knex("ShoppingCartItem")
       .where("ShoppingCartItem.CustomerId", user.id)
       .join("Product", "ShoppingCartItem.ProductId", "Product.Id")
-      .leftJoin(
-        "Product_Picture_Mapping",
-        "Product.Id",
-        "Product_Picture_Mapping.ProductId"
-      )
-      .leftJoin("Picture", "Product_Picture_Mapping.PictureId", "Picture.Id")
+      .leftJoin(subquery, "ShoppingCartItem.ProductId", "PictureData.ProductId")
       .select(
+        knex.raw("MIN(ShoppingCartItem.Id) as Id"), // Select one ShoppingCartItem.Id
         "ShoppingCartItem.ProductId",
         "Product.Name",
+        knex.raw("SUM(ShoppingCartItem.Quantity) as Quantity"), // Aggregate quantities
         "Product.Price",
         "Product.OrderMinimumQuantity",
         "Product.OrderMaximumQuantity",
-        knex.raw("SUM(ShoppingCartItem.Quantity) as Quantity"),  // Aggregate quantities
-        knex.raw("MIN(Picture.Id) as PictureId"),  // Select the lowest Picture.Id
-        knex.raw("MIN(Picture.MimeType) as MimeType")  // Select the MimeType corresponding to the lowest Picture.Id
+        "PictureData.PictureId", // Select the picture from the subquery
+        "PictureData.MimeType" // Select the MimeType from the subquery
       )
       .groupBy(
         "ShoppingCartItem.ProductId",
         "Product.Name",
         "Product.Price",
         "Product.OrderMinimumQuantity",
-        "Product.OrderMaximumQuantity"
-      ); // Group by ProductId and other non-aggregated columns
+        "Product.OrderMaximumQuantity",
+        "PictureData.PictureId",
+        "PictureData.MimeType"
+      ); // Group by necessary fields to avoid duplicates
 
     const customerRoles = await knex("Customer_CustomerRole_Mapping")
       .where("Customer_Id", user.id)
       .pluck("CustomerRole_Id"); // Retrieve all CustomerRoleIds for the user
+    console.log("customerRoles:", customerRoles);
 
     const cartItemsWithPrices = await Promise.all(
       cartItems.map(async (item) => {
         let price = item.Price;
+        console.log("Item Price:", item.Price);
 
         if (customerRoles.length > 0) {
           // Fetch tiered price if roles exist
@@ -98,14 +109,27 @@ async function getCartItems(user) {
           }
         }
 
-        const imageUrl = item.PictureId ? generateImageUrl(item.PictureId, item.MimeType) : "";
+        const imageUrl = item.PictureId
+          ? generateImageUrl(item.PictureId, item.MimeType)
+          : "";
 
         return { ...item, Price: price, images: imageUrl };
       })
     );
 
+    //console.log("cartItemsWithPrices:", cartItemsWithPrices);
+
+    console.log("user:", user.id);
+
+    const customerEmail = await knex("Customer")
+      .where({ Id: user.id })
+      .select("Email")
+      .first();
+
+    //console.log("customer Email", customerEmail);
+
     const { totalPrice, taxAmount, finalPrice } =
-      await calculateTotalPriceWithTax(user.email, cartItemsWithPrices);
+      await calculateTotalPriceWithTax(customerEmail, cartItemsWithPrices);
 
     return {
       success: true,
@@ -120,7 +144,6 @@ async function getCartItems(user) {
     throw new Error("Failed to retrieve cart items.");
   }
 }
-
 
 // Update cart with tax calculation
 async function updateCart(id, updateData, user) {

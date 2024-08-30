@@ -11,7 +11,7 @@ export const addToCartController = async (req, res) => {
     const { productId, quantity } = req.body;
 
     const storeId = 3;
-    const shoppingCartTypeId = 2;
+    const shoppingCartTypeId = 1;
     const createdAtUTC = new Date().toISOString();
     const updatedAtUTC = createdAtUTC;
 
@@ -48,8 +48,8 @@ export const getCartItemsController = async (req, res) => {
     //const user = { id: userId, email: "hastymarket210@gmail.com" }; // Provide a test email if needed
 
     //console.log(user);
+
     const user = req.user;
-    //console.log("user:", user);
 
     const response = await getCartItems(user);
     res.status(200).json(response);
