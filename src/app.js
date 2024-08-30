@@ -23,7 +23,7 @@ app.use(express.json());
 swaggerSetup(app);
 
 // Endpoints
-app.use("/customers", customerRoutes);
+app.use("/customer", customerRoutes);
 app.use("/auth", authRoutes);
 app.use("/product", productRoutes);
 app.use("/cart", cartRoute);

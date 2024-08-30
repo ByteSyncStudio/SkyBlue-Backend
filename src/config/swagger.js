@@ -13,6 +13,7 @@ const options = {
             { name: 'Admin', description: 'Admin related endpoints' },
             { name: 'Product', description: 'Product related endpoints' },
             { name: 'Cart', description: 'Cart related endpoints' },
+            { name: 'Customer', description: 'Customer related endpoints ' }
         ],
     },
     apis: ['./src/routes/*.js', './src/routes/admin/*.js'],

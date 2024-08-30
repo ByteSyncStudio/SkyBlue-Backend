@@ -8,7 +8,6 @@ const JWT_EXPIRATION = '24h';
 
 export const login = async (req, res, next) => {
     try {
-        console.log(req.body);
         const { email, password } = req.body;
 
         // Fetch user by email to get their ID
@@ -42,10 +41,9 @@ export const login = async (req, res, next) => {
             // Return a JWT token
             const token = jsonwebtoken.sign(
                 {
-                    email: user.Email,
+                    email: email,
                     id: user.Id,
                     roles: roles
-
                 },
                 JWT_SECRET, { expiresIn: JWT_EXPIRATION });
 
