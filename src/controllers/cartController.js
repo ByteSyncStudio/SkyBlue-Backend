@@ -1,5 +1,6 @@
 import {
   addToCart,
+  allItemRemove,
   getCartItems,
   removeSingleCartItem,
   updateCart,
@@ -93,5 +94,29 @@ export const removeSingleCartItemController = async (req, res) => {
   } catch (error) {
     console.error("Error removing cart item:", error);
     res.status(500).json({ message: "Failed to remove cart item." });
+  }
+};
+
+// Controller and repository function combined
+export const allItemRemoveController = async (req, res) => {
+  try {
+    // Ensure the user is authenticated
+    const user = req.user;
+
+    if (!user || !user.id) {
+      return res.status(401).json({ success: false, message: "Unauthorized: User not authenticated." });
+    }
+
+    // Call the repository function to remove all cart items
+    const result = await allItemRemove(user.id);
+
+    if (result.success) {
+      return res.status(200).json({ success: true, message: "All cart items removed successfully." });
+    } else {
+      return res.status(400).json({ success: false, message: result.message || "Failed to remove cart items." });
+    }
+  } catch (error) {
+    console.error("Error in allItemRemoveController:", error);
+    return res.status(500).json({ success: false, message: "Internal server error." });
   }
 };

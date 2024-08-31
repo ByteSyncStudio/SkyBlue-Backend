@@ -1,6 +1,7 @@
 import express from "express";
 import {
   addToCartController,
+  allItemRemoveController,
   getCartItemsController,
   removeSingleCartItemController,
   updateCartController,
@@ -70,7 +71,7 @@ router.post("/add", cartAccess, addToCartController);
  *       500:
  *         description: Server error.
  */
-router.get("/items",cartAccess,getCartItemsController);
+router.get("/items", cartAccess, getCartItemsController);
 
 /**
  * @swagger
@@ -138,5 +139,23 @@ router.put("/update", cartAccess, updateCartController);
  *         description: Server error.
  */
 router.delete("/remove/:id", cartAccess, removeSingleCartItemController);
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Cart
+ *     description: Cart related endpoints
+ * /cart/remove-all:
+ *   delete:
+ *     summary: Remove all cart items for the authenticated customer
+ *     tags: [Cart]
+ *     description: Deletes all items from the shopping cart for the authenticated customer.
+ *     responses:
+ *       200:
+ *         description: All cart items removed successfully.
+ *       500:
+ *         description: Server error.
+ */
+router.delete("/remove-all", cartAccess, allItemRemoveController);
 
 export default router;

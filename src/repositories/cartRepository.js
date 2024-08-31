@@ -289,4 +289,49 @@ async function removeSingleCartItem(id, user) {
   }
 }
 
+
+export async function removeAllCartItems(user) {
+  try {
+    const deletedCount = await knex("ShoppingCartItem")
+      .where({ CustomerId: user.id })
+      .del();
+
+    return {
+      success: deletedCount > 0,
+      message:
+        deletedCount > 0
+          ? "Cart cleared successfully."
+          : "No items found in the cart.",
+    };
+  } catch (error) {
+    console.error("Error clearing cart:", error);
+    throw new Error("Failed to clear cart.");
+  }
+}
+
+// Controller and repository function combined
+export async function allItemRemove(userId) {
+  try {
+    // Validate userId
+    if (!userId) {
+      return { success: false, message: "User ID is required." };
+    }
+
+    // Perform the deletion
+    const deletedRows = await knex('ShoppingCartItem')
+      .where({ CustomerId: userId })
+      .del();
+
+    // Optionally, you can check if any rows were deleted
+    if (deletedRows === 0) {
+      return { success: false, message: "No cart items found for the user." };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error in allItemRemove:", error);
+    return { success: false, message: "Failed to remove all cart items." };
+  }
+}
+
 export { addToCart, getCartItems, updateCart, removeSingleCartItem };
