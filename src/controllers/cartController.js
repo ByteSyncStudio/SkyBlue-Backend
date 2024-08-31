@@ -1,6 +1,7 @@
 import {
   addToCart,
   getCartItems,
+  removeAllCartItems,
   removeSingleCartItem,
   updateCart,
 } from "../repositories/cartRepository.js";
@@ -93,5 +94,18 @@ export const removeSingleCartItemController = async (req, res) => {
   } catch (error) {
     console.error("Error removing cart item:", error);
     res.status(500).json({ message: "Failed to remove cart item." });
+  }
+};
+
+
+export const removeAllCartItemsController = async (req, res) => {
+  try {
+    const user = req.user;
+    console.log("user", user);
+    const result = await removeAllCartItems(user);
+    res.status(result.success ? 200 : 404).json(result);
+  } catch (error) {
+    console.error("Error removing all cart items:", error);
+    res.status(500).json({ message: "Failed to remove all cart items." });
   }
 };
