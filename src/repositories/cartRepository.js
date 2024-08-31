@@ -241,9 +241,6 @@ async function updateCart(id, updateData, user) {
   }
 }
 
-
-
-
 // Remove a single cart item and recalculate tax
 async function removeSingleCartItem(id, user) {
   try {
@@ -289,4 +286,25 @@ async function removeSingleCartItem(id, user) {
   }
 }
 
-export { addToCart, getCartItems, updateCart, removeSingleCartItem };
+async function removeAllCartItems(user) {
+  try {
+    console.log("user ID", user.id);
+    const deletedCount = await knex("ShoppingCartItem")
+      .where({ CustomerId: user.id })
+      .del();
+    
+    console.log("deletedCount:", deletedCount);
+
+    return {
+      success: deletedCount > 0,
+      message:
+        deletedCount > 0
+          ? "Cart cleared successfully."
+          : "No items found in the cart.",
+    };
+  } catch (error) {
+    console.error("Error clearing cart:", error);
+    throw new Error("Failed to clear cart.");
+  }
+}
+export { addToCart, getCartItems, updateCart, removeSingleCartItem, removeAllCartItems };
