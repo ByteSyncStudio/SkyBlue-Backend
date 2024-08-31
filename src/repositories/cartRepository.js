@@ -89,7 +89,7 @@ async function getCartItems(user) {
     const customerRoles = await knex("Customer_CustomerRole_Mapping")
       .where("Customer_Id", user.id)
       .pluck("CustomerRole_Id"); // Retrieve all CustomerRoleIds for the user
-    console.log("customerRoles:", customerRoles);
+    //console.log("customerRoles:", customerRoles);
 
     const cartItemsWithPrices = await Promise.all(
       cartItems.map(async (item) => {
@@ -119,7 +119,7 @@ async function getCartItems(user) {
 
     //console.log("cartItemsWithPrices:", cartItemsWithPrices);
 
-    console.log("user:", user.id);
+    //console.log("user:", user.id);
 
     const customerEmail = await knex("Customer")
       .where({ Id: user.id })
@@ -148,6 +148,7 @@ async function getCartItems(user) {
 // Update cart with tax calculation
 async function updateCart(id, updateData, user) {
   try {
+    // Fetch the specific cart item to get the ProductId
     const cartItem = await knex("ShoppingCartItem")
       .where({ Id: id, CustomerId: user.id }) // Ensure the item belongs to the authenticated user
       .select("ProductId", "Quantity", "CustomerId")
@@ -157,8 +158,27 @@ async function updateCart(id, updateData, user) {
       return { success: false, message: "Cart item not found." };
     }
 
+    // Ensure ProductId is set in updateData
+    if (!updateData.ProductId) {
+      updateData.ProductId = cartItem.ProductId;
+    }
+
+    // Fetch all cart items for the given product ID for the customer
+    const cartItems = await knex("ShoppingCartItem")
+      .where({ CustomerId: user.id })
+      .andWhere({ ProductId: updateData.ProductId })
+      .select("Id", "ProductId", "Quantity");
+
+    if (cartItems.length === 0) {
+      return { success: false, message: "Cart item not found." };
+    }
+
+    // Sum the total quantity of all cart items with the same product ID
+    const totalQuantity = cartItems.reduce((sum, item) => sum + item.Quantity, 0);
+
+    // Get the product details
     const product = await knex("Product")
-      .where({ Id: cartItem.ProductId })
+      .where({ Id: updateData.ProductId })
       .select(
         "StockQuantity",
         "OrderMaximumQuantity",
@@ -171,25 +191,7 @@ async function updateCart(id, updateData, user) {
       return { success: false, message: "Product not found." };
     }
 
-    const customerRoles = await knex("Customer_CustomerRole_Mapping")
-      .where("Customer_Id", user.id)
-      .pluck("CustomerRole_Id");
-
-    let price = product.Price;
-
-    if (customerRoles.length > 0) {
-      const tierPrice = await knex("TierPrice")
-        .whereIn("CustomerRoleId", customerRoles)
-        .andWhere("ProductId", cartItem.ProductId)
-        .orderBy("Price", "asc")
-        .first();
-
-      if (tierPrice) {
-        price = tierPrice.Price;
-      }
-    }
-
-    const newQuantity = updateData.Quantity || cartItem.Quantity;
+    const newQuantity = totalQuantity + updateData.Quantity;
 
     // Validate against stock, minimum, and maximum order quantities
     if (newQuantity > product.StockQuantity) {
@@ -213,19 +215,25 @@ async function updateCart(id, updateData, user) {
       };
     }
 
-    // Update cart item with valid quantity
-    const [updatedCart] = await knex("ShoppingCartItem")
-      .where({ Id: id })
-      .update(updateData)
-      .returning("*");
+    // Update the quantity for the first cart item
+    await knex("ShoppingCartItem")
+      .where({ Id: cartItems[0].Id })
+      .update({ Quantity: newQuantity, ...updateData });
 
-    const cartItems = await getCartItems(user);
+    // Delete other cart items with the same product ID
+    if (cartItems.length > 1) {
+      const idsToDelete = cartItems.slice(1).map(item => item.Id);
+      await knex("ShoppingCartItem")
+        .whereIn("Id", idsToDelete)
+        .del();
+    }
+
+    const updatedCartItems = await getCartItems(user);
 
     return {
       success: true,
       message: "Cart updated successfully.",
-      updatedCart,
-      ...cartItems,
+      ...updatedCartItems,
     };
   } catch (error) {
     console.error("Error updating cart in database:", error);
@@ -233,19 +241,37 @@ async function updateCart(id, updateData, user) {
   }
 }
 
+
+
+
 // Remove a single cart item and recalculate tax
 async function removeSingleCartItem(id, user) {
   try {
+    // Fetch the product ID for the given cart item ID
     const cartItem = await knex("ShoppingCartItem")
       .where({ Id: id, CustomerId: user.id }) // Ensure the item belongs to the authenticated user
-      .select("CustomerId")
+      .select("ProductId")
       .first();
 
     if (!cartItem) {
       throw new Error("Cart item not found.");
     }
 
-    const deletedCount = await knex("ShoppingCartItem").where({ Id: id }).del();
+    const { ProductId } = cartItem;
+
+    // Check if the customer has multiple instances of the product in their cart
+    const customerCartItems = await knex("ShoppingCartItem")
+      .where({ CustomerId: user.id, ProductId })
+      .select("Id");
+
+    if (customerCartItems.length === 0) {
+      throw new Error("No instances of the product found in the cart.");
+    }
+
+    // Delete all instances of the product for the customer
+    const deletedCount = await knex("ShoppingCartItem")
+      .where({ CustomerId: user.id, ProductId })
+      .del();
 
     const cartItems = await getCartItems(user);
 
@@ -253,13 +279,13 @@ async function removeSingleCartItem(id, user) {
       success: deletedCount > 0,
       message:
         deletedCount > 0
-          ? "Cart item removed successfully."
-          : "Cart item not found.",
+          ? "All instances of the product removed successfully."
+          : "No instances of the product found in the cart.",
       ...cartItems,
     };
   } catch (error) {
-    console.error("Error removing cart item:", error);
-    throw new Error("Failed to remove cart item.");
+    console.error("Error removing cart items:", error);
+    throw new Error("Failed to remove cart items.");
   }
 }
 
