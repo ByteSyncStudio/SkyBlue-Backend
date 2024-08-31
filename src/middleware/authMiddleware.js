@@ -19,7 +19,7 @@ export const authorizeRoles = (roles) => {
     return (req, res, next) => {
         if (!req.user) return res.sendStatus(401);
 
-        const hasRole = req.user.roles.some(role => roles.includes(role));
+        const hasRole = req.user.roles.some(role => roles.includes(role.Name));
         
         if (hasRole) {
             next();
