@@ -158,74 +158,68 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user) {
 
         const subCategoryIds = await getSubcategories(categoryId);
 
-        const query = knex('Product')
-            .select([
-                'Product.Id',
-                'Product.Name',
-                'Product.HasTierPrices',
-                'Product.Price',
-                'Product.FullDescription',
-                'Product.ShortDescription',
-                'Product.OrderMinimumQuantity',
-                'Product.OrderMaximumQuantity',
-                'Product_Picture_Mapping.PictureId',
-                'product.StockQuantity',
-                'Picture.MimeType',
-                'Picture.SeoFilename',
-                knex.raw('COUNT(*) OVER() AS total_count'),
-                knex.raw(`CASE 
-                    WHEN ? = 0 THEN ?
-                    ELSE (SELECT Name FROM Category WHERE Id = ?)
-                END as CategoryName`, [categoryId, getMiscellaneousName(), categoryId])
-            ])
-            .join('Product_Category_Mapping', 'Product.Id', 'Product_Category_Mapping.ProductId')
-            .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
-            .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
-            .where('Product.Published', true)
-            .whereIn('Product_Category_Mapping.CategoryId', subCategoryIds)
-            .orderBy('Product.Name')
-            .limit(size)
-            .offset(offset);
+        const query = knex.raw(`
+            WITH RankedProducts AS (
+                SELECT 
+                    p.Id,
+                    p.Name,
+                    p.HasTierPrices,
+                    p.Price,
+                    p.FullDescription,
+                    p.ShortDescription,
+                    p.OrderMinimumQuantity,
+                    p.OrderMaximumQuantity,
+                    p.StockQuantity,
+                    ppm.PictureId,
+                    pic.MimeType,
+                    pic.SeoFilename,
+                    COUNT(*) OVER() AS total_count,
+                    ROW_NUMBER() OVER (PARTITION BY p.Id ORDER BY ppm.DisplayOrder) AS RowNum
+                FROM Product p
+                JOIN Product_Category_Mapping pcm ON p.Id = pcm.ProductId
+                LEFT JOIN Product_Picture_Mapping ppm ON p.Id = ppm.ProductId
+                LEFT JOIN Picture pic ON ppm.PictureId = pic.Id
+                WHERE pcm.CategoryId IN (${subCategoryIds.join(',')})
+                AND p.Published = 1
+            )
+            SELECT *
+            FROM RankedProducts
+            WHERE RowNum = 1
+            ORDER BY Name
+            OFFSET ? ROWS
+            FETCH NEXT ? ROWS ONLY
+        `, [offset, size]);
 
         const products = await query;
 
         const productIds = products.filter(p => p.HasTierPrices).map(p => p.Id);
         const tierPrices = await getTierPrices(productIds, user.roles);
 
-        const processedProducts = products.reduce((acc, product) => {
-            let imageUrl;
-            if (product.PictureId) {
-                imageUrl = generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename);
-            } else {
-                imageUrl = null;
-            }
-            const existingProduct = acc.find(p => p.Id === product.Id);
-
+        const processedProducts = products.map(product => {
+            const imageUrl = product.PictureId 
+                ? generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename)
+                : null;
+        
             const price = product.HasTierPrices ? (tierPrices[product.Id] || product.Price) : product.Price;
-
-            if (existingProduct) {
-                existingProduct.Images.push(imageUrl);
-            } else {
-                acc.push({
-                    Id: product.Id,
-                    Name: product.Name,
-                    Price: price,
-                    FullDescription: product.FullDescription,
-                    ShortDescription: product.ShortDescription,
-                    OrderMinimumQuantity: product.OrderMinimumQuantity,
-                    OrderMaximumQuantity: product.OrderMaximumQuantity,
-                    Stock: product.StockQuantity,
-                    Images: [imageUrl],
-                    total_count: product.total_count
-                });
-            }
-
-            return acc;
-        }, []);
+        
+            return {
+                Id: product.Id,
+                Name: product.Name,
+                Price: price,
+                FullDescription: product.FullDescription,
+                ShortDescription: product.ShortDescription,
+                OrderMinimumQuantity: product.OrderMinimumQuantity,
+                OrderMaximumQuantity: product.OrderMaximumQuantity,
+                Stock: product.StockQuantity,
+                Images: [imageUrl],
+                total_count: product.total_count
+            };
+        });
 
         const totalProducts = processedProducts.length > 0 ? processedProducts[0].total_count : 0;
         const categoryName = products.length > 0 ? products[0].CategoryName : getMiscellaneousName();
 
+        console.log('No. :' + processedProducts.length)
         const response = {
             categoryName: categoryName,
             totalProducts,

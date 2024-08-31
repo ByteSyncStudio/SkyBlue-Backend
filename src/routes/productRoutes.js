@@ -23,7 +23,7 @@ const productAccess = authorizeRoles(['Registered', 'Administrators'])
  *       500:
  *         description: Internal server error
  */
-router.get("/category/all", productAccess, getCategory);
+router.get("/category/all", getCategory);
 
 /**
  * @swagger
