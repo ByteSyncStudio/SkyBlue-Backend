@@ -35,6 +35,7 @@ async function addToCart(cartData, user) {
     }
 
     cartData.CustomerId = user.id; // Use CustomerId from authenticated user
+    //cartData.CustomerId = 46097;
     const [cart] = await knex("ShoppingCartItem")
       .insert(cartData)
       .returning("*");
@@ -48,39 +49,92 @@ async function addToCart(cartData, user) {
 // Get Cart Items with Price and Tax
 async function getCartItems(user) {
   try {
-    const cartItems = await knex("ShoppingCartItem")
-      .where("CustomerId", user.id) // Use CustomerId from authenticated user
-      .join("Product", "ShoppingCartItem.ProductId", "Product.Id")
-      .leftJoin(
-        "Product_Picture_Mapping",
-        "Product.Id",
-        "Product_Picture_Mapping.ProductId"
+    // Subquery to get a single picture per product
+    const subquery = knex("Product_Picture_Mapping")
+      .select(
+        "Product_Picture_Mapping.ProductId",
+        knex.raw("MIN(Picture.Id) as PictureId"),
+        knex.raw("MIN(Picture.MimeType) as MimeType")
       )
       .leftJoin("Picture", "Product_Picture_Mapping.PictureId", "Picture.Id")
+      .groupBy("Product_Picture_Mapping.ProductId")
+      .as("PictureData");
+
+    // Fetch cart items and join with related tables
+    const cartItems = await knex("ShoppingCartItem")
+      .where("ShoppingCartItem.CustomerId", user.id)
+      .join("Product", "ShoppingCartItem.ProductId", "Product.Id")
+      .leftJoin(subquery, "ShoppingCartItem.ProductId", "PictureData.ProductId")
       .select(
-        "ShoppingCartItem.*",
+        knex.raw("MIN(ShoppingCartItem.Id) as Id"), // Select one ShoppingCartItem.Id
+        "ShoppingCartItem.ProductId",
+        "Product.Name",
+        knex.raw("SUM(ShoppingCartItem.Quantity) as Quantity"), // Aggregate quantities
+        "Product.Price",
+        "Product.OrderMinimumQuantity",
+        "Product.OrderMaximumQuantity",
+        "PictureData.PictureId", // Select the picture from the subquery
+        "PictureData.MimeType" // Select the MimeType from the subquery
+      )
+      .groupBy(
+        "ShoppingCartItem.ProductId",
         "Product.Name",
         "Product.Price",
-        'Product.OrderMinimumQuantity',
-        'Product.OrderMaximumQuantity',
-        "Product_Picture_Mapping.PictureId",
-        "Picture.MimeType"
-      );
+        "Product.OrderMinimumQuantity",
+        "Product.OrderMaximumQuantity",
+        "PictureData.PictureId",
+        "PictureData.MimeType"
+      ); // Group by necessary fields to avoid duplicates
 
-    const cartItemsWithImages = cartItems.map((item) => {
-      let image = null;
-      if (item.PictureId) {
-        image = generateImageUrl(item.PictureId, item.MimeType);
-      }
-      return { ...item, image };
-    });
+    const customerRoles = await knex("Customer_CustomerRole_Mapping")
+      .where("Customer_Id", user.id)
+      .pluck("CustomerRole_Id"); // Retrieve all CustomerRoleIds for the user
+    console.log("customerRoles:", customerRoles);
+
+    const cartItemsWithPrices = await Promise.all(
+      cartItems.map(async (item) => {
+        let price = item.Price;
+        console.log("Item Price:", item.Price);
+
+        if (customerRoles.length > 0) {
+          // Fetch tiered price if roles exist
+          const tierPrice = await knex("TierPrice")
+            .whereIn("CustomerRoleId", customerRoles)
+            .andWhere("ProductId", Number(item.ProductId)) // Ensure ProductId is a number
+            .orderBy("Price", "asc")
+            .first();
+
+          if (tierPrice) {
+            price = tierPrice.Price; // Use the tiered price if found
+          }
+        }
+
+        const imageUrl = item.PictureId
+          ? generateImageUrl(item.PictureId, item.MimeType)
+          : "";
+
+        return { ...item, Price: price, images: imageUrl };
+      })
+    );
+
+    //console.log("cartItemsWithPrices:", cartItemsWithPrices);
+
+    console.log("user:", user.id);
+
+    const customerEmail = await knex("Customer")
+      .where({ Id: user.id })
+      .select("Email")
+      .first();
+
+    //console.log("customer Email", customerEmail);
 
     const { totalPrice, taxAmount, finalPrice } =
-      await calculateTotalPriceWithTax(user.email, cartItemsWithImages);
+      await calculateTotalPriceWithTax(customerEmail, cartItemsWithPrices);
 
     return {
       success: true,
-      cartItems: cartItemsWithImages,
+      cartItems: cartItemsWithPrices,
+      length: cartItemsWithPrices.length,
       totalPrice,
       taxAmount,
       finalPrice,
@@ -115,6 +169,24 @@ async function updateCart(id, updateData, user) {
 
     if (!product) {
       return { success: false, message: "Product not found." };
+    }
+
+    const customerRoles = await knex("Customer_CustomerRole_Mapping")
+      .where("Customer_Id", user.id)
+      .pluck("CustomerRole_Id");
+
+    let price = product.Price;
+
+    if (customerRoles.length > 0) {
+      const tierPrice = await knex("TierPrice")
+        .whereIn("CustomerRoleId", customerRoles)
+        .andWhere("ProductId", cartItem.ProductId)
+        .orderBy("Price", "asc")
+        .first();
+
+      if (tierPrice) {
+        price = tierPrice.Price;
+      }
     }
 
     const newQuantity = updateData.Quantity || cartItem.Quantity;
@@ -160,8 +232,6 @@ async function updateCart(id, updateData, user) {
     return { success: false, message: "Failed to update cart." };
   }
 }
-
-
 
 // Remove a single cart item and recalculate tax
 async function removeSingleCartItem(id, user) {

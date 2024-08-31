@@ -70,7 +70,7 @@ router.post("/add", cartAccess, addToCartController);
  *       500:
  *         description: Server error.
  */
-router.get("/items", cartAccess, getCartItemsController);
+router.get("/items",cartAccess,getCartItemsController);
 
 /**
  * @swagger

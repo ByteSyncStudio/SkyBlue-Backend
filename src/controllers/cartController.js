@@ -38,7 +38,20 @@ export const addToCartController = async (req, res) => {
 // Get Cart Items Controller
 export const getCartItemsController = async (req, res) => {
   try {
-    const response = await getCartItems(req.user); 
+    // console.log(req.user);
+
+    // const userId = 57081; // Change this ID as needed he have no cartItem but has ORderId
+    // const user = { id: userId, email: "mackpatel2451988@gmail.com" }; // Provide a test email if needed
+    //orderid = 5779
+
+    //const userId = 46097; // Change this ID as needed 11-to-42
+    //const user = { id: userId, email: "hastymarket210@gmail.com" }; // Provide a test email if needed
+
+    //console.log(user);
+
+    const user = req.user;
+
+    const response = await getCartItems(user);
     res.status(200).json(response);
   } catch (error) {
     res.status(500).json({ message: "Failed to retrieve cart items." });
@@ -55,7 +68,8 @@ export const updateCartController = async (req, res) => {
 
     const updateData = {};
     if (quantity !== undefined) updateData.Quantity = quantity;
-    if (shoppingCartTypeId !== undefined) updateData.ShoppingCartTypeId = shoppingCartTypeId;
+    if (shoppingCartTypeId !== undefined)
+      updateData.ShoppingCartTypeId = shoppingCartTypeId;
     updateData.UpdatedOnUTC = new Date().toISOString();
 
     const result = await updateCart(id, updateData, req.user); // Pass req.user to the repo
@@ -67,12 +81,12 @@ export const updateCartController = async (req, res) => {
   }
 };
 
-
 // Remove Single Cart Item Controller
 export const removeSingleCartItemController = async (req, res) => {
   try {
     const { id } = req.params;
-    if (!id) return res.status(400).json({ message: "Cart item ID is required." });
+    if (!id)
+      return res.status(400).json({ message: "Cart item ID is required." });
 
     const result = await removeSingleCartItem(id, req.user); // Use req.user for user information
     res.status(result.success ? 200 : 404).json(result);
