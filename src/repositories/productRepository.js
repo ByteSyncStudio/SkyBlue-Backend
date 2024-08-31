@@ -439,12 +439,13 @@ async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10, u
         const productIds = products.filter(p => p.HasTierPrices).map(p => p.Id);
         const tierPrices = await getTierPrices(productIds, user.roles);
 
-        console.log(tierPrices)
-
         const processedProducts = products.reduce((acc, product) => {
-            const imageUrl = generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename);
-            const existingProduct = acc.find(p => p.Id === product.Id);
+            let imageUrl = null;
+            if (product.PictureId && product.MimeType && product.SeoFilename) {
+                imageUrl = generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename);
+            }
 
+            const existingProduct = acc.find(p => p.Id === product.Id);
             const price = product.HasTierPrices ? (tierPrices[product.Id] || product.Price) : product.Price;
 
             if (existingProduct) {
