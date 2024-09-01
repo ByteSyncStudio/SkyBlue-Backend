@@ -1,6 +1,6 @@
 import express from 'express';
 import { getUnapprovedUsers, approveUser } from '../../controllers/admin/approve/approveController.js';
-import { addProduct } from '../../controllers/admin/product/adminProductcontroller.js';
+import { addProduct } from '../../controllers/admin/product/adminProductController.js';
 
 const router = express.Router();
 

@@ -69,8 +69,8 @@ export const createAddress = async (address, trx) => {
             Address2: address.streetAddress2,
             ZipPostalCode: address.zipCode,
             City: address.city,
-            CountryId: await getCountryId(address.country, trx),
-            StateProvinceId: await getStateProvinceId(address.state, trx),
+            CountryId: address.country.Id,
+            StateProvinceId: address.state.Id,
             PhoneNumber: address.phone,
             CreatedOnUtc: new Date()
         }).returning('Id');

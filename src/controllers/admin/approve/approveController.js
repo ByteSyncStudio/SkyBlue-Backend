@@ -4,7 +4,7 @@ export const getUnapprovedUsers = async (req, res) => {
     try {
         const users = await listUnapprovedUsers();
         const documents = 1
-        res.status(201).send(
+        res.status(200).send(
             {
                 totalUsers: users ? users.length : 0,
                 data: users

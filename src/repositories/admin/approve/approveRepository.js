@@ -4,9 +4,14 @@ export async function listUnapprovedUsers() {
     try {
         const customers = await knex('Customer')
             .select('*')
-            .where({ IsApproved: false })
+            .where({ IsApproved: false });
 
-        const customerIds = customers.map(({ Id }) => Id)
+        const customerEmails = customers.map(({ Email }) => Email);
+        const addresses = await knex('Address')
+            .select('*')
+            .whereIn('Email', customerEmails);
+
+        const customerIds = customers.map(({ Id }) => Id);
         const documents = await knex('GenericAttribute')
             .select([
                 'Value',
@@ -14,25 +19,26 @@ export async function listUnapprovedUsers() {
             ])
             .whereIn('EntityId', customerIds)
             .where({ KeyGroup: 'Customer' })
-            .where({ Key: 'DocumentsForApproval' })
+            .where({ Key: 'DocumentsForApproval' });
 
-        const customersWithDocuments = customers.map(customer => {
+        const addressesWithDocuments = addresses.map(address => {
+            const customer = customers.find(cust => cust.Email === address.Email);
             const customerDocuments = documents
                 .filter(doc => doc.EntityId === customer.Id)
                 .map(doc => `https://skybluewholesale.com/content/images/ForApproval/${doc.Value}`);
             return {
-                ...customer,
+                ...address,
                 Documents: customerDocuments
             };
         });
 
-        console.log(customersWithDocuments);
+        console.log(addressesWithDocuments);
 
-        return customersWithDocuments;
+        return addressesWithDocuments;
     } catch (error) {
         console.error(error);
         error.statusCode = 500;
-        error.message = 'Error fetching unapproved users.'
+        error.message = 'Error fetching unapproved users.';
         throw error;
     }
 }
