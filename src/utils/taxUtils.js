@@ -4,14 +4,15 @@ import knex from "../config/knex.js";
 async function calculateTotalPriceWithTax(customerEmail, cartItems) {
   try {
     // Determine if customerEmail is an object or a string
-    const email = typeof customerEmail === 'object' ? customerEmail.Email : customerEmail;
+    const email =
+      typeof customerEmail === "object" ? customerEmail.Email : customerEmail;
 
     // Fetch customer address details based on email
     const address = await knex("Address")
       .where("Email", email) // Ensure email is treated as a string
       .select("StateProvinceId")
       .first();
-    console.log("Address:", address); // Debug output
+    //console.log("Address:", address); // Debug output
 
     if (!address) {
       throw new Error("Address not found for the given email.");
@@ -55,6 +56,9 @@ async function calculateTotalPriceWithTax(customerEmail, cartItems) {
     // Calculate tax amount and final price
     const taxAmount = (totalPrice * taxRate.Percentage) / 100;
     const finalPrice = totalPrice + taxAmount;
+    {
+      /*
+      
 
     console.log(
       "Total Price:",
@@ -63,7 +67,8 @@ async function calculateTotalPriceWithTax(customerEmail, cartItems) {
       taxAmount,
       "Final Price:",
       finalPrice
-    ); // Debug output
+    );   */
+    }
 
     return {
       totalPrice,

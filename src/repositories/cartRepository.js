@@ -89,12 +89,10 @@ async function getCartItems(user) {
     const customerRoles = await knex("Customer_CustomerRole_Mapping")
       .where("Customer_Id", user.id)
       .pluck("CustomerRole_Id"); // Retrieve all CustomerRoleIds for the user
-    //console.log("customerRoles:", customerRoles);
 
     const cartItemsWithPrices = await Promise.all(
       cartItems.map(async (item) => {
         let price = item.Price;
-        console.log("Item Price:", item.Price);
 
         if (customerRoles.length > 0) {
           // Fetch tiered price if roles exist
@@ -117,16 +115,10 @@ async function getCartItems(user) {
       })
     );
 
-    //console.log("cartItemsWithPrices:", cartItemsWithPrices);
-
-    //console.log("user:", user.id);
-
     const customerEmail = await knex("Customer")
       .where({ Id: user.id })
       .select("Email")
       .first();
-
-    //console.log("customer Email", customerEmail);
 
     const { totalPrice, taxAmount, finalPrice } =
       await calculateTotalPriceWithTax(customerEmail, cartItemsWithPrices);
@@ -150,7 +142,7 @@ async function updateCart(id, updateData, user) {
   try {
     // Fetch the specific cart item to get the ProductId
     const cartItem = await knex("ShoppingCartItem")
-      .where({ Id: id, CustomerId: user.id }) // Ensure the item belongs to the authenticated user
+      .where({ Id: id, CustomerId: user.id })
       .select("ProductId", "Quantity", "CustomerId")
       .first();
 
@@ -165,8 +157,7 @@ async function updateCart(id, updateData, user) {
 
     // Fetch all cart items for the given product ID for the customer
     const cartItems = await knex("ShoppingCartItem")
-      .where({ CustomerId: user.id })
-      .andWhere({ ProductId: updateData.ProductId })
+      .where({ CustomerId: user.id, ProductId: updateData.ProductId })
       .select("Id", "ProductId", "Quantity");
 
     if (cartItems.length === 0) {
@@ -286,14 +277,12 @@ async function removeSingleCartItem(id, user) {
   }
 }
 
-async function removeAllCartItems(user) {
+
+export async function removeAllCartItems(user) {
   try {
-    console.log("user ID", user.id);
     const deletedCount = await knex("ShoppingCartItem")
       .where({ CustomerId: user.id })
       .del();
-    
-    console.log("deletedCount:", deletedCount);
 
     return {
       success: deletedCount > 0,
@@ -307,4 +296,30 @@ async function removeAllCartItems(user) {
     throw new Error("Failed to clear cart.");
   }
 }
-export { addToCart, getCartItems, updateCart, removeSingleCartItem, removeAllCartItems };
+
+// Controller and repository function combined
+export async function allItemRemove(userId) {
+  try {
+    // Validate userId
+    if (!userId) {
+      return { success: false, message: "User ID is required." };
+    }
+
+    // Perform the deletion
+    const deletedRows = await knex('ShoppingCartItem')
+      .where({ CustomerId: userId })
+      .del();
+
+    // Optionally, you can check if any rows were deleted
+    if (deletedRows === 0) {
+      return { success: false, message: "No cart items found for the user." };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error in allItemRemove:", error);
+    return { success: false, message: "Failed to remove all cart items." };
+  }
+}
+
+export { addToCart, getCartItems, updateCart, removeSingleCartItem };
