@@ -3,7 +3,6 @@ import {
   addToCartController,
   allItemRemoveController,
   getCartItemsController,
-  removeAllCartItemsController,
   removeSingleCartItemController,
   updateCartController,
 } from "../controllers/cartController.js";
