@@ -1,4 +1,4 @@
-import { GetUserInfo, ChangePassword, UpdateUserInfo } from '../repositories/customerRepository.js'
+import { GetUserInfo, ChangePassword, UpdateUserInfo, GetCountryList, GetStateList } from '../repositories/customerRepository.js'
 
 
 export async function getCustomerInfo(req, res) {
@@ -37,3 +37,25 @@ export async function updateCustomerInfo(req, res) {
         res.status(error.statusCode || 500).send(error.message || 'Server error');
     }
 }
+
+export async function getCountryList(req, res) {
+    try {
+        const result = await GetCountryList();
+        res.status(result.statusCode || 200).json(result);
+    } catch (error) {
+        console.error(error);
+        res.status(error.statusCode || 500).send(error.message || 'Server error');
+    }
+}
+
+export async function getStateList(req, res) {
+    try {
+        const countryId = req.params.id;
+        const result = await GetStateList(countryId );
+        res.status(result.statusCode || 200).json(result);
+    } catch (error) {
+        console.error(error);
+        res.status(error.statusCode || 500).send(error.message || 'Server error');
+    }
+}
+

@@ -89,3 +89,20 @@ export async function UpdateUserInfo(user, updatedFields) {
         throw new Error('Failed to update user info. Please try again later.');
     }
 }
+
+export async function GetCountryList() {
+    return await knex('Country')
+        .select([
+            'Id',
+            'Name'
+        ])
+}
+
+export async function GetStateList(countryId) {
+    return await knex('StateProvince')
+        .select([
+            'Id',
+            'Name'
+        ])
+        .where('CountryId', countryId)
+}

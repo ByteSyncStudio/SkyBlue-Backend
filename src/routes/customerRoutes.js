@@ -1,5 +1,5 @@
 import express from "express";
-import { getCustomerInfo, changePassword, updateCustomerInfo } from "../controllers/customerController.js";
+import { getCustomerInfo, changePassword, updateCustomerInfo, getCountryList, getStateList } from "../controllers/customerController.js";
 import { authenticateToken, authorizeRoles } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -114,5 +114,52 @@ router.put('/change-password', changePassword);
  *         description: Internal server error
  */
 router.put('/update-info', updateCustomerInfo);
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Customer
+ *     description: Customer related endpoints
+ * /customer/countries:
+ *   get:
+ *     summary: Retrieve list of countries
+ *     tags: [Customer]
+ *     responses:
+ *       200:
+ *         description: List of countries retrieved successfully.
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/countries', getCountryList);
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Customer
+ *     description: Customer related endpoints
+ * /customer/states/{id}:
+ *   get:
+ *     summary: Retrieve list of states for a given country
+ *     tags: [Customer]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The ID of the country
+ *     responses:
+ *       200:
+ *         description: List of states retrieved successfully.
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/states/:id', getStateList);
 
 export default router;
