@@ -1,6 +1,12 @@
 import knex from '../../config/knex.js';
 import crypto from 'crypto';
 
+
+export const checkEmailExists = async (email, trx) => {
+    const existingUser = await trx('Customer').where('Email', email).first();
+    return !!existingUser;
+};
+
 /**
  * Creates a new user in the 'Customer' table.
  * 
@@ -10,6 +16,13 @@ import crypto from 'crypto';
  */
 export const createUser = async (user, trx) => {
     try {
+
+        const existingUser = await trx('Customer').where('Email', user.email).first();
+        if (existingUser) {
+            throw new Error('Email already exists');
+            
+        }
+
         const [userId] = await trx('Customer').insert({
             CustomerGuid: generateGuid(),
             Email: user.email,

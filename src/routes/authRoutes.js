@@ -20,8 +20,12 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             properties:
- *               email: { type: 'string' }
- *               password: { type: 'string' }
+ *               email: 
+ *                 type: string
+ *                 example: user@example.com
+ *               password: 
+ *                 type: string
+ *                 example: password123
  *     responses:
  *       200:
  *         description: Successful login
@@ -34,23 +38,64 @@ router.post('/login', login);
 
 /**
  * @swagger
- * /signup:
+ * /auth/signup:
  *   post:
  *     summary: User signup
  *     tags: [Auth]
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
+ *               firstName: 
+ *                 type: string
+ *                 example: John
+ *               lastName: 
+ *                 type: string
+ *                 example: Doe
  *               email: 
  *                 type: string
  *                 example: user@example.com
+ *               companyName: 
+ *                 type: string
+ *                 example: Example Inc.
+ *               storeAddress: 
+ *                 type: string
+ *                 example: 456 Business Rd
+ *               businessLicense: 
+ *                 type: string
+ *                 example: BL123456
+ *               streetAddress1: 
+ *                 type: string
+ *                 example: 123 Main St
+ *               streetAddress2: 
+ *                 type: string
+ *                 example: Apt 4B
+ *               zipCode: 
+ *                 type: string
+ *                 example: 12345
+ *               city: 
+ *                 type: string
+ *                 example: Anytown
+ *               country: 
+ *                 type: string
+ *                 example: USA
+ *               state: 
+ *                 type: string
+ *                 example: CA
+ *               phone: 
+ *                 type: string
+ *                 example: 123-456-7890
  *               password: 
  *                 type: string
  *                 example: password123
+ *               documents:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
  *     responses:
  *       201:
  *         description: Successful signup
