@@ -1,5 +1,5 @@
 import knex from "../config/knex.js";
-import { generateImageUrl } from "../utils/imageUtils.js";
+import { generateImageUrl2 } from "../utils/imageUtils.js";
 import { calculateTotalPriceWithTax } from "../utils/taxUtils.js";
 
 // Add product to cart with validation
@@ -54,7 +54,8 @@ async function getCartItems(user) {
       .select(
         "Product_Picture_Mapping.ProductId",
         knex.raw("MIN(Picture.Id) as PictureId"),
-        knex.raw("MIN(Picture.MimeType) as MimeType")
+        knex.raw("MIN(Picture.MimeType) as MimeType"),
+        knex.raw("MIN(Picture.SeoFileName) as SeoFileName") // Add SeoFileName to the subquery
       )
       .leftJoin("Picture", "Product_Picture_Mapping.PictureId", "Picture.Id")
       .groupBy("Product_Picture_Mapping.ProductId")
@@ -74,7 +75,8 @@ async function getCartItems(user) {
         "Product.OrderMinimumQuantity",
         "Product.OrderMaximumQuantity",
         "PictureData.PictureId", // Select the picture from the subquery
-        "PictureData.MimeType" // Select the MimeType from the subquery
+        "PictureData.MimeType", // Select the MimeType from the subquery
+        "PictureData.SeoFileName" // Select the SeoFileName from the subquery
       )
       .groupBy(
         "ShoppingCartItem.ProductId",
@@ -83,8 +85,9 @@ async function getCartItems(user) {
         "Product.OrderMinimumQuantity",
         "Product.OrderMaximumQuantity",
         "PictureData.PictureId",
-        "PictureData.MimeType"
-      ); // Group by necessary fields to avoid duplicates
+        "PictureData.MimeType",
+        "PictureData.SeoFileName" // Group by the SeoFileName
+      );
 
     const customerRoles = await knex("Customer_CustomerRole_Mapping")
       .where("Customer_Id", user.id)
@@ -108,7 +111,7 @@ async function getCartItems(user) {
         }
 
         const imageUrl = item.PictureId
-          ? generateImageUrl(item.PictureId, item.MimeType)
+          ? generateImageUrl2(item.PictureId, item.MimeType, item.SeoFileName)
           : "";
 
         return { ...item, Price: price, images: imageUrl };
@@ -165,7 +168,10 @@ async function updateCart(id, updateData, user) {
     }
 
     // Sum the total quantity of all cart items with the same product ID
-    const totalQuantity = cartItems.reduce((sum, item) => sum + item.Quantity, 0);
+    const totalQuantity = cartItems.reduce(
+      (sum, item) => sum + item.Quantity,
+      0
+    );
 
     // Get the product details
     const product = await knex("Product")
@@ -213,10 +219,8 @@ async function updateCart(id, updateData, user) {
 
     // Delete other cart items with the same product ID
     if (cartItems.length > 1) {
-      const idsToDelete = cartItems.slice(1).map(item => item.Id);
-      await knex("ShoppingCartItem")
-        .whereIn("Id", idsToDelete)
-        .del();
+      const idsToDelete = cartItems.slice(1).map((item) => item.Id);
+      await knex("ShoppingCartItem").whereIn("Id", idsToDelete).del();
     }
 
     const updatedCartItems = await getCartItems(user);
@@ -277,7 +281,6 @@ async function removeSingleCartItem(id, user) {
   }
 }
 
-
 export async function removeAllCartItems(user) {
   try {
     const deletedCount = await knex("ShoppingCartItem")
@@ -306,7 +309,7 @@ export async function allItemRemove(userId) {
     }
 
     // Perform the deletion
-    const deletedRows = await knex('ShoppingCartItem')
+    const deletedRows = await knex("ShoppingCartItem")
       .where({ CustomerId: userId })
       .del();
 
