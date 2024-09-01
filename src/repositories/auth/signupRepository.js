@@ -85,7 +85,7 @@ export const createCustomerPassword = async (passwordData, trx) => {
             Password: hashedPassword,
             PasswordFormatId: 1, //? Always 1
             PasswordSalt: salt,
-            CreatedOnUtc: new Date()
+            CreatedOnUtc: new Date().toISOString()
         });
 
     } catch (error) {

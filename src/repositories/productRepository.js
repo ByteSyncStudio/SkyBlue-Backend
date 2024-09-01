@@ -196,12 +196,12 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user) {
         const tierPrices = await getTierPrices(productIds, user.roles);
 
         const processedProducts = products.map(product => {
-            const imageUrl = product.PictureId 
+            const imageUrl = product.PictureId
                 ? generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename)
                 : null;
-        
+
             const price = product.HasTierPrices ? (tierPrices[product.Id] || product.Price) : product.Price;
-        
+
             return {
                 Id: product.Id,
                 Name: product.Name,
@@ -288,7 +288,9 @@ async function listBestsellers(sortBy, size, user) {
         const products = await query;
 
         const processedProducts = products.reduce((acc, product) => {
-            const imageUrl = generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename);
+            const imageUrl = product.PictureId
+                ? generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename)
+                : null;
             const existingProduct = acc.find(p => p.Id === product.Id);
             const price = product.HasTierPrices ? (tierPrices[product.Id] || product.Price) : product.Price;
 
@@ -358,7 +360,9 @@ async function listNewArrivals(size, user) {
         const tierPrices = await getTierPrices(productIds, user.roles);
 
         const processedProducts = products.reduce((acc, product) => {
-            const imageUrl = generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename);
+            const imageUrl = product.PictureId
+                ? generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename)
+                : null;
             const existingProduct = acc.find(p => p.Id === product.Id);
 
             const price = product.HasTierPrices ? (tierPrices[product.Id] || product.Price) : product.Price;

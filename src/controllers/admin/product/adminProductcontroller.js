@@ -1,59 +1,116 @@
-import knex from "../../../config/knex";
-import { AddProduct } from "../../../repositories/admin/product/adminProductRepository";
+import knex from "../../../config/knex.js";
+import { AddProduct, MapToCategory, AddTierPrices, AddPicture, MapProductToPicture } from "../../../repositories/admin/product/adminProductRepository.js";
+import multer from 'multer';
+import { queueFileUpload } from '../../../config/ftpsClient.js';
+
+const upload = multer({ dest: 'uploads/' });
+
+export const addProduct = [
+    upload.array('images'),
+    async (req, res) => {
+        const {
+            VisibleIndividually,
+            ItemLocation,
+            BoxQty,
+            Name,
+            ShortDescription,
+            FullDescription,
+            Barcode,
+            Barcode2,
+            Published,
+            MarkAsNew,
+            AdminComment,
+            Price,
+            OldPrice,
+            Price1,
+            Price2,
+            Price3,
+            Price4,
+            Price5,
+            Role1,
+            Role2,
+            Role3,
+            Role4,
+            Role5,
+            HasDiscountApplied,
+            AllowedQuantities,
+            OrderMinimumQuantity,
+            OrderMaximumQuantity,
+            CategoryId,
+            StockQuantity,
+            SeoFilenames // Array of SEO filenames for pictures
+        } = req.body;
 
 
-//! TRY CATCH
-export const addProduct = async (req, res) => {
-    //? Producttypeid = 5
-    //? SKU = null
-    //? productTag isnt used
-    //? showOnHomePage wont be used (default 0)
-    //? Available start and end date not used (null)
-    //? adminComment wont be used (null)
-    //? priceGroup wont be used (null)
-    //? productCost wont be used (0.0)
-    //? hasTierPrices always true (1)
-    //? disableBuyButton always false (0)
-    //? disableWishlistButton always false (0),
-    //? isTaxExempt always false (0)
-    //? taxCategoryId is always 1
-    //? tierPriceQuantity is always 1
+        const files = req.files; // Changed from req.images to req.files
 
-    const {
-        visibleIndividually,
-        aisleLocation,
-        boxQuantity,
-        name,
-        shortDescription,
-        fullDescription,
-        barcode,
-        boxBarcode,
-        published,
-        markAsNew,
-        adminComment,
-        price,
-        oldPrice,
-        //* whichever price (1-5) is present will be inserted along respective customer role 
-        price1,
-        price2,
-        price3,
-        price4,
-        price5,
-        hasDiscountApplied,
-        allowedQuantities, //* Comma seperated values of quanitites allowed
-        orderMinimumQuantity, //* if null, default = 1
-        orderMaximumQuantity, //* if null, default = 10000
-        category, //* results can only be from /product/category/all
+        const seoFilenamesArray = SeoFilenames ? SeoFilenames.split(',').map(name => name.trim()) : [];
 
-    } = req.body;
+        console.log('Request body:', req.body);
+        console.log('Files:', files);
 
-    try {
-        await knex.transaction(async (trx) => {
-            const productId = await AddProduct(req.body, trx);
-        })
+        try {
+            await knex.transaction(async (trx) => {
+                // 1. Add the product
+                const productId = await AddProduct(req.body, trx);
+                console.log('Product added with ID:', productId);
 
-    } catch (error) {
+                // 2. Map the product to the category
+                if (CategoryId) {
+                    await MapToCategory(productId, CategoryId, trx);
+                    console.log('Product mapped to category:', CategoryId);
+                }
 
+                // 3. Add tier prices (only if not null)
+                const tierPrices = [
+                    { roleId: Role1, price: Price1 },
+                    { roleId: Role2, price: Price2 },
+                    { roleId: Role3, price: Price3 },
+                    { roleId: Role4, price: Price4 },
+                    { roleId: Role5, price: Price5 },
+                ].filter(tp => tp.roleId != null && tp.price != null);
+
+                if (tierPrices.length > 0) {
+                    await AddTierPrices(productId, tierPrices, trx);
+                    console.log('Tier prices added:', tierPrices);
+                }
+
+                // 4. Handle picture uploads and mapping
+                if (files && files.length > 0) {
+                    console.log('Processing', files.length, 'images');
+                    for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+                        const seoFilename = seoFilenamesArray[i] || `product-${productId}-image-${i + 1}`;
+                        const fileExtension = file.mimetype.split('/')[1];
+                
+                        // Add picture to database first to get the picture ID
+                        const pictureId = await AddPicture({
+                            mimeType: file.mimetype,
+                            seoFilename: seoFilename
+                        }, trx);
+                        console.log('Picture added with ID:', pictureId);
+                
+                        // Use pictureId for the formatted ID in the remote path
+                        const formattedId = pictureId.toString().padStart(7, '0');
+                        const remotePath = `/acc1845619052/SkyblueWholesale/Content/images/thumbs/${formattedId}_${seoFilename}.${fileExtension}`;
+                
+                        console.log('Queueing file upload:', file.path, 'to', remotePath);
+                        // Queue file upload
+                        queueFileUpload(file.path, remotePath);
+                
+                        // Map product to picture
+                        await MapProductToPicture(productId, pictureId, i + 1, trx);
+                        console.log('Product mapped to picture:', productId, pictureId);
+                    }
+                } else {
+                    console.log('No images to process');
+                }
+            });
+
+            res.status(201).send({ success: true, message: 'Product Added.' });
+        } catch (error) {
+            console.error('Error in addProduct:', error);
+            res.status(error.statusCode || 500).send(error.message || 'Server error');
+        }
     }
-}
-
+];

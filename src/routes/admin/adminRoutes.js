@@ -1,5 +1,6 @@
 import express from 'express';
 import { getUnapprovedUsers, approveUser } from '../../controllers/admin/approve/approveController.js';
+import { addProduct } from '../../controllers/admin/product/adminProductcontroller.js';
 
 const router = express.Router();
 
@@ -60,5 +61,7 @@ router.get('/unapproved', getUnapprovedUsers);
  *         description: Internal server error
  */
 router.put('/approve/:id', approveUser);
+
+router.post('/product/add', addProduct);
 
 export default router;
