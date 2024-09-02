@@ -8,6 +8,7 @@ import {
   getAllVendors,
   patchVendor,
 } from "../../controllers/admin/vendors/adminVendorsController.js";
+import { getallOrders, getSingleOrder } from "../../controllers/admin/Orders/adminOrdersController.js";
 
 const router = express.Router();
 
@@ -435,5 +436,178 @@ router.post("/create-vendors", createNewVendor);
  *                   example: "Server error"
  */
 router.patch("/editvendor/:id", patchVendor);
+
+
+/**
+ * @swagger
+ * /all-orders:
+ *   get:
+ *     summary: Retrieve a list of all orders
+ *     description: Retrieve a list of all orders with their details.
+ *     responses:
+ *       200:
+ *         description: A list of orders.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   Id:
+ *                     type: integer
+ *                     description: The order ID.
+ *                     example: 1
+ *                   OrderGuid:
+ *                     type: string
+ *                     description: The order GUID.
+ *                     example: "123e4567-e89b-12d3-a456-426614174000"
+ *                   CustomerId:
+ *                     type: integer
+ *                     description: The customer ID.
+ *                     example: 1
+ *                   OrderStatusId:
+ *                     type: integer
+ *                     description: The order status ID.
+ *                     example: 1
+ *                   OrderTotal:
+ *                     type: number
+ *                     description: The total amount of the order.
+ *                     example: 100.50
+ *                   CreatedonUtc:
+ *                     type: string
+ *                     format: date-time
+ *                     description: The date and time when the order was created.
+ *                     example: "2023-10-01T12:00:00Z"
+ */
+router.get("/all-orders", getallOrders);
+
+/**
+ * @swagger
+ * /single-order/{id}:
+ *   get:
+ *     summary: Retrieve a single order by ID
+ *     description: Retrieve the details of a single order by its ID.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The order ID.
+ *     responses:
+ *       200:
+ *         description: The details of the order.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 Id:
+ *                   type: integer
+ *                   description: The order ID.
+ *                   example: 1
+ *                 OrderGuid:
+ *                   type: string
+ *                   description: The order GUID.
+ *                   example: "123e4567-e89b-12d3-a456-426614174000"
+ *                 CustomerId:
+ *                   type: integer
+ *                   description: The customer ID.
+ *                   example: 1
+ *                 OrderStatusId:
+ *                   type: integer
+ *                   description: The order status ID.
+ *                   example: 1
+ *                 OrderTotal:
+ *                   type: number
+ *                   description: The total amount of the order.
+ *                   example: 100.50
+ *                 CreatedonUtc:
+ *                   type: string
+ *                   format: date-time
+ *                   description: The date and time when the order was created.
+ *                   example: "2023-10-01T12:00:00Z"
+ *                 items:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       OrderItemGuid:
+ *                         type: string
+ *                         description: The order item GUID.
+ *                         example: "123e4567-e89b-12d3-a456-426614174001"
+ *                       ProductId:
+ *                         type: integer
+ *                         description: The product ID.
+ *                         example: 1
+ *                       Quantity:
+ *                         type: integer
+ *                         description: The quantity of the product.
+ *                         example: 2
+ *                       UnitPriceInclTax:
+ *                         type: number
+ *                         description: The unit price including tax.
+ *                         example: 50.25
+ *                       UnitPriceExclTax:
+ *                         type: number
+ *                         description: The unit price excluding tax.
+ *                         example: 45.00
+ *                       PriceInclTax:
+ *                         type: number
+ *                         description: The total price including tax.
+ *                         example: 100.50
+ *                       PriceExclTax:
+ *                         type: number
+ *                         description: The total price excluding tax.
+ *                         example: 90.00
+ *                       DiscountAmountInclTax:
+ *                         type: number
+ *                         description: The discount amount including tax.
+ *                         example: 10.00
+ *                       DiscountAmountExclTax:
+ *                         type: number
+ *                         description: The discount amount excluding tax.
+ *                         example: 9.00
+ *                       OriginalProductCost:
+ *                         type: number
+ *                         description: The original cost of the product.
+ *                         example: 40.00
+ *                       AttributeDescription:
+ *                         type: string
+ *                         description: The description of the product attributes.
+ *                         example: "Color: Red, Size: M"
+ *                       AttributesXml:
+ *                         type: string
+ *                         description: The XML representation of the product attributes.
+ *                         example: "<attributes><color>Red</color><size>M</size></attributes>"
+ *                       DownloadCount:
+ *                         type: integer
+ *                         description: The number of times the product has been downloaded.
+ *                         example: 0
+ *                       IsDownloadActivated:
+ *                         type: boolean
+ *                         description: Whether the download is activated.
+ *                         example: false
+ *                       LicenseDownloadId:
+ *                         type: integer
+ *                         description: The license download ID.
+ *                         example: 0
+ *                       ItemWeight:
+ *                         type: number
+ *                         description: The weight of the item.
+ *                         example: 1.5
+ *                       RentalStartDateUtc:
+ *                         type: string
+ *                         format: date-time
+ *                         description: The rental start date and time.
+ *                         example: "2023-10-01T12:00:00Z"
+ *                       RentalEndDateUtc:
+ *                         type: string
+ *                         format: date-time
+ *                         description: The rental end date and time.
+ *                         example: "2023-10-10T12:00:00Z"
+ */
+router.get("/single-order/:id", getSingleOrder);
 
 export default router;
