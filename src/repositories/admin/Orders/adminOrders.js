@@ -45,68 +45,85 @@ export async function listOrders() {
 // Get a single order by ID
 export async function getOrderById(orderId) {
   try {
-    // Fetch the order details
-    const order = await knex('dbo.Order')
-      .where({ Id: orderId })
-      .select('Id', 'OrderGuid', 'CustomerId', 'OrderStatusId', 'OrderTotal', 'CreatedonUtc')
-      .first();
-    
-    if (!order) {
+    // Fetch the order details along with order items, product details, vendor names, and picture details
+    const order = await knex('dbo.Order as o')
+      .where('o.Id', orderId)
+      .select(
+        'o.Id',
+        'o.OrderGuid',
+        'o.CustomerId',
+        'o.OrderStatusId',
+        'o.OrderTotal',
+        'o.CreatedonUtc',
+        'oi.OrderItemGuid',
+        'oi.ProductId',
+        'oi.Quantity',
+        'oi.UnitPriceInclTax',
+        'oi.UnitPriceExclTax',
+        'oi.PriceInclTax',
+        'oi.PriceExclTax',
+        'p.Name as ProductName',
+        'p.VendorId',
+        'v.Name as VendorName',
+        'pic.MimeType',
+        'pic.SeoFilename',
+        'pic.Id as PictureId'
+      )
+      .leftJoin('dbo.OrderItem as oi', 'o.Id', 'oi.OrderId')
+      .leftJoin('dbo.Product as p', 'oi.ProductId', 'p.Id')
+      .leftJoin('dbo.Vendor as v', 'p.VendorId', 'v.Id')
+      .leftJoin('dbo.Product_Picture_Mapping as ppm', 'p.Id', 'ppm.ProductId')
+      .leftJoin('dbo.Picture as pic', 'ppm.PictureId', 'pic.Id');
+
+    if (!order || order.length === 0) {
       return { success: false, message: "Order not found." };
     }
 
-    // Fetch order items
-    const orderItems = await knex('dbo.OrderItem')
-      .where({ OrderId: orderId })
-      .select('OrderItemGuid', 'OrderId', 'ProductId', 'Quantity', 'UnitPriceInclTax', 'UnitPriceExclTax', 'PriceInclTax', 'PriceExclTax');
-    
-    // Fetch product details for each order item
-    const orderItemsWithProductDetails = await Promise.all(orderItems.map(async (item) => {
-      const product = await knex('dbo.Product')
-        .where({ Id: item.ProductId })
-        .select('Id', 'Name', 'VendorId') // Ensure VendorId is selected
-        .first();
-      
-      if (!product) {
-        return { ...item, product: null, imageUrl: '', vendorName: '' };
-      }
+    // Group order items by ProductId
+    const orderItemsWithProductDetails = [];
+    const seenProducts = new Set();
 
-      // Fetch the image information for the product
-      const picture = await knex('dbo.Product_Picture_Mapping')
-        .where({ ProductId: item.ProductId })
-        .select('PictureId')
-        .first();
+    order.forEach(item => {
+      if (seenProducts.has(item.ProductId)) return;
+      seenProducts.add(item.ProductId);
 
-      const imageUrl = picture 
-        ? generateImageUrl2(picture.PictureId, 'image/jpeg', product.SeoFilename) 
+      const imageUrl = item.PictureId
+        ? generateImageUrl2(item.PictureId, item.MimeType, item.SeoFilename)
         : '';
 
-      // Fetch the vendor name
-      const vendor = await knex('dbo.Vendor')
-        .where({ Id: product.VendorId })
-        .select('Name')
-        .first();
-
-      return {
-        ...item,
+      orderItemsWithProductDetails.push({
+        OrderItemGuid: item.OrderItemGuid,
+        ProductId: item.ProductId,
+        Quantity: item.Quantity,
+        UnitPriceInclTax: item.UnitPriceInclTax,
+        UnitPriceExclTax: item.UnitPriceExclTax,
+        PriceInclTax: item.PriceInclTax,
+        PriceExclTax: item.PriceExclTax,
         product: {
-          ...product,
+          Id: item.ProductId,
+          Name: item.ProductName,
+          VendorId: item.VendorId,
           imageUrl,
-          vendorName: vendor ? vendor.Name : 'No vendor found',
+          vendorName: item.VendorName ? item.VendorName : 'No vendor found',
         },
-      };
-    }));
+      });
+    });
 
     // Fetch customer email
     const customer = await knex('dbo.Customer')
-      .where({ Id: order.CustomerId })
+      .where({ Id: order[0].CustomerId })
       .select('Email')
       .first();
 
     return {
       success: true,
       order: {
-        ...order,
+        Id: order[0].Id,
+        OrderGuid: order[0].OrderGuid,
+        CustomerId: order[0].CustomerId,
+        OrderStatusId: order[0].OrderStatusId,
+        OrderTotal: order[0].OrderTotal,
+        CreatedonUtc: order[0].CreatedonUtc,
         items: orderItemsWithProductDetails,
         customerEmail: customer ? customer.Email : 'No email found',
       },

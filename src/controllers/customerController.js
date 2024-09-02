@@ -1,4 +1,4 @@
-import { GetUserInfo, ChangePassword, UpdateUserInfo } from '../repositories/customerRepository.js'
+import { GetUserInfo, ChangePassword, UpdateUserInfo, GetCustomerOrders, GetSingleCustomerOrders } from '../repositories/customerRepository.js'
 
 
 export async function getCustomerInfo(req, res) {
@@ -37,3 +37,45 @@ export async function updateCustomerInfo(req, res) {
         res.status(error.statusCode || 500).send(error.message || 'Server error');
     }
 }
+
+export async function getCustomerOrders(req, res) {
+    try {
+      //console.log(req.user);
+      const result = await GetCustomerOrders(req.user);
+      res.status(200).send({
+        success: true,
+        message: "Orders retrieved successfully.",
+        data: result
+      });
+    } catch (error) {
+      console.error("Error fetching customer orders:", error);
+      res.status(error.statusCode || 500).send({
+        success: false,
+        message: error.message || 'Server error'
+      });
+    }
+  }
+
+
+  export async function getSingleCustomerOrders(req, res) {
+    try {
+        const orderId = parseInt(req.params.id, 10);  // Ensure orderId is parsed as an integer
+
+        if (isNaN(orderId)) {
+            return res.status(400).json({ message: 'Invalid Order ID.' });
+        }
+
+        const orderDetails = await GetSingleCustomerOrders(orderId);  // Fetch the order details
+
+        if (!orderDetails) {
+            return res.status(404).json({ message: 'No order items found for this order ID.' });
+        }
+
+        res.status(200).json(orderDetails);  // Send the order details as a response
+    } catch (error) {
+        console.error("Error fetching single customer order:", error);
+        res.status(error.statusCode || 500).send(error.message || 'Server error');
+    }
+}
+
+
