@@ -1,5 +1,5 @@
 import knex from "../../../config/knex.js";
-import { AddProduct, MapToCategory, AddTierPrices, AddPicture, MapProductToPicture } from "../../../repositories/admin/product/adminProductRepository.js";
+import { AddProduct, MapToCategory, AddTierPrices, AddPicture, MapProductToPicture, UpdateProduct, UpdateCategoryMapping, UpdateProductPictures, UpdateTierPrices, DeleteProduct, DeleteProductPictures } from "../../../repositories/admin/product/adminProductRepository.js";
 import multer from 'multer';
 import { queueFileUpload } from '../../../config/ftpsClient.js';
 
@@ -82,22 +82,22 @@ export const addProduct = [
                         const file = files[i];
                         const seoFilename = seoFilenamesArray[i] || `product-${productId}-image-${i + 1}`;
                         const fileExtension = file.mimetype.split('/')[1];
-                
+
                         // Add picture to database first to get the picture ID
                         const pictureId = await AddPicture({
                             mimeType: file.mimetype,
                             seoFilename: seoFilename
                         }, trx);
                         console.log('Picture added with ID:', pictureId);
-                
+
                         // Use pictureId for the formatted ID in the remote path
                         const formattedId = pictureId.toString().padStart(7, '0');
                         const remotePath = `/acc1845619052/SkyblueWholesale/Content/images/thumbs/${formattedId}_${seoFilename}.${fileExtension}`;
-                
+
                         console.log('Queueing file upload:', file.path, 'to', remotePath);
                         // Queue file upload
                         queueFileUpload(file.path, remotePath);
-                
+
                         // Map product to picture
                         await MapProductToPicture(productId, pictureId, i + 1, trx);
                         console.log('Product mapped to picture:', productId, pictureId);
@@ -114,3 +114,105 @@ export const addProduct = [
         }
     }
 ];
+
+
+export const updateProduct = [
+    upload.array('images'),
+    async (req, res) => {
+        const productId = req.params.id;
+        const {
+            Price1,
+            Price2,
+            Price3,
+            Price4,
+            Price5,
+            Role1,
+            Role2,
+            Role3,
+            Role4,
+            Role5,
+            CategoryId,
+            SeoFilenames,
+            ...productData // All other fields go into productData
+        } = req.body;
+
+        const files = req.files;
+        const seoFilenamesArray = SeoFilenames ? SeoFilenames.split(',').map(name => name.trim()) : [];
+
+        try {
+            await knex.transaction(async (trx) => {
+                // 1. Update the product
+                await UpdateProduct(productId, productData, trx);
+
+                // 2. Update category mapping
+                if (CategoryId) {
+                    await UpdateCategoryMapping(productId, CategoryId, trx);
+                }
+
+                // 3. Update tier prices
+
+                    const tierPrices = [
+                        { roleId: Role1, price: Price1 },
+                        { roleId: Role2, price: Price2 },
+                        { roleId: Role3, price: Price3 },
+                        { roleId: Role4, price: Price4 },
+                        { roleId: Role5, price: Price5 },
+                    ].filter(tp => tp.roleId != null && tp.price != null);
+
+                    if (tierPrices.length > 0) {
+                        await UpdateTierPrices(productId, tierPrices, trx);
+                    }
+                
+
+                // 4. Handle picture updates
+                //? Delete and add new images
+                if (files && files.length > 0) {
+                    console.log('Processing', files.length, 'new images');
+                    for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+                        const seoFilename = seoFilenamesArray[i] || `product-${productId}-image-${i + 1}`;
+                        const fileExtension = file.mimetype.split('/')[1];
+
+                        // Add picture to database first to get the picture ID
+                        const pictureId = await AddPicture({
+                            mimeType: file.mimetype,
+                            seoFilename: seoFilename
+                        }, trx);
+                        console.log('New picture added with ID:', pictureId);
+
+                        // Use pictureId for the formatted ID in the remote path
+                        const formattedId = pictureId.toString().padStart(7, '0');
+                        const remotePath = `/acc1845619052/SkyblueWholesale/Content/images/thumbs/${formattedId}_${seoFilename}.${fileExtension}`;
+
+                        console.log('Queueing file upload:', file.path, 'to', remotePath);
+                        // Queue file upload
+                        queueFileUpload(file.path, remotePath);
+
+                        // Map product to new picture
+                        await MapProductToPicture(productId, pictureId, i + 1, trx);
+                        console.log('Product mapped to new picture:', productId, pictureId);
+                    }
+                } else {
+                    console.log('No new images to process');
+                }
+            });
+
+            res.status(200).send({ success: true, message: 'Product Updated.' });
+        } catch (error) {
+            console.error('Error in updateProduct:', error);
+            res.status(error.statusCode || 500).send(error.message || 'Server error');
+        }
+    }
+];
+
+
+export const deleteProduct = async (req, res) => {
+    const productId = req.params.id;
+    try {
+        await DeleteProduct(productId);
+        res.status(200).send({ success: true, message: 'Product Deleted.' });
+    } catch (error) {
+        console.error('Error in deleteProduct:', error);
+        res.status(error.statusCode || 500).send(error.message || 'Server error');
+    }
+};

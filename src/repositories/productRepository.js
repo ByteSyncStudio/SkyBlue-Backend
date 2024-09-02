@@ -181,6 +181,7 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user) {
                 LEFT JOIN Picture pic ON ppm.PictureId = pic.Id
                 WHERE pcm.CategoryId IN (${subCategoryIds.join(',')})
                 AND p.Published = 1
+                AND p.Deleted = 0
             )
             SELECT *
             FROM RankedProducts
@@ -283,6 +284,8 @@ async function listBestsellers(sortBy, size, user) {
             ])
             .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
             .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
+            .where('Product.Published', true)
+            .where('Product.Deleted', false)
             .whereIn('Product.Id', productIds);
 
         const products = await query;
@@ -351,6 +354,8 @@ async function listNewArrivals(size, user) {
             ])
             .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
             .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
+            .where('Product.Published', true)
+            .where('Product.Deleted', false)
             .orderBy('Product.CreatedonUTC', 'desc')
             .limit(size);
 
@@ -427,6 +432,7 @@ async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10, u
             .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
             .where('Product.Name', 'like', `%${searchTerm}%`)
             .where('Product.Published', true)
+            .where('Product.Deleted', false)
             .orderBy('Product.Name')
             .limit(size)
             .offset(offset);

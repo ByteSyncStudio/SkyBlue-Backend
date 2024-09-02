@@ -15,7 +15,7 @@ export async function AddProduct(product, trx) {
             ProductTemplateId: 1,
             VendorId: product.VendorId ?? 0,
             ShowOnHomePage: 0,
-            AllowCustomerReviews: 1, 
+            AllowCustomerReviews: 1,
             ApprovedRatingSum: 0,
             NotApprovedRatingSum: 0,
             ApprovedTotalReviews: 0,
@@ -53,7 +53,7 @@ export async function AddProduct(product, trx) {
             ProductAvailabilityRangeId: 0, //? Default
             UseMultipleWarehouses: 0, //? Default
             WarehouseId: 0, //? Default
-            StockQuantity: product.StockQuantity ?? 10000, 
+            StockQuantity: product.StockQuantity ?? 10000,
             DisplayStockAvailability: 1, //? Default
             DisplayStockQuantity: 0, //? Default
             MinStockQuantity: 0, //? Default
@@ -161,6 +161,11 @@ export async function AddPicture(pictureData, trx) {
 
 export async function MapProductToPicture(productId, pictureId, displayOrder, trx) {
     try {
+        //? Unmap previous pictures
+        await trx('Product_Picture_Mapping')
+            .where({ ProductId: productId })
+            .del();
+
         const result = await trx('Product_Picture_Mapping').insert({
             ProductId: productId,
             PictureId: pictureId,
@@ -172,4 +177,136 @@ export async function MapProductToPicture(productId, pictureId, displayOrder, tr
         console.error("Error mapping product to picture:\n", error);
         throw error;
     }
+}
+
+export async function UpdateProduct(productId, updateData, trx) {
+    try {
+        const updateFields = {};
+
+        // Dynamically add fields to updateFields if they are present in updateData
+        for (const key in updateData) {
+            if (updateData.hasOwnProperty(key)) {
+                updateFields[key] = updateData[key];
+            }
+        }
+
+        // Perform the update
+        await trx('Product')
+            .where({ Id: productId })
+            .update({
+                ...updateFields,
+                UpdatedOnUtc: new Date().toISOString()
+            });
+
+        console.log('Product updated with ID:', productId);
+    } catch (error) {
+        console.error("Error updating product:\n", error);
+        throw error;
+    }
+}
+
+export async function UpdateCategoryMapping(productId, categoryId, trx) {
+    await trx('Product_Category_Mapping')
+        .where('ProductId', productId)
+        .update({ CategoryId: categoryId });
+}
+
+export async function UpdateTierPrices(productId, tierPrices, trx) {
+    try {
+        for (const tp of tierPrices) {
+            if (parseInt(tp.price) === 0) {
+                // Delete the tier price if the price is 0
+                await trx('TierPrice')
+                    .where({
+                        ProductId: productId,
+                        CustomerRoleId: tp.roleId
+                    })
+                    .del();
+                console.log(`Tier price for role ${tp.roleId} deleted for product ID: ${productId}`);
+            } else {
+                const existingTierPrice = await trx('TierPrice')
+                    .where({
+                        ProductId: productId,
+                        CustomerRoleId: tp.roleId
+                    })
+                    .first();
+
+                if (existingTierPrice) {
+                    // Update existing tier price
+                    await trx('TierPrice')
+                        .where({
+                            ProductId: productId,
+                            CustomerRoleId: tp.roleId
+                        })
+                        .update({
+                            Price: tp.price,
+                        });
+                    console.log(`Tier price for role ${tp.roleId} updated for product ID: ${productId}`);
+                } else {
+                    // Insert new tier price
+                    await trx('TierPrice').insert({
+                        ProductId: productId,
+                        StoreId: 0,
+                        CustomerRoleId: tp.roleId,
+                        Quantity: 1,
+                        Price: tp.price,
+                        StartDateTimeUtc: null,
+                        EndDateTimeUtc: null,
+                    });
+                    console.log(`Tier price for role ${tp.roleId} inserted for product ID: ${productId}`);
+                }
+            }
+        }
+    } catch (error) {
+        console.error("Error updating tier prices:\n", error);
+        throw error;
+    }
+}
+
+export async function DeleteProductPictures(productId, pictureIds, trx) {
+    await trx('Product_Picture_Mapping')
+        .where('ProductId', productId)
+        .whereIn('PictureId', pictureIds)
+        .del();
+    await trx('Picture').whereIn('Id', pictureIds).del();
+    // You may also want to delete the files from FTP here
+}
+
+
+export async function UpdateProductPictures(productId, files, seoFilenamesArray, trx) {
+    // Fetch existing picture IDs for the product
+    const existingPictures = await trx('Product_Picture_Mapping')
+        .where('ProductId', productId)
+        .select('PictureId');
+
+    const existingPictureIds = existingPictures.map(p => p.PictureId);
+
+    // Delete existing pictures
+    if (existingPictureIds.length > 0) {
+        await trx('Product_Picture_Mapping')
+            .where('ProductId', productId)
+            .whereIn('PictureId', existingPictureIds)
+            .del();
+        await trx('Picture').whereIn('Id', existingPictureIds).del();
+    }
+
+    // Add new pictures
+    let displayOrder = 1;
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const seoFilename = seoFilenamesArray[i] || `product-${productId}-image-${displayOrder}`;
+        const pictureId = await AddPicture({ mimeType: file.mimetype, seoFilename }, trx);
+        await MapProductToPicture(productId, pictureId, displayOrder, trx);
+        displayOrder++;
+
+        // Queue file upload (assuming you have a similar function for updates)
+        queueFileUpload(file.path, `/path/to/ftp/${pictureId}_${seoFilename}`);
+    }
+}
+
+export async function DeleteProduct(productId) {
+    await knex.transaction(async (trx) => {
+        await trx('Product').where('Id', productId).update({ Deleted: 1 });
+        // You might want to handle related data (e.g., pictures, tier prices) here
+    });
 }

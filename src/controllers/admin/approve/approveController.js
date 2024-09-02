@@ -3,7 +3,6 @@ import { listUnapprovedUsers, ApproveUser } from "../../../repositories/admin/ap
 export const getUnapprovedUsers = async (req, res) => {
     try {
         const users = await listUnapprovedUsers();
-        const documents = 1
         res.status(200).send(
             {
                 totalUsers: users ? users.length : 0,
