@@ -1,4 +1,4 @@
-import { listUnapprovedUsers, ApproveUser } from "../../../repositories/admin/approve/approveRepository.js";
+import { listUnapprovedUsers, ApproveUser } from "../../../repositories/admin/customer/adminCustomerRepository.js";
 
 export const getUnapprovedUsers = async (req, res) => {
     try {
