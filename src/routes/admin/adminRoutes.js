@@ -2,7 +2,7 @@ import express from "express";
 import {
   getUnapprovedUsers,
   approveUser,
-} from "../../controllers/admin/customer/adminCustomerController.js";
+} from "../../controllers/admin/approve/approveController.js";
 import {
   createNewVendor,
   getAllVendors,
