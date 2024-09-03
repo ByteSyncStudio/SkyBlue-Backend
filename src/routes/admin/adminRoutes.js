@@ -10,7 +10,7 @@ import {
 } from "../../controllers/admin/vendors/adminVendorsController.js";
 import { getallOrders, getSingleOrder } from "../../controllers/admin/Orders/adminOrdersController.js";
 import { addProduct, updateProduct, deleteProduct } from '../../controllers/admin/product/adminProductcontroller.js'
-import { deleteDiscounts, getAllDiscounts, postDiscounts } from "../../controllers/admin/discount/adminDiscountController.js";
+import { deleteDiscounts, getAllDiscounts, getSubCategoryDiscounts, postDiscounts } from "../../controllers/admin/discount/adminDiscountController.js";
 
 const router = express.Router();
 
@@ -736,7 +736,9 @@ router.get("/all-orders", getallOrders);
  */
 router.get("/single-order/:id", getSingleOrder);
 
-router.get('/discounts', getAllDiscounts)
+router.get('/alldiscounts', getAllDiscounts)
+
+router.get('/discount/subcategories', getSubCategoryDiscounts)
 
 router.post('/post-discounts', postDiscounts)
 

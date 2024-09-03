@@ -47,3 +47,21 @@ export async function DeleteDiscount(id) {
     throw error;
   }
 }
+
+export async function GetSubCategoryDiscounts() {
+  try {
+    const discounts = await knex('dbo.Discount')
+      .where('AppliedToSubCategories', 0)
+      .select(
+        'Id',
+        'Name',
+        'DiscountTypeId',
+        'DiscountAmount',
+        'AppliedToSubCategories'
+      );
+    return discounts;
+  } catch (error) {
+    console.error("Error fetching discounts not applied to subcategories:", error);
+    throw error;
+  }
+}

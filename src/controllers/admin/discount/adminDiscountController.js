@@ -1,4 +1,4 @@
-import { DeleteDiscount, GetAllDiscounts, PostDiscounts } from "../../../repositories/admin/discountRepository.js";
+import { DeleteDiscount, GetAllDiscounts, GetSubCategoryDiscounts, PostDiscounts } from "../../../repositories/admin/discountRepository.js";
 
 // Controller to get all discounts
 export const getAllDiscounts = async (req, res) => {
@@ -66,3 +66,12 @@ export const deleteDiscounts = async (req, res) => {
     res.status(500).json({ message: "Failed to delete discount", error: error.message });
   }
 }
+
+export const getSubCategoryDiscounts = async (req, res) => {
+  try {
+    const discounts = await GetSubCategoryDiscounts();
+    res.status(200).json(discounts);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch discounts", error: error.message });
+  }
+};
