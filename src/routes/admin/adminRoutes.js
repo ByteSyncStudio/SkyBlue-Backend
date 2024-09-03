@@ -10,6 +10,8 @@ import {
 } from "../../controllers/admin/vendors/adminVendorsController.js";
 import { getallOrders, getSingleOrder } from "../../controllers/admin/Orders/adminOrdersController.js";
 import { addProduct, updateProduct, deleteProduct } from '../../controllers/admin/product/adminProductcontroller.js'
+import { getAllCustomersWithRoles } from "../../controllers/admin/customer/adminCustomerController.js"
+
 
 const router = express.Router();
 
@@ -734,5 +736,7 @@ router.get("/all-orders", getallOrders);
  *                         example: "2023-10-10T12:00:00Z"
  */
 router.get("/single-order/:id", getSingleOrder);
+
+router.get('/customer/all', getAllCustomersWithRoles)
 
 export default router;
