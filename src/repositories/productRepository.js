@@ -159,39 +159,41 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user) {
         const subCategoryIds = await getSubcategories(categoryId);
 
         const query = knex.raw(`
-            WITH RankedProducts AS (
-                SELECT 
-                    p.Id,
-                    p.Name,
-                    p.HasTierPrices,
-                    p.Price,
-                    p.FullDescription,
-                    p.ShortDescription,
-                    p.OrderMinimumQuantity,
-                    p.OrderMaximumQuantity,
-                    p.StockQuantity,
-                    ppm.PictureId,
-                    pic.MimeType,
-                    pic.SeoFilename,
-                    COUNT(*) OVER() AS total_count,
-                    ROW_NUMBER() OVER (PARTITION BY p.Id ORDER BY ppm.DisplayOrder) AS RowNum
-                FROM Product p
-                JOIN Product_Category_Mapping pcm ON p.Id = pcm.ProductId
-                LEFT JOIN Product_Picture_Mapping ppm ON p.Id = ppm.ProductId
-                LEFT JOIN Picture pic ON ppm.PictureId = pic.Id
-                WHERE pcm.CategoryId IN (${subCategoryIds.join(',')})
-                AND p.Published = 1
-                AND p.Deleted = 0
-            )
-            SELECT *
-            FROM RankedProducts
-            WHERE RowNum = 1
-            ORDER BY Name
+            SELECT 
+                p.Id,
+                p.Name,
+                p.HasTierPrices,
+                p.Price,
+                p.FullDescription,
+                p.ShortDescription,
+                p.OrderMinimumQuantity,
+                p.OrderMaximumQuantity,
+                p.StockQuantity,
+                ppm.PictureId,
+                pic.MimeType,
+                pic.SeoFilename,
+                (SELECT COUNT(DISTINCT p2.Id) 
+                 FROM Product p2 
+                 JOIN Product_Category_Mapping pcm2 ON p2.Id = pcm2.ProductId 
+                 WHERE pcm2.CategoryId IN (${subCategoryIds.join(',')})
+                 AND p2.Published = 1 AND p2.Deleted = 0) AS total_count
+            FROM Product p
+            JOIN Product_Category_Mapping pcm ON p.Id = pcm.ProductId
+            LEFT JOIN Product_Picture_Mapping ppm ON p.Id = ppm.ProductId
+            LEFT JOIN Picture pic ON ppm.PictureId = pic.Id
+            WHERE pcm.CategoryId IN (${subCategoryIds.join(',')})
+            AND p.Published = 1
+            AND p.Deleted = 0
+            GROUP BY p.Id, p.Name, p.HasTierPrices, p.Price, p.FullDescription, p.ShortDescription, 
+                     p.OrderMinimumQuantity, p.OrderMaximumQuantity, p.StockQuantity, 
+                     ppm.PictureId, pic.MimeType, pic.SeoFilename
+            ORDER BY p.Name
             OFFSET ? ROWS
             FETCH NEXT ? ROWS ONLY
         `, [offset, size]);
 
         const products = await query;
+        console.log('Total: ' + products.length)
 
         const productIds = products.filter(p => p.HasTierPrices).map(p => p.Id);
         const tierPrices = await getTierPrices(productIds, user.roles);
@@ -240,94 +242,89 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user) {
 }
 
 /**
- * Retrieves a list of best-selling products sorted by a specified criterion.
- * 
- * @param {string} sortBy - The criterion to sort by ('quantity' or 'amount').
- * @param {number} size - The number of items to retrieve.
- * @returns {Promise<Array>} A promise that resolves to an array of best-selling product objects.
- */
+* * Retrieves a list of best-selling products sorted by a specified criterion.*
+* **
+* * @param {string} sortBy - The criterion to sort by ('quantity' or 'amount').*
+* * @param {number} size - The number of items to retrieve.*
+* * @returns {Promise<Array>} A promise that resolves to an array of best-selling product objects.*
+**/
 async function listBestsellers(sortBy, size, user) {
     try {
         const cacheKey = `bestsellers_by_${sortBy}_${size}_${user.roles.map(r => r.Id).join('_')}`;
         const cachedBestSellers = cache.get(cacheKey);
-
         if (cachedBestSellers) {
             return cachedBestSellers;
         }
-
         const orderColumn = sortBy === 'quantity' ? 'TotalQuantity' : 'TotalAmount';
-        const topProducts = await knex('OrderItem')
-            .select('ProductId')
-            .sum('Quantity as TotalQuantity')
-            .sum('PriceExclTax as TotalAmount')
-            .groupBy('ProductId')
-            .orderBy(orderColumn, 'desc')
-            .limit(size);
-
-        const productIds = topProducts.map(i => i.ProductId);
-        const tierPrices = await getTierPrices(productIds, user.roles);
-
-        const query = knex('Product')
-            .select([
-                'Product.Id',
-                'Product.Name',
-                'Product.HasTierPrices',
-                'Product.Price',
-                'Product.FullDescription',
-                'Product.ShortDescription',
-                'Product.OrderMinimumQuantity',
-                'Product.OrderMaximumQuantity',
-                'Product_Picture_Mapping.PictureId',
-                'product.StockQuantity',
-                'Picture.MimeType',
-                'Picture.SeoFilename'
-            ])
-            .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
-            .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
-            .where('Product.Published', true)
-            .where('Product.Deleted', false)
-            .whereIn('Product.Id', productIds);
+        
+        const query = knex.raw(`
+            WITH TopProducts AS (
+                SELECT 
+                    oi.ProductId,
+                    SUM(oi.Quantity) as TotalQuantity,
+                    SUM(oi.PriceExclTax) as TotalAmount,
+                    ROW_NUMBER() OVER (ORDER BY SUM(CASE WHEN ? = 'quantity' THEN oi.Quantity ELSE oi.PriceExclTax END) DESC) as RowNum
+                FROM OrderItem oi
+                JOIN Product p ON oi.ProductId = p.Id
+                WHERE p.Published = 1 AND p.Deleted = 0
+                GROUP BY oi.ProductId
+            )
+            SELECT 
+                p.Id,
+                p.Name,
+                p.HasTierPrices,
+                p.Price,
+                p.FullDescription,
+                p.ShortDescription,
+                p.OrderMinimumQuantity,
+                p.OrderMaximumQuantity,
+                p.StockQuantity,
+                ppm.PictureId,
+                pic.MimeType,
+                pic.SeoFilename,
+                tp.TotalQuantity,
+                tp.TotalAmount
+            FROM TopProducts tp
+            JOIN Product p ON tp.ProductId = p.Id
+            LEFT JOIN Product_Picture_Mapping ppm ON p.Id = ppm.ProductId
+            LEFT JOIN Picture pic ON ppm.PictureId = pic.Id
+            WHERE tp.RowNum <= ?
+            ORDER BY tp.RowNum
+        `, [sortBy, size]);
 
         const products = await query;
+        const productIds = products.filter(p => p.HasTierPrices).map(p => p.Id);
+        const tierPrices = await getTierPrices(productIds, user.roles);
 
-        const processedProducts = products.reduce((acc, product) => {
+        const processedProducts = products.map(product => {
             const imageUrl = product.PictureId
                 ? generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename)
                 : null;
-            const existingProduct = acc.find(p => p.Id === product.Id);
             const price = product.HasTierPrices ? (tierPrices[product.Id] || product.Price) : product.Price;
-
-            if (existingProduct) {
-                existingProduct.Images.push(imageUrl);
-            } else {
-                const topProduct = topProducts.find(p => p.ProductId === product.Id);
-                acc.push({
-                    Id: product.Id,
-                    Name: product.Name,
-                    Price: price,
-                    FullDescription: product.FullDescription,
-                    ShortDescription: product.ShortDescription,
-                    OrderMinimumQuantity: product.OrderMinimumQuantity,
-                    OrderMaximumQuantity: product.OrderMaximumQuantity,
-                    Stock: product.StockQuantity,
-                    Images: [imageUrl],
-                    Quantity: topProduct.TotalQuantity,
-                    Amount: topProduct.TotalAmount
-                });
-            }
-
-            return acc;
-        }, []);
+            return {
+                Id: product.Id,
+                Name: product.Name,
+                Price: price,
+                FullDescription: product.FullDescription,
+                ShortDescription: product.ShortDescription,
+                OrderMinimumQuantity: product.OrderMinimumQuantity,
+                OrderMaximumQuantity: product.OrderMaximumQuantity,
+                Stock: product.StockQuantity,
+                Images: [imageUrl],
+                Quantity: product.TotalQuantity,
+                Amount: product.TotalAmount
+            };
+        });
 
         cache.set(cacheKey, processedProducts);
         return processedProducts;
     } catch (error) {
+        console.error('Error in listBestsellers:', error);
         error.statusCode = 500;
         error.message = "Error in BestSellers";
         throw error;
     }
 }
-
 /**
  * Retrieves a list of new arrival products with pagination.
  * 
