@@ -1,5 +1,14 @@
-import express from 'express';
-import { getUnapprovedUsers, approveUser } from '../../controllers/admin/approve/approveController.js';
+import express from "express";
+import {
+  getUnapprovedUsers,
+  approveUser,
+} from "../../controllers/admin/approve/approveController.js";
+import {
+  createNewVendor,
+  getAllVendors,
+  patchVendor,
+} from "../../controllers/admin/vendors/adminVendorsController.js";
+import { getallOrders, getSingleOrder } from "../../controllers/admin/Orders/adminOrdersController.js";
 import { addProduct, updateProduct, deleteProduct } from '../../controllers/admin/product/adminProductcontroller.js'
 
 const router = express.Router();
@@ -35,7 +44,7 @@ const router = express.Router();
  *       500:
  *         description: Internal server error
  */
-router.get('/unapproved', getUnapprovedUsers);
+router.get("/unapproved", getUnapprovedUsers);
 
 /**
  * @swagger
@@ -60,7 +69,7 @@ router.get('/unapproved', getUnapprovedUsers);
  *       500:
  *         description: Internal server error
  */
-router.put('/approve/:id', approveUser);
+router.put("/approve/:id", approveUser);
 
 router.post('/product/add', addProduct);
 
@@ -185,5 +194,545 @@ router.patch('/product/:id', updateProduct);
  *         description: Internal server error
  */
 router.delete('/product/:id', deleteProduct);
+/**
+ * @swagger
+ * /admin/vendors:
+ *   get:
+ *     summary: Retrieve a list of all vendors
+ *     tags: [Admin]
+ *     responses:
+ *       200:
+ *         description: A list of vendors
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   Id:
+ *                     type: integer
+ *                     example: 1
+ *                   Name:
+ *                     type: string
+ *                     example: "Vendor Name"
+ *                   Email:
+ *                     type: string
+ *                     example: "vendor@example.com"
+ *                   Description:
+ *                     type: string
+ *                     example: "Vendor Description"
+ *                   AddressId:
+ *                     type: integer
+ *                     example: 1
+ *                   AdminComment:
+ *                     type: string
+ *                     example: "Admin Comment"
+ *                   Active:
+ *                     type: boolean
+ *                     example: true
+ *                   Deleted:
+ *                     type: boolean
+ *                     example: false
+ *                   DisplayOrder:
+ *                     type: integer
+ *                     example: 0
+ *                   MetaKeywords:
+ *                     type: string
+ *                     example: "keywords"
+ *                   MetaDescription:
+ *                     type: string
+ *                     example: "meta description"
+ *                   MetaTitle:
+ *                     type: string
+ *                     example: "meta title"
+ *                   PageSize:
+ *                     type: integer
+ *                     example: 10
+ *                   AllowCustomersToSelectPageSize:
+ *                     type: boolean
+ *                     example: false
+ *                   PageSizeOptions:
+ *                     type: string
+ *                     example: "10,20,50"
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/vendors", getAllVendors);
+
+/**
+ * @swagger
+ * /admin/create-vendors:
+ *   post:
+ *     summary: Create a new vendor
+ *     tags: [Admin]
+ *     requestBody:
+ *       description: Vendor data
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "Vendor Name"
+ *               email:
+ *                 type: string
+ *                 example: "vendor@example.com"
+ *               description:
+ *                 type: string
+ *                 example: "Vendor Description"
+ *               adminComment:
+ *                 type: string
+ *                 example: "Admin Comment"
+ *               active:
+ *                 type: boolean
+ *                 example: true
+ *               displayOrder:
+ *                 type: integer
+ *                 example: 0
+ *               metaKeywords:
+ *                 type: string
+ *                 example: "keywords"
+ *               metaDescription:
+ *                 type: string
+ *                 example: "meta description"
+ *               metaTitle:
+ *                 type: string
+ *                 example: "meta title"
+ *               pageSize:
+ *                 type: integer
+ *                 example: 10
+ *               allowCustomersToSelectPageSize:
+ *                 type: boolean
+ *                 example: false
+ *               pageSizeOptions:
+ *                 type: string
+ *                 example: "10,20,50"
+ *     responses:
+ *       201:
+ *         description: Vendor created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Vendor created successfully."
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     Name:
+ *                       type: string
+ *                       example: "Vendor Name"
+ *                     Email:
+ *                       type: string
+ *                       example: "vendor@example.com"
+ *                     Description:
+ *                       type: string
+ *                       example: "Vendor Description"
+ *                     PictureId:
+ *                       type: integer
+ *                       example: 0
+ *                     AddressId:
+ *                       type: integer
+ *                       example: 0
+ *                     AdminComment:
+ *                       type: string
+ *                       example: "Admin Comment"
+ *                     Active:
+ *                       type: boolean
+ *                       example: true
+ *                     Deleted:
+ *                       type: boolean
+ *                       example: false
+ *                     DisplayOrder:
+ *                       type: integer
+ *                       example: 0
+ *                     MetaKeywords:
+ *                       type: string
+ *                       example: "keywords"
+ *                     MetaDescription:
+ *                       type: string
+ *                       example: "meta description"
+ *                     MetaTitle:
+ *                       type: string
+ *                       example: "meta title"
+ *                     PageSize:
+ *                       type: integer
+ *                       example: 10
+ *                     AllowCustomersToSelectPageSize:
+ *                       type: boolean
+ *                       example: false
+ *                     PageSizeOptions:
+ *                       type: string
+ *                       example: "10,20,50"
+ *       400:
+ *         description: Bad request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Name and Email are required."
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Server error"
+ */
+router.post("/create-vendors", createNewVendor);
+
+/**
+ * @swagger
+ * /admin/editvendor/{id}:
+ *   patch:
+ *     summary: Update a vendor by ID
+ *     tags: [Admin]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The vendor ID
+ *     requestBody:
+ *       description: Vendor data to update
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "Updated Vendor Name"
+ *               email:
+ *                 type: string
+ *                 example: "updatedvendor@example.com"
+ *               description:
+ *                 type: string
+ *                 example: "Updated Vendor Description"
+ *               adminComment:
+ *                 type: string
+ *                 example: "Updated Admin Comment"
+ *               active:
+ *                 type: boolean
+ *                 example: true
+ *               displayOrder:
+ *                 type: integer
+ *                 example: 1
+ *               metaKeywords:
+ *                 type: string
+ *                 example: "updated keywords"
+ *               metaDescription:
+ *                 type: string
+ *                 example: "updated meta description"
+ *               metaTitle:
+ *                 type: string
+ *                 example: "updated meta title"
+ *               pageSize:
+ *                 type: integer
+ *                 example: 20
+ *               allowCustomersToSelectPageSize:
+ *                 type: boolean
+ *                 example: true
+ *               pageSizeOptions:
+ *                 type: string
+ *                 example: "20,40,60"
+ *     responses:
+ *       200:
+ *         description: Vendor updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Vendor updated successfully."
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     Name:
+ *                       type: string
+ *                       example: "Updated Vendor Name"
+ *                     Email:
+ *                       type: string
+ *                       example: "updatedvendor@example.com"
+ *                     Description:
+ *                       type: string
+ *                       example: "Updated Vendor Description"
+ *                     PictureId:
+ *                       type: integer
+ *                       example: 0
+ *                     AddressId:
+ *                       type: integer
+ *                       example: 0
+ *                     AdminComment:
+ *                       type: string
+ *                       example: "Updated Admin Comment"
+ *                     Active:
+ *                       type: boolean
+ *                       example: true
+ *                     Deleted:
+ *                       type: boolean
+ *                       example: false
+ *                     DisplayOrder:
+ *                       type: integer
+ *                       example: 1
+ *                     MetaKeywords:
+ *                       type: string
+ *                       example: "updated keywords"
+ *                     MetaDescription:
+ *                       type: string
+ *                       example: "updated meta description"
+ *                     MetaTitle:
+ *                       type: string
+ *                       example: "updated meta title"
+ *                     PageSize:
+ *                       type: integer
+ *                       example: 20
+ *                     AllowCustomersToSelectPageSize:
+ *                       type: boolean
+ *                       example: true
+ *                     PageSizeOptions:
+ *                       type: string
+ *                       example: "20,40,60"
+ *       400:
+ *         description: Bad request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid vendor ID."
+ *       404:
+ *         description: Vendor not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Vendor not found."
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Server error"
+ */
+router.patch("/editvendor/:id", patchVendor);
+
+
+/**
+ * @swagger
+ * /all-orders:
+ *   get:
+ *     summary: Retrieve a list of all orders
+ *     description: Retrieve a list of all orders with their details.
+ *     responses:
+ *       200:
+ *         description: A list of orders.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   Id:
+ *                     type: integer
+ *                     description: The order ID.
+ *                     example: 1
+ *                   OrderGuid:
+ *                     type: string
+ *                     description: The order GUID.
+ *                     example: "123e4567-e89b-12d3-a456-426614174000"
+ *                   CustomerId:
+ *                     type: integer
+ *                     description: The customer ID.
+ *                     example: 1
+ *                   OrderStatusId:
+ *                     type: integer
+ *                     description: The order status ID.
+ *                     example: 1
+ *                   OrderTotal:
+ *                     type: number
+ *                     description: The total amount of the order.
+ *                     example: 100.50
+ *                   CreatedonUtc:
+ *                     type: string
+ *                     format: date-time
+ *                     description: The date and time when the order was created.
+ *                     example: "2023-10-01T12:00:00Z"
+ */
+router.get("/all-orders", getallOrders);
+
+/**
+ * @swagger
+ * /single-order/{id}:
+ *   get:
+ *     summary: Retrieve a single order by ID
+ *     description: Retrieve the details of a single order by its ID.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The order ID.
+ *     responses:
+ *       200:
+ *         description: The details of the order.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 Id:
+ *                   type: integer
+ *                   description: The order ID.
+ *                   example: 1
+ *                 OrderGuid:
+ *                   type: string
+ *                   description: The order GUID.
+ *                   example: "123e4567-e89b-12d3-a456-426614174000"
+ *                 CustomerId:
+ *                   type: integer
+ *                   description: The customer ID.
+ *                   example: 1
+ *                 OrderStatusId:
+ *                   type: integer
+ *                   description: The order status ID.
+ *                   example: 1
+ *                 OrderTotal:
+ *                   type: number
+ *                   description: The total amount of the order.
+ *                   example: 100.50
+ *                 CreatedonUtc:
+ *                   type: string
+ *                   format: date-time
+ *                   description: The date and time when the order was created.
+ *                   example: "2023-10-01T12:00:00Z"
+ *                 items:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       OrderItemGuid:
+ *                         type: string
+ *                         description: The order item GUID.
+ *                         example: "123e4567-e89b-12d3-a456-426614174001"
+ *                       ProductId:
+ *                         type: integer
+ *                         description: The product ID.
+ *                         example: 1
+ *                       Quantity:
+ *                         type: integer
+ *                         description: The quantity of the product.
+ *                         example: 2
+ *                       UnitPriceInclTax:
+ *                         type: number
+ *                         description: The unit price including tax.
+ *                         example: 50.25
+ *                       UnitPriceExclTax:
+ *                         type: number
+ *                         description: The unit price excluding tax.
+ *                         example: 45.00
+ *                       PriceInclTax:
+ *                         type: number
+ *                         description: The total price including tax.
+ *                         example: 100.50
+ *                       PriceExclTax:
+ *                         type: number
+ *                         description: The total price excluding tax.
+ *                         example: 90.00
+ *                       DiscountAmountInclTax:
+ *                         type: number
+ *                         description: The discount amount including tax.
+ *                         example: 10.00
+ *                       DiscountAmountExclTax:
+ *                         type: number
+ *                         description: The discount amount excluding tax.
+ *                         example: 9.00
+ *                       OriginalProductCost:
+ *                         type: number
+ *                         description: The original cost of the product.
+ *                         example: 40.00
+ *                       AttributeDescription:
+ *                         type: string
+ *                         description: The description of the product attributes.
+ *                         example: "Color: Red, Size: M"
+ *                       AttributesXml:
+ *                         type: string
+ *                         description: The XML representation of the product attributes.
+ *                         example: "<attributes><color>Red</color><size>M</size></attributes>"
+ *                       DownloadCount:
+ *                         type: integer
+ *                         description: The number of times the product has been downloaded.
+ *                         example: 0
+ *                       IsDownloadActivated:
+ *                         type: boolean
+ *                         description: Whether the download is activated.
+ *                         example: false
+ *                       LicenseDownloadId:
+ *                         type: integer
+ *                         description: The license download ID.
+ *                         example: 0
+ *                       ItemWeight:
+ *                         type: number
+ *                         description: The weight of the item.
+ *                         example: 1.5
+ *                       RentalStartDateUtc:
+ *                         type: string
+ *                         format: date-time
+ *                         description: The rental start date and time.
+ *                         example: "2023-10-01T12:00:00Z"
+ *                       RentalEndDateUtc:
+ *                         type: string
+ *                         format: date-time
+ *                         description: The rental end date and time.
+ *                         example: "2023-10-10T12:00:00Z"
+ */
+router.get("/single-order/:id", getSingleOrder);
 
 export default router;
