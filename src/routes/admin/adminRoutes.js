@@ -10,7 +10,7 @@ import {
 } from "../../controllers/admin/vendors/adminVendorsController.js";
 import { getallOrders, getSingleOrder } from "../../controllers/admin/Orders/adminOrdersController.js";
 import { addProduct, updateProduct, deleteProduct } from '../../controllers/admin/product/adminProductcontroller.js'
-import { getAllCustomersWithRoles } from "../../controllers/admin/customer/adminCustomerController.js"
+import { getAllCustomersWithRoles, updateCustomerRolesAndStatus } from "../../controllers/admin/customer/adminCustomerController.js"
 
 
 const router = express.Router();
@@ -737,6 +737,105 @@ router.get("/all-orders", getallOrders);
  */
 router.get("/single-order/:id", getSingleOrder);
 
-router.get('/customer/all', getAllCustomersWithRoles)
+/**
+ * @swagger
+ * /admin/customer/all:
+ *   get:
+ *     summary: Retrieve a list of all customers along with their roles and other details.
+ *     tags: [Admin]
+ *     responses:
+ *       200:
+ *         description: A list of customers with their roles and other details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                     example: 1
+ *                   firstName:
+ *                     type: string
+ *                     example: John
+ *                   lastName:
+ *                     type: string
+ *                     example: Doe
+ *                   company:
+ *                     type: string
+ *                     example: ACME Corp
+ *                   active:
+ *                     type: boolean
+ *                     example: true
+ *                   roles:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                     example: ["Customer", "VIP"]
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/customer/all', getAllCustomersWithRoles);
+
+/**
+ * @swagger
+ * /admin/customer/{id}:
+ *   patch:
+ *     summary: Update customer roles and active status
+ *     tags: [Admin]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The customer ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               roles:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 description: Array of role IDs to assign to the customer
+ *               removeRoles:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 description: Array of role IDs to remove from the customer
+ *               active:
+ *                 type: boolean
+ *                 description: Customer's active status
+ *             example:
+ *               roles: [1, 2]
+ *               removeRoles: [3]
+ *               active: true
+ *     responses:
+ *       200:
+ *         description: Customer updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Customer updated successfully"
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: Customer not found
+ *       500:
+ *         description: Internal server error
+ */
+router.patch("/customer/:id", updateCustomerRolesAndStatus);
 
 export default router;
