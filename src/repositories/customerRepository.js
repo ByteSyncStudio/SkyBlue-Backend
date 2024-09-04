@@ -27,6 +27,7 @@ export async function GetUserInfo(user) {
             "Address.StateProvinceId",
             "StateProvince.Name as StateProvinceName",
             "Address.PhoneNumber",
+            "Address.Email",
         ])
         .where("Address.Email", user.email);
 }
