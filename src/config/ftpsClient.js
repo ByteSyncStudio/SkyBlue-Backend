@@ -75,7 +75,9 @@ async function processQueue() {
         const { localPath, remotePath } = uploadQueue.shift();
         try {
             await uploadFile(localPath, remotePath);
+            console.log(`Attempting to delete file: ${localPath}`);
             await fs.unlink(localPath);
+            console.log(`File deleted: ${localPath}`);
         } catch (error) {
             console.error('Error processing upload:', error);
             // Optionally, you could implement a "dead letter queue" here
