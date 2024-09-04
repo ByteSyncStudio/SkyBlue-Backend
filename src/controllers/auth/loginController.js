@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import jsonwebtoken from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_EXPIRATION = '24h';
+const JWT_EXPIRATION = '100h';
 
 
 export const login = async (req, res, next) => {
