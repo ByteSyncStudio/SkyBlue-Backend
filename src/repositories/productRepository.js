@@ -3,14 +3,18 @@ import cache from '../config/cache.js'
 import { generateImageUrl2 } from '../utils/imageUtils.js';
 
 
-// Hardcoded Specific Categories as per requirements
 function getSpecificCategories() {
-    return ['Beverages', 'Candy', 'Essentials', 'Snacks'];
+    return new Map([
+        [36, 'Candies'],
+        [111, 'Snacks'],
+        [189, 'Beverages']
+    ]);
 }
 
-// Hardcoded name for miscellaneous items
 function getMiscellaneousName() {
-    return 'All Items';
+    return new Map([
+        [-1, 'All Items']
+    ]);
 }
 
 async function getTierPrices(productIds, userRoles) {
@@ -53,6 +57,7 @@ async function getTierPrices(productIds, userRoles) {
  */
 async function listCategory() {
     const specificCategories = getSpecificCategories();
+    const miscCategory = getMiscellaneousName();
     try {
         const cacheKey = 'categories';
         const cachedCategories = cache.get(cacheKey);
@@ -63,12 +68,12 @@ async function listCategory() {
 
         const categories = await knex('Category')
             .select(['Id', 'Name'])
-            .whereIn('Name', specificCategories)
+            .whereIn('Id', Array.from(specificCategories.keys()))
             .orderBy('Id');
 
 
         // Add 'All Items' where we dont want to specifically categorize
-        categories.push({ Id: -1, Name: getMiscellaneousName() })
+        categories.push({ Id: -1, Name: miscCategory.get(-1) });
 
         cache.set(cacheKey, categories);
         return categories;
@@ -152,6 +157,13 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user) {
     try {
         const offset = (page - 1) * size;
 
+        let categoryName = "";
+        if (categoryId === -1) {
+            categoryName = getMiscellaneousName().get(-1) || "";
+        } else {
+            categoryName = getSpecificCategories().get(categoryId) || "";
+        }
+
         if (categoryId === -1) {
             categoryId = 0;
         }
@@ -193,7 +205,6 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user) {
         `, [offset, size]);
 
         const products = await query;
-        console.log('Total: ' + products.length)
 
         const productIds = products.filter(p => p.HasTierPrices).map(p => p.Id);
         const tierPrices = await getTierPrices(productIds, user.roles);
@@ -220,7 +231,6 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user) {
         });
 
         const totalProducts = processedProducts.length > 0 ? processedProducts[0].total_count : 0;
-        const categoryName = products.length > 0 ? products[0].CategoryName : getMiscellaneousName();
 
         console.log('No. :' + processedProducts.length)
         const response = {
