@@ -33,6 +33,10 @@ export async function GetAllCustomersWithRoles(page = 1, pageSize = 25, email = 
             customerQuery = customerQuery.andWhere('Address.PhoneNumber', 'like', `%${phoneNumber}%`);
         }
 
+        // Get total count of customers
+        const totalCustomers = await customerQuery.clone().countDistinct('Customer.Id as count').first();
+        const totalPages = Math.ceil(totalCustomers.count / pageSize);
+
         const customers = await customerQuery
             .select(
                 'Customer.Id',
@@ -77,7 +81,12 @@ export async function GetAllCustomersWithRoles(page = 1, pageSize = 25, email = 
                 }))
         }));
 
-        return customersWithRoles;
+        return {
+            totalCustomers: totalCustomers.count,
+            totalPages: totalPages,
+            pageNumber: parseInt(page),
+            data: customersWithRoles,
+        };
     } catch (error) {
         console.error(error);
         error.statusCode = 500;
