@@ -10,7 +10,7 @@ import {
 } from "../../controllers/admin/vendors/adminVendorsController.js";
 import { getallOrders, getSingleOrder } from "../../controllers/admin/Orders/adminOrdersController.js";
 import { addProduct, updateProduct, deleteProduct } from '../../controllers/admin/product/adminProductcontroller.js'
-import { getAllCustomersWithRoles, updateCustomerRolesAndStatus } from "../../controllers/admin/customer/adminCustomerController.js"
+import { getAllCustomersWithRoles, getCustomerRoles, updateCustomerRolesAndStatus } from "../../controllers/admin/customer/adminCustomerController.js"
 
 
 const router = express.Router();
@@ -837,5 +837,7 @@ router.get('/customer/all', getAllCustomersWithRoles);
  *         description: Internal server error
  */
 router.patch("/customer/:id", updateCustomerRolesAndStatus);
+
+router.get("/customer/roles", getCustomerRoles);
 
 export default router;

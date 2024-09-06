@@ -1,4 +1,4 @@
-import { GetAllCustomersWithRoles, UpdateCustomerRolesAndStatus } from "../../../repositories/admin/customer/adminCustomerRepository.js";
+import { GetAllCustomersWithRoles, GetCustomerRoles, UpdateCustomerRolesAndStatus } from "../../../repositories/admin/customer/adminCustomerRepository.js";
 
 export async function getAllCustomersWithRoles(req, res) {
     try {
@@ -28,6 +28,17 @@ export async function updateCustomerRolesAndStatus(req, res) {
         }
     } catch (error) {
         console.error("Error updating customer:", error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Server error'
+        });
+    }
+}
+export async function getCustomerRoles(req, res) {
+    try {
+        const result = await GetCustomerRoles();
+        res.status(200).send(result)
+    } catch (error) {
         res.status(500).json({
             success: false,
             message: error.message || 'Server error'

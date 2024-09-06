@@ -140,3 +140,18 @@ export async function UpdateCustomerRolesAndStatus(customerId, rolesToAdd, roles
         throw error;
     }
 }
+
+export async function GetCustomerRoles() {
+    try {
+        return await knex('CustomerRole')
+        .select([
+            'Id',
+            'Name'
+        ])
+    } catch (error) {
+        console.error(error);
+        error.statusCode = 500;
+        error.message = 'Error getting roles.';
+        throw error;
+    }
+}
