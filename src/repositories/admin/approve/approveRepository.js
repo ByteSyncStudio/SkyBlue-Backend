@@ -28,11 +28,10 @@ export async function listUnapprovedUsers() {
                 .map(doc => `https://skybluewholesale.com/content/images/ForApproval/${doc.Value}`);
             return {
                 ...address,
+                Id: customer.Id,
                 Documents: customerDocuments
             };
         });
-
-        console.log(addressesWithDocuments);
 
         return addressesWithDocuments;
     } catch (error) {
