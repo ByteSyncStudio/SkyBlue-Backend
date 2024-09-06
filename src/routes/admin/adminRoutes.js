@@ -8,11 +8,27 @@ import {
   getAllVendors,
   patchVendor,
 } from "../../controllers/admin/vendors/adminVendorsController.js";
-import { getallOrders, getSingleOrder } from "../../controllers/admin/Orders/adminOrdersController.js";
-import { addProduct, updateProduct, deleteProduct } from '../../controllers/admin/product/adminProductcontroller.js'
-import { getAllCustomersWithRoles, getCustomerRoles, updateCustomerRolesAndStatus } from "../../controllers/admin/customer/adminCustomerController.js"
-import { getBestSellers } from "../../controllers/admin/product/adminProductcontroller.js"
-
+import {
+  getallOrders,
+  getSingleOrder,
+} from "../../controllers/admin/Orders/adminOrdersController.js";
+import {
+  addProduct,
+  updateProduct,
+  deleteProduct,
+} from "../../controllers/admin/product/adminProductcontroller.js";
+import {
+  getAllCustomersWithRoles,
+  getCustomerRoles,
+  updateCustomerRolesAndStatus,
+} from "../../controllers/admin/customer/adminCustomerController.js";
+import { getBestSellers } from "../../controllers/admin/product/adminProductcontroller.js";
+import {
+  deleteDiscounts,
+  getAllDiscounts,
+  getSubCategoryDiscounts,
+  postDiscounts,
+} from "../../controllers/admin/discount/adminDiscountController.js";
 
 const router = express.Router();
 
@@ -74,7 +90,7 @@ router.get("/unapproved", getUnapprovedUsers);
  */
 router.put("/approve/:id", approveUser);
 
-router.post('/product/add', addProduct);
+router.post("/product/add", addProduct);
 
 /**
  * @swagger
@@ -173,7 +189,7 @@ router.post('/product/add', addProduct);
  *       500:
  *         description: Internal server error
  */
-router.patch('/product/:id', updateProduct);
+router.patch("/product/:id", updateProduct);
 
 /**
  * @swagger
@@ -196,7 +212,7 @@ router.patch('/product/:id', updateProduct);
  *       500:
  *         description: Internal server error
  */
-router.delete('/product/:id', deleteProduct);
+router.delete("/product/:id", deleteProduct);
 /**
  * @swagger
  * /admin/vendors:
@@ -565,7 +581,6 @@ router.post("/create-vendors", createNewVendor);
  */
 router.patch("/editvendor/:id", patchVendor);
 
-
 /**
  * @swagger
  * /all-orders:
@@ -777,7 +792,7 @@ router.get("/single-order/:id", getSingleOrder);
  *       500:
  *         description: Internal server error
  */
-router.get('/customer/all', getAllCustomersWithRoles);
+router.get("/customer/all", getAllCustomersWithRoles);
 
 /**
  * @swagger
@@ -841,6 +856,132 @@ router.patch("/customer/:id", updateCustomerRolesAndStatus);
 
 router.get("/customer/roles", getCustomerRoles);
 
-router.get('/bestseller', getBestSellers);
+router.get("/bestseller", getBestSellers);
+
+/**
+ * @swagger
+ * /alldiscounts:
+ *   get:
+ *     summary: Retrieve all discounts
+ *     description: Retrieve a list of all discounts.
+ *     responses:
+ *       200:
+ *         description: A list of discounts.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                     description: The discount ID.
+ *                     example: 1
+ *                   name:
+ *                     type: string
+ *                     description: The discount name.
+ *                     example: "Summer Sale"
+ */
+router.get("/alldiscounts", getAllDiscounts);
+
+/**
+ * @swagger
+ * /discount/subcategories:
+ *   get:
+ *     summary: Retrieve discounts for subcategories
+ *     description: Retrieve a list of discounts applicable to subcategories.
+ *     responses:
+ *       200:
+ *         description: A list of subcategory discounts.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                     description: The discount ID.
+ *                     example: 1
+ *                   subcategoryId:
+ *                     type: integer
+ *                     description: The subcategory ID.
+ *                     example: 10
+ *                   discountPercentage:
+ *                     type: number
+ *                     format: float
+ *                     description: The discount percentage.
+ *                     example: 15.5
+ */
+router.get("/discount/subcategories", getSubCategoryDiscounts);
+
+/**
+ * @swagger
+ * /post-discounts:
+ *   post:
+ *     summary: Create a new discount
+ *     description: Create a new discount with the provided details.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: The discount name.
+ *                 example: "Winter Sale"
+ *               discountPercentage:
+ *                 type: number
+ *                 format: float
+ *                 description: The discount percentage.
+ *                 example: 20.0
+ *     responses:
+ *       201:
+ *         description: Discount created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                   description: The discount ID.
+ *                   example: 1
+ *                 name:
+ *                   type: string
+ *                   description: The discount name.
+ *                   example: "Winter Sale"
+ *                 discountPercentage:
+ *                   type: number
+ *                   format: float
+ *                   description: The discount percentage.
+ *                   example: 20.0
+ */
+router.post("/post-discounts", postDiscounts);
+
+/**
+ * @swagger
+ * /delete-discount/{id}:
+ *   delete:
+ *     summary: Delete a discount
+ *     description: Delete a discount by its ID.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The discount ID.
+ *     responses:
+ *       200:
+ *         description: Discount deleted successfully.
+ *       404:
+ *         description: Discount not found.
+ */
+router.delete("/delete-discount/:id", deleteDiscounts);
 
 export default router;
