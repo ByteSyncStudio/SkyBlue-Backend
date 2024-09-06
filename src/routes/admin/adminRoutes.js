@@ -11,6 +11,7 @@ import {
 import { getallOrders, getSingleOrder } from "../../controllers/admin/Orders/adminOrdersController.js";
 import { addProduct, updateProduct, deleteProduct } from '../../controllers/admin/product/adminProductcontroller.js'
 import { getAllCustomersWithRoles, getCustomerRoles, updateCustomerRolesAndStatus } from "../../controllers/admin/customer/adminCustomerController.js"
+import { getBestSellers } from "../../controllers/productController.js"
 
 
 const router = express.Router();
@@ -839,5 +840,7 @@ router.get('/customer/all', getAllCustomersWithRoles);
 router.patch("/customer/:id", updateCustomerRolesAndStatus);
 
 router.get("/customer/roles", getCustomerRoles);
+
+router.get('/bestseller', getBestSellers);
 
 export default router;
