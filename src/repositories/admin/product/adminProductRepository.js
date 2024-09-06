@@ -1,4 +1,5 @@
 import knex from '../../../config/knex.js'
+import { generateImageUrl2 } from '../../../utils/imageUtils.js';
 
 export async function AddProduct(product, trx) {
     try {
@@ -309,4 +310,82 @@ export async function DeleteProduct(productId) {
         await trx('Product').where('Id', productId).update({ Deleted: 1 });
         // You might want to handle related data (e.g., pictures, tier prices) here
     });
+}
+
+/**
+* * Retrieves a list of best-selling products sorted by a specified criterion.*
+* **
+* * @param {string} sortBy - The criterion to sort by ('quantity' or 'amount').*
+* * @param {number} size - The number of items to retrieve.*
+* * @returns {Promise<Array>} A promise that resolves to an array of best-selling product objects.*
+**/
+export async function listBestsellers(sortBy, size, user) {
+    try {
+        const orderColumn = sortBy === 'quantity' ? 'TotalQuantity' : 'TotalAmount';
+        
+        const query = knex.raw(`
+            WITH TopProducts AS (
+                SELECT 
+                    oi.ProductId,
+                    SUM(oi.Quantity) as TotalQuantity,
+                    SUM(oi.PriceExclTax) as TotalAmount,
+                    ROW_NUMBER() OVER (ORDER BY SUM(CASE WHEN ? = 'quantity' THEN oi.Quantity ELSE oi.PriceExclTax END) DESC) as RowNum
+                FROM OrderItem oi
+                JOIN Product p ON oi.ProductId = p.Id
+                WHERE p.Published = 1 AND p.Deleted = 0
+                GROUP BY oi.ProductId
+            )
+            SELECT 
+                p.Id,
+                p.Name,
+                p.HasTierPrices,
+                p.Price,
+                p.FullDescription,
+                p.ShortDescription,
+                p.OrderMinimumQuantity,
+                p.OrderMaximumQuantity,
+                p.StockQuantity,
+                ppm.PictureId,
+                pic.MimeType,
+                pic.SeoFilename,
+                tp.TotalQuantity,
+                tp.TotalAmount
+            FROM TopProducts tp
+            JOIN Product p ON tp.ProductId = p.Id
+            LEFT JOIN Product_Picture_Mapping ppm ON p.Id = ppm.ProductId
+            LEFT JOIN Picture pic ON ppm.PictureId = pic.Id
+            WHERE tp.RowNum <= ?
+            ORDER BY tp.RowNum
+        `, [sortBy, size]);
+
+        const products = await query;
+        const productIds = products.filter(p => p.HasTierPrices).map(p => p.Id);
+
+        const processedProducts = products.map(product => {
+            const imageUrl = product.PictureId
+                ? generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename)
+                : null;
+            const price = product.Price;
+            return {
+                Id: product.Id,
+                Name: product.Name,
+                Price: price,
+                FullDescription: product.FullDescription,
+                ShortDescription: product.ShortDescription,
+                OrderMinimumQuantity: product.OrderMinimumQuantity,
+                OrderMaximumQuantity: product.OrderMaximumQuantity,
+                Stock: product.StockQuantity,
+                Images: [imageUrl],
+                Quantity: product.TotalQuantity,
+                Amount: product.TotalAmount
+            };
+        });
+
+        return processedProducts;
+    } catch (error) {
+        console.error('Error in listBestsellers:', error);
+        error.statusCode = 500;
+        error.message = "Error in BestSellers";
+        throw error;
+    }
 }

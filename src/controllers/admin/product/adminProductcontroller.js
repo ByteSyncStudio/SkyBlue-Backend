@@ -1,5 +1,5 @@
 import knex from "../../../config/knex.js";
-import { AddProduct, MapToCategory, AddTierPrices, AddPicture, MapProductToPicture, UpdateProduct, UpdateCategoryMapping, UpdateProductPictures, UpdateTierPrices, DeleteProduct, DeleteProductPictures } from "../../../repositories/admin/product/adminProductRepository.js";
+import { AddProduct, MapToCategory, AddTierPrices, AddPicture, MapProductToPicture, UpdateProduct, UpdateCategoryMapping, UpdateProductPictures, UpdateTierPrices, DeleteProduct, DeleteProductPictures, listBestsellers } from "../../../repositories/admin/product/adminProductRepository.js";
 import multer from 'multer';
 import { queueFileUpload } from '../../../config/ftpsClient.js';
 
@@ -216,3 +216,15 @@ export const deleteProduct = async (req, res) => {
         res.status(error.statusCode || 500).send(error.message || 'Server error');
     }
 };
+
+export async function getBestSellers(req, res) {
+    try {
+        const sortBy = req.query.sortBy || 'quantity';
+        const size = req.query.size || 5;
+        const products = await listBestsellers(sortBy, size, req.user);
+        res.status(200).send(products)
+    } catch (error) {
+        console.error(error);
+        res.status(error.statusCode || 500).send(error.message || 'Server error');
+    }
+}
