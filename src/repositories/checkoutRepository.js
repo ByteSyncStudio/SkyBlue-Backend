@@ -19,7 +19,7 @@ async function createCheckoutOrder(
     knex("Customer_CustomerRole_Mapping")
       .where({ Customer_Id: customerId })
       .pluck("CustomerRole_Id"),
-    knex("Discount").where({ Id: 12 }).select("DiscountAmount").first(),
+    knex("Discount").where({ DiscountTypeId: 1 }).select("DiscountAmount").first(),
   ]);
 
   if (!customer) throw new Error("Customer not found.");
@@ -34,6 +34,7 @@ async function createCheckoutOrder(
         "Product.Id as ProductId",
         "ShoppingCartItem.ShoppingCartTypeId"
       );
+      //.join to category map wrt Pid, go discount table whawtver discountTypeId 5 put that disocunt
 
     if (cartItems.length === 0) throw new Error("No items in cart.");
 
