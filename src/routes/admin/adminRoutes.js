@@ -736,12 +736,130 @@ router.get("/all-orders", getallOrders);
  */
 router.get("/single-order/:id", getSingleOrder);
 
+/**
+ * @swagger
+ * /alldiscounts:
+ *   get:
+ *     summary: Retrieve all discounts
+ *     description: Retrieve a list of all discounts.
+ *     responses:
+ *       200:
+ *         description: A list of discounts.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                     description: The discount ID.
+ *                     example: 1
+ *                   name:
+ *                     type: string
+ *                     description: The discount name.
+ *                     example: "Summer Sale"
+ */
 router.get('/alldiscounts', getAllDiscounts)
 
+/**
+ * @swagger
+ * /discount/subcategories:
+ *   get:
+ *     summary: Retrieve discounts for subcategories
+ *     description: Retrieve a list of discounts applicable to subcategories.
+ *     responses:
+ *       200:
+ *         description: A list of subcategory discounts.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                     description: The discount ID.
+ *                     example: 1
+ *                   subcategoryId:
+ *                     type: integer
+ *                     description: The subcategory ID.
+ *                     example: 10
+ *                   discountPercentage:
+ *                     type: number
+ *                     format: float
+ *                     description: The discount percentage.
+ *                     example: 15.5
+ */
 router.get('/discount/subcategories', getSubCategoryDiscounts)
 
+/**
+ * @swagger
+ * /post-discounts:
+ *   post:
+ *     summary: Create a new discount
+ *     description: Create a new discount with the provided details.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: The discount name.
+ *                 example: "Winter Sale"
+ *               discountPercentage:
+ *                 type: number
+ *                 format: float
+ *                 description: The discount percentage.
+ *                 example: 20.0
+ *     responses:
+ *       201:
+ *         description: Discount created successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                   description: The discount ID.
+ *                   example: 1
+ *                 name:
+ *                   type: string
+ *                   description: The discount name.
+ *                   example: "Winter Sale"
+ *                 discountPercentage:
+ *                   type: number
+ *                   format: float
+ *                   description: The discount percentage.
+ *                   example: 20.0
+ */
 router.post('/post-discounts', postDiscounts)
 
+/**
+ * @swagger
+ * /delete-discount/{id}:
+ *   delete:
+ *     summary: Delete a discount
+ *     description: Delete a discount by its ID.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The discount ID.
+ *     responses:
+ *       200:
+ *         description: Discount deleted successfully.
+ *       404:
+ *         description: Discount not found.
+ */
 router.delete('/delete-discount/:id', deleteDiscounts)
 
 export default router;

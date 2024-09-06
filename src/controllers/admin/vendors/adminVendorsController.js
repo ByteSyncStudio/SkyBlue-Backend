@@ -1,5 +1,18 @@
-import { createVendor, listVendors, updateVendor } from "../../../repositories/admin/vendor/vendorsRepository.js";
+import {
+  createVendor,
+  getVendorById,
+  listVendors,
+  updateVendor,
+} from "../../../repositories/admin/vendor/vendorsRepository.js";
 
+// Helper function to determine page size options
+const getPageSizeOptions = (pageSize) => {
+  if (pageSize === 6) return "6,3,9";
+  if (pageSize === 24) return "24,48,72,96";
+  return "6,3,9"; // Default fallback option
+};
+
+// Get all vendors
 export const getAllVendors = async (req, res) => {
   try {
     const vendors = await listVendors();
@@ -11,10 +24,11 @@ export const getAllVendors = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in getAllVendors API:", error);
-    res.status(error.statusCode || 500).send(error.message || "Server error");
+    res.status(500).send("Server error");
   }
 };
 
+// Create a new vendor
 export const createNewVendor = async (req, res) => {
   try {
     const {
@@ -35,19 +49,9 @@ export const createNewVendor = async (req, res) => {
       return res.status(400).json({ success: false, message: "Name and Email are required." });
     }
 
-    // Set pageSizeOptions based on the provided or default pageSize
-    let finalPageSizeOptions;
-    if (pageSize === 6) {
-      finalPageSizeOptions = "6,3,9";
-    } else if (pageSize === 24) {
-      finalPageSizeOptions = "24,48,72,96";
-    } else {
-      finalPageSizeOptions = "6,3,9"; // Default to "6,3,9" for any other value
-    }
-
     // Create a vendor with the necessary fields and default values
     const vendorData = {
-      Name: name,
+      Name: name.trim(),
       Email: email.trim(),
       Description: description ? description.trim() : null,
       PictureId: 0,
@@ -61,7 +65,7 @@ export const createNewVendor = async (req, res) => {
       MetaTitle: metaTitle ? metaTitle.trim() : null,
       PageSize: pageSize,
       AllowCustomersToSelectPageSize: true, // Always set to true
-      PageSizeOptions: finalPageSizeOptions,
+      PageSizeOptions: getPageSizeOptions(pageSize),
     };
 
     await createVendor(vendorData);
@@ -69,11 +73,11 @@ export const createNewVendor = async (req, res) => {
     res.status(201).json({ success: true, message: "Vendor created successfully.", data: vendorData });
   } catch (error) {
     console.error("Error in createNewVendor API:", error);
-    res.status(error.statusCode || 500).json({ success: false, message: error.message || "Server error" });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-
+// Update an existing vendor
 export const patchVendor = async (req, res) => {
   try {
     const { id } = req.params;
@@ -89,12 +93,18 @@ export const patchVendor = async (req, res) => {
       metaTitle,
       pageSize,
       pageSizeOptions,
-      deleteVendor, // New field to trigger vendor deletion
+      deleteVendor, // Field to trigger vendor deletion
     } = req.body;
 
     // Ensure the vendor ID is provided
     if (!id) {
       return res.status(400).json({ success: false, message: "Vendor ID is required." });
+    }
+
+    // Fetch the existing vendor data
+    const existingVendor = await getVendorById(id);
+    if (!existingVendor) {
+      return res.status(404).json({ success: false, message: "Vendor not found." });
     }
 
     // If deleteVendor is true, mark the vendor as deleted
@@ -103,43 +113,34 @@ export const patchVendor = async (req, res) => {
       return res.status(200).json({ success: true, message: "Vendor deleted successfully." });
     }
 
-    // Set default values and conditions for pageSize and pageSizeOptions
-    let finalPageSize = pageSize ?? 6;
-    let finalPageSizeOptions;
-
-    if (finalPageSize === 6) {
-      finalPageSizeOptions = "6,3,9";
-    } else if (finalPageSize === 24) {
-      finalPageSizeOptions = "24,48,72,96";
-    } else {
-      finalPageSizeOptions = "6,3,9"; // Default fallback option
+    // If deleteVendor is false and the vendor is currently marked as deleted, mark it as not deleted
+    if (!deleteVendor && existingVendor.Deleted) {
+      await updateVendor(id, { Deleted: 0 });
+      return res.status(200).json({ success: true, message: "Vendor restored successfully." });
     }
 
-    // AllowCustomersToSelectPageSize should always be true
-    const finalAllowCustomersToSelectPageSize = true;
-
-    // Create a vendor object with the fields to update, setting missing values to null
-    const vendorData = {
-      Name: name ? name.trim() : null,
-      Email: email ? email.trim() : null,
-      Description: description ? description.trim() : null,
-      AdminComment: adminComment ? adminComment.trim() : null,
-      Active: active ?? null,
-      DisplayOrder: 0,
-      MetaKeywords: metaKeywords ? metaKeywords.trim() : null,
-      MetaDescription: metaDescription ? metaDescription.trim() : null,
-      MetaTitle: metaTitle ? metaTitle.trim() : null,
-      PageSize: finalPageSize,
-      AllowCustomersToSelectPageSize: finalAllowCustomersToSelectPageSize,
-      PageSizeOptions: finalPageSizeOptions,
+    // Prepare the updated fields
+    const updatedFields = {
+      Name: name ? name.trim() : existingVendor.Name,
+      Email: email ? email.trim() : existingVendor.Email,
+      Description: description ? description.trim() : existingVendor.Description,
+      AdminComment: adminComment ? adminComment.trim() : existingVendor.AdminComment,
+      Active: active ?? existingVendor.Active,
+      DisplayOrder: displayOrder ?? existingVendor.DisplayOrder,
+      MetaKeywords: metaKeywords ? metaKeywords.trim() : existingVendor.MetaKeywords,
+      MetaDescription: metaDescription ? metaDescription.trim() : existingVendor.MetaDescription,
+      MetaTitle: metaTitle ? metaTitle.trim() : existingVendor.MetaTitle,
+      PageSize: pageSize ?? existingVendor.PageSize,
+      PageSizeOptions: pageSizeOptions ?? getPageSizeOptions(pageSize ?? existingVendor.PageSize),
+      AllowCustomersToSelectPageSize: true, // Always set to true
     };
 
     // Update the vendor in the database
-    await updateVendor(id, vendorData);
+    await updateVendor(id, updatedFields);
 
-    res.status(200).json({ success: true, message: "Vendor updated successfully.", data: vendorData });
+    res.status(200).json({ success: true, message: "Vendor updated successfully.", data: updatedFields });
   } catch (error) {
     console.error("Error in patchVendor API:", error);
-    res.status(error.statusCode || 500).json({ success: false, message: error.message || "Server error" });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
