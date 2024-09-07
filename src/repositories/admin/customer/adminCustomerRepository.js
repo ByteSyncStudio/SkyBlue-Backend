@@ -18,7 +18,8 @@ export async function GetAllCustomersWithRoles(page = 1, pageSize = 25, email = 
                 this.on('Address.Email', '=', 'Customer.Email')
                     .andOn('Address.Id', '=', 'LatestAddress.LatestAddressId');
             })
-            .whereNotNull('Customer.Email');
+            .whereNotNull('Customer.Email')
+            .where('IsApproved', 1)
 
         if (email) {
             customerQuery = customerQuery.andWhere('Customer.Email', 'like', `%${email}%`);
