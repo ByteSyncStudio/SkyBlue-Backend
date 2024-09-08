@@ -29,6 +29,7 @@ import {
   getSubCategoryDiscounts,
   postDiscounts,
 } from "../../controllers/admin/discount/adminDiscountController.js";
+import { getAllCategories, addCategory, updateCategory, deleteCategory } from "../../controllers/admin/category/adminCategoryController.js";
 
 const router = express.Router();
 
@@ -983,5 +984,13 @@ router.post("/post-discounts", postDiscounts);
  *         description: Discount not found.
  */
 router.delete("/delete-discount/:id", deleteDiscounts);
+
+router.get("/category/all", getAllCategories);
+
+router.post("/category/add", addCategory);
+
+router.patch("/category/edit/:id", updateCategory);
+
+router.delete("/category/delete/:id", deleteCategory);
 
 export default router;
