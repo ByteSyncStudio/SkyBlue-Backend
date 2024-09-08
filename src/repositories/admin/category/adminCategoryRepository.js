@@ -7,14 +7,14 @@ function organizeCategories(categories, searchTerm = '') {
 
     // First, map all valid categories by their Id
     categories.forEach(category => {
-        if (category.Published && !category.Deleted) {
+        if (!category.Deleted) {
             categoryMap.set(category.Id, { ...category, children: [] });
         }
     });
 
     // Then, organize them into a tree structure
     categories.forEach(category => {
-        if (!category.Published || category.Deleted) return; // Skip invalid categories
+        if (category.Deleted) return; // Skip invalid categories
 
         if (category.ParentCategoryId === 0) {
             rootCategories.push(categoryMap.get(category.Id));
