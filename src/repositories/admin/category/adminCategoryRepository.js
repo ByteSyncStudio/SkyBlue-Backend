@@ -1,14 +1,14 @@
 import knex from "../../../config/knex.js"
 
 
-function organizeCategories(categories) {
+function organizeCategories(categories, searchTerm = '') {
     const categoryMap = new Map();
     const rootCategories = [];
 
     // First, map all valid categories by their Id
     categories.forEach(category => {
         if (category.Published && !category.Deleted) {
-            categoryMap.set(category.Id, { Id: category.Id, Name: category.Name, Published: category.Published, children: [] });
+            categoryMap.set(category.Id, { ...category, children: [] });
         }
     });
 
@@ -25,14 +25,35 @@ function organizeCategories(categories) {
             }
         }
     });
+
+    // If searchTerm is provided, filter the categories
+    if (searchTerm) {
+        const filteredRootCategories = filterCategories(rootCategories, searchTerm.toLowerCase());
+        return filteredRootCategories;
+    }
+
     return rootCategories;
 }
 
+function filterCategories(categories, searchTerm) {
+    return categories.reduce((acc, category) => {
+        const matchedCategory = { ...category };
+        if (category.Name.toLowerCase().includes(searchTerm)) {
+            acc.push(matchedCategory);
+        } else if (category.children && category.children.length > 0) {
+            const matchedChildren = filterCategories(category.children, searchTerm);
+            if (matchedChildren.length > 0) {
+                matchedCategory.children = matchedChildren;
+                acc.push(matchedCategory);
+            }
+        }
+        return acc;
+    }, []);
+}
 
-export async function GetAllCategories() {
-    const result = await knex('Category')
-    const organizedCategories = organizeCategories(result);
-    console.log(organizedCategories.length)
+export async function GetAllCategories(searchTerm = '') {
+    const result = await knex('Category');
+    const organizedCategories = organizeCategories(result, searchTerm);
     return JSON.stringify(organizedCategories, null, 2); // Pretty print JSON
 }
 

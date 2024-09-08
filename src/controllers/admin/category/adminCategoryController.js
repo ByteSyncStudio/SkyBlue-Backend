@@ -2,7 +2,8 @@ import { GetAllCategories, AddCategory, UpdateCategory, DeleteCategory } from ".
 
 export async function getAllCategories(req, res) {
     try {
-        const result = await GetAllCategories();
+        const searchTerm = req.query.search;
+        const result = await GetAllCategories(searchTerm);
         res.status(200).send(result);
     } catch (error) {
         console.error(error);
