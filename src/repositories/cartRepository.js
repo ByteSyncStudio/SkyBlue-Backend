@@ -1,4 +1,8 @@
 import knex from "../config/knex.js";
+import { fetchCartItems, getCategoryMappings, getDiscountCategories, getDiscountProducts, getDiscounts, getTierPrices } from "../utils/Helper.js";
+//import { calculateFinalPrice, extractRoleIds, getCategoryMappings, getDiscountCategories, getDiscountProducts, getDiscounts } from "../utils/Helper.js";
+
+
 import { generateImageUrl2 } from "../utils/imageUtils.js";
 import { calculateTotalPriceWithTax } from "../utils/taxUtils.js";
 
@@ -47,84 +51,91 @@ async function addToCart(cartData, user) {
 }
 
 // Get Cart Items with Price and Tax
+
 async function getCartItems(user) {
   try {
-    // Subquery to get a single picture per product
-    const subquery = knex("Product_Picture_Mapping")
-      .select(
-        "Product_Picture_Mapping.ProductId",
-        knex.raw("MIN(Picture.Id) as PictureId"),
-        knex.raw("MIN(Picture.MimeType) as MimeType"),
-        knex.raw("MIN(Picture.SeoFileName) as SeoFileName") // Add SeoFileName to the subquery
-      )
-      .leftJoin("Picture", "Product_Picture_Mapping.PictureId", "Picture.Id")
-      .groupBy("Product_Picture_Mapping.ProductId")
-      .as("PictureData");
+    // Fetch cart items using the new function
+    const cartItems = await fetchCartItems(user.id);
 
-    // Fetch cart items and join with related tables
-    const cartItems = await knex("ShoppingCartItem")
-      .where("ShoppingCartItem.CustomerId", user.id)
-      .join("Product", "ShoppingCartItem.ProductId", "Product.Id")
-      .leftJoin(subquery, "ShoppingCartItem.ProductId", "PictureData.ProductId")
-      .select(
-        knex.raw("MIN(ShoppingCartItem.Id) as Id"), // Select one ShoppingCartItem.Id
-        "ShoppingCartItem.ProductId",
-        "Product.Name",
-        knex.raw("SUM(ShoppingCartItem.Quantity) as Quantity"), // Aggregate quantities
-        "Product.Price",
-        "Product.OrderMinimumQuantity",
-        "Product.OrderMaximumQuantity",
-        "PictureData.PictureId", // Select the picture from the subquery
-        "PictureData.MimeType", // Select the MimeType from the subquery
-        "PictureData.SeoFileName" // Select the SeoFileName from the subquery
-      )
-      .groupBy(
-        "ShoppingCartItem.ProductId",
-        "Product.Name",
-        "Product.Price",
-        "Product.OrderMinimumQuantity",
-        "Product.OrderMaximumQuantity",
-        "PictureData.PictureId",
-        "PictureData.MimeType",
-        "PictureData.SeoFileName" // Group by the SeoFileName
-      );
+    const productIds = cartItems.map(item => item.ProductId);
+    
+    // Ensure customerRoles is an array of IDs
+    const customerRoles = user.roles.map(role => role.Id);
+    console.log("customerRoles:", customerRoles);
 
-    const customerRoles = await knex("Customer_CustomerRole_Mapping")
-      .where("Customer_Id", user.id)
-      .pluck("CustomerRole_Id"); // Retrieve all CustomerRoleIds for the user
+    // Use helper functions to fetch data
+    const [tierPrices, categoryMappings] = await Promise.all([
+      getTierPrices(productIds, customerRoles),
+      getCategoryMappings(productIds)
+    ]);
 
-    const cartItemsWithPrices = await Promise.all(
-      cartItems.map(async (item) => {
-        let price = item.Price;
+    const categoryIds = categoryMappings.map(mapping => mapping.CategoryId);
+    const [discountCategories, discountProducts] = await Promise.all([
+      getDiscountCategories(categoryIds),
+      getDiscountProducts(productIds)
+    ]);
 
-        if (customerRoles.length > 0) {
-          // Fetch tiered price if roles exist
-          const tierPrice = await knex("TierPrice")
-            .whereIn("CustomerRoleId", customerRoles)
-            .andWhere("ProductId", Number(item.ProductId)) // Ensure ProductId is a number
-            .orderBy("Price", "asc")
-            .first();
+    const discountIds = [
+      ...discountCategories.map(dc => dc.Discount_Id),
+      ...discountProducts.map(dp => dp.Discount_Id)
+    ];
 
-          if (tierPrice) {
-            price = tierPrice.Price; // Use the tiered price if found
+    const discounts = await getDiscounts(discountIds);
+
+    const cartItemsWithPrices = cartItems.map(item => {
+      let price = item.Price;
+
+      // Find the lowest tier price for the product
+      const tierPrice = tierPrices.find(tp => tp.ProductId === item.ProductId);
+      if (tierPrice) {
+        price = tierPrice.Price;
+      }
+
+      // Find the category mapping for the product
+      const categoryMapping = categoryMappings.find(cm => cm.ProductId === item.ProductId);
+
+      let discountAmount = 0;
+
+      if (categoryMapping) {
+        // Find the discount applied to the category
+        const discountCategory = discountCategories.find(dc => dc.Category_Id === categoryMapping.CategoryId);
+        if (discountCategory) {
+          const discount = discounts.find(d => d.Id === discountCategory.Discount_Id);
+          if (discount) {
+            discountAmount += discount.DiscountAmount;
           }
         }
+      }
 
-        const imageUrl = item.PictureId
-          ? generateImageUrl2(item.PictureId, item.MimeType, item.SeoFileName)
-          : "";
+      // Find the discount applied directly to the product
+      const discountProduct = discountProducts.find(dp => dp.Product_Id === item.ProductId);
+      if (discountProduct) {
+        const discount = discounts.find(d => d.Id === discountProduct.Discount_Id);
+        if (discount) {
+          discountAmount += discount.DiscountAmount;
+        }
+      }
 
-        return { ...item, Price: price, images: imageUrl };
-      })
-    );
+      const finalPrice = price - discountAmount;
+      const imageUrl = item.PictureId
+        ? generateImageUrl2(item.PictureId, item.MimeType, item.SeoFileName)
+        : "";
+
+      return {
+        ...item,
+        Price: price,
+        Discount: discountAmount,
+        FinalPrice: finalPrice > 0 ? finalPrice : 0,
+        images: imageUrl,
+      };
+    });
 
     const customerEmail = await knex("Customer")
       .where({ Id: user.id })
       .select("Email")
       .first();
 
-    const { totalPrice, taxAmount, finalPrice } =
-      await calculateTotalPriceWithTax(customerEmail, cartItemsWithPrices);
+    const { totalPrice, taxAmount, finalPrice } = await calculateTotalPriceWithTax(customerEmail, cartItemsWithPrices);
 
     return {
       success: true,
@@ -139,6 +150,12 @@ async function getCartItems(user) {
     throw new Error("Failed to retrieve cart items.");
   }
 }
+
+
+
+
+
+
 
 // Update cart with tax calculation
 async function updateCart(id, updateData, user) {

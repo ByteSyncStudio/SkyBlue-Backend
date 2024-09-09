@@ -12,7 +12,6 @@ async function calculateTotalPriceWithTax(customerEmail, cartItems) {
       .where("Email", email) // Ensure email is treated as a string
       .select("StateProvinceId")
       .first();
-    //console.log("Address:", address); // Debug output
 
     if (!address) {
       throw new Error("Address not found for the given email.");
@@ -43,11 +42,20 @@ async function calculateTotalPriceWithTax(customerEmail, cartItems) {
       );
     }
 
-    // Calculate total price
+    // Calculate total price based on discount logic
     let totalPrice = 0;
     cartItems.forEach((item) => {
-      if (typeof item.Price === "number" && typeof item.Quantity === "number") {
-        totalPrice += item.Price * item.Quantity;
+      let itemPrice;
+
+      // Use FinalPrice if there's a discount, otherwise use Price
+      if (item.Discount && item.Discount > 0) {
+        itemPrice = item.FinalPrice;
+      } else {
+        itemPrice = item.Price;
+      }
+
+      if (typeof itemPrice === "number" && typeof item.Quantity === "number") {
+        totalPrice += itemPrice * item.Quantity;
       } else {
         console.error("Invalid item data:", item);
       }
@@ -56,19 +64,6 @@ async function calculateTotalPriceWithTax(customerEmail, cartItems) {
     // Calculate tax amount and final price
     const taxAmount = (totalPrice * taxRate.Percentage) / 100;
     const finalPrice = totalPrice + taxAmount;
-    {
-      /*
-      
-
-    console.log(
-      "Total Price:",
-      totalPrice,
-      "Tax Amount:",
-      taxAmount,
-      "Final Price:",
-      finalPrice
-    );   */
-    }
 
     return {
       totalPrice,

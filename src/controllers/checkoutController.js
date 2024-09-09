@@ -12,7 +12,7 @@ export const checkoutController = async (req, res) => {
     if (!newShippingMethodId) {
       return res
         .status(400)
-        .json({ success: false, message: "newShippingMethodId are required." });
+        .json({ success: false, message: "newShippingMethodId is required." });
     }
 
     // Update the shipping method for all items in the customer's cart

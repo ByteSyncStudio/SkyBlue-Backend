@@ -13,17 +13,17 @@ export const getAllDiscounts = async (req, res) => {
 // Controller to post a new discount
 export const postDiscounts = async (req, res) => {
   try {
-    const { Name, DiscountAmount, AppliedToSubCategories } = req.body; // Extracting necessary fields from the request body
+    const { Name, DiscountAmount, AppliedToSubCategories, DiscountTypeId } = req.body; // Extracting necessary fields from the request body
 
     // Constructing the discount data with default values
     const discountData = {
       Name,
-      DiscountTypeId: 2, // Assuming a default value
+      DiscountTypeId, // Use the DiscountTypeId from the request body
       UsePercentage: 0,
       DiscountPercentage: 0.0000,
       DiscountAmount,
       MaximumDiscountAmount: null,
-      StartDateUtc: null,
+      StartDateUtc: new Date().toISOString(), // Automatically set StartDateUtc to current date and time in UTC
       EndDateUtc: null,
       RequiresCouponCode: 0,
       CouponCode: null,
@@ -45,7 +45,6 @@ export const postDiscounts = async (req, res) => {
     res.status(500).json({ message: "Failed to create discount", error: error.message });
   }
 };
-
 
 export const deleteDiscounts = async (req, res) => {
   try {
