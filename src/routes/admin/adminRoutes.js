@@ -24,11 +24,16 @@ import {
 } from "../../controllers/admin/customer/adminCustomerController.js";
 import { getBestSellers } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
+  applyDiscountToCategory,
+  applyDiscountToProducts,
   deleteDiscounts,
   getAllDiscounts,
   getSubCategoryDiscounts,
   postDiscounts,
+  removeDiscountFromCategory,
+  removeDiscountFromProducts,
 } from "../../controllers/admin/discount/adminDiscountController.js";
+import { getAllCategories, getAllProducts } from "../../repositories/admin/discount/adminDiscountRepository.js";
 
 const router = express.Router();
 
@@ -983,5 +988,212 @@ router.post("/post-discounts", postDiscounts);
  *         description: Discount not found.
  */
 router.delete("/delete-discount/:id", deleteDiscounts);
+
+
+/**
+ * @swagger
+ * /admin/allProductForDiscount:
+ *   get:
+ *     summary: Retrieve a list of all products for discount
+ *     tags: [Admin]
+ *     responses:
+ *       200:
+ *         description: A list of products
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   Id:
+ *                     type: integer
+ *                     example: 1
+ *                   Name:
+ *                     type: string
+ *                     example: "Product Name"
+ *                   Price:
+ *                     type: number
+ *                     example: 100.00
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/allProductForDiscount", getAllProducts);
+
+/**
+ * @swagger
+ * /admin/allCategoryForDiscount:
+ *   get:
+ *     summary: Retrieve a list of all categories for discount
+ *     tags: [Admin]
+ *     responses:
+ *       200:
+ *         description: A list of categories
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   Id:
+ *                     type: integer
+ *                     example: 1
+ *                   Name:
+ *                     type: string
+ *                     example: "Category Name"
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/allCategoryForDiscount", getAllCategories);
+
+/**
+ * @swagger
+ * /admin/applyDiscountToProduct/{discountId}:
+ *   post:
+ *     summary: Apply discount to products in array
+ *     tags: [Admin]
+ *     parameters:
+ *       - in: path
+ *         name: discountId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The discount ID
+ *     requestBody:
+ *       description: List of product IDs to apply the discount to
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               productIds:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *     responses:
+ *       200:
+ *         description: Discount applied successfully
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: Discount or products not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/applyDiscountToProduct/:discountId", applyDiscountToProducts);
+
+/**
+ * @swagger
+ * /admin/applyDiscountToCategory/{discountId}:
+ *   post:
+ *     summary: Apply discount to categories in array
+ *     tags: [Admin]
+ *     parameters:
+ *       - in: path
+ *         name: discountId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The discount ID
+ *     requestBody:
+ *       description: List of category IDs to apply the discount to
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               categoryIds:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *     responses:
+ *       200:
+ *         description: Discount applied successfully
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: Discount or categories not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/applyDiscountToCategory/:discountId", applyDiscountToCategory);
+
+/**
+ * @swagger
+ * /admin/removeDiscountFromProduct/{discountId}:
+ *   post:
+ *     summary: Remove discount from products in array
+ *     tags: [Admin]
+ *     parameters:
+ *       - in: path
+ *         name: discountId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The discount ID
+ *     requestBody:
+ *       description: List of product IDs to remove the discount from
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               productIds:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *     responses:
+ *       200:
+ *         description: Discount removed successfully
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: Discount or products not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/removeDiscountFromProduct/:discountId", removeDiscountFromProducts);
+
+/**
+ * @swagger
+ * /admin/removeDiscountFromCategory/{discountId}:
+ *   post:
+ *     summary: Remove discount from categories in array
+ *     tags: [Admin]
+ *     parameters:
+ *       - in: path
+ *         name: discountId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The discount ID
+ *     requestBody:
+ *       description: List of category IDs to remove the discount from
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               categoryIds:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *     responses:
+ *       200:
+ *         description: Discount removed successfully
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: Discount or categories not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/removeDiscountFromCategory/:discountId", removeDiscountFromCategory);
+
 
 export default router;

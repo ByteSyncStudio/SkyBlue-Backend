@@ -1,4 +1,4 @@
-import { DeleteDiscount, GetAllDiscounts, GetSubCategoryDiscounts, PostDiscounts } from "../../../repositories/admin/discount/adminDiscountRepository.js";
+import { ApplyDiscountToCategory, ApplyDiscountToProducts, DeleteDiscount, GetAllDiscounts, GetSubCategoryDiscounts, PostDiscounts, RemoveDiscountFromCategory, RemoveDiscountFromProducts } from "../../../repositories/admin/discount/adminDiscountRepository.js";
 
 // Controller to get all discounts
 export const getAllDiscounts = async (req, res) => {
@@ -14,6 +14,8 @@ export const getAllDiscounts = async (req, res) => {
 export const postDiscounts = async (req, res) => {
   try {
     const { Name, DiscountAmount, AppliedToSubCategories, DiscountTypeId } = req.body; // Extracting necessary fields from the request body
+
+    //DiscountTYpeId = 1 for fixed amount discount, 2 after checkout, 5 subcategory
 
     // Constructing the discount data with default values
     const discountData = {
@@ -74,3 +76,118 @@ export const getSubCategoryDiscounts = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch discounts", error: error.message });
   }
 };
+
+// Apply discount to products
+export const applyDiscountToProducts = async (req, res) => {
+  try {
+    const { discountId } = req.params; // Get discountId from params
+    const { productIds } = req.body;   // Product IDs in request body
+
+    if (!productIds || productIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Product IDs are required.",
+      });
+    }
+
+    await ApplyDiscountToProducts(discountId, productIds);
+
+    return res.status(200).json({
+      success: true,
+      message: "Discount successfully applied to selected products.",
+    });
+  } catch (error) {
+    console.error("Error applying discount to products:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to apply discount to products.",
+    });
+  }
+};
+
+
+// Apply discount to categories
+export const applyDiscountToCategory = async (req, res) => {
+  try {
+    const { discountId } = req.params; // Get discountId from params
+    const { categoryIds } = req.body;   // Category IDs in request body
+
+    if (!categoryIds || categoryIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Category IDs are required.",
+      });
+    }
+
+    await ApplyDiscountToCategory(discountId, categoryIds);
+
+    return res.status(200).json({
+      success: true,
+      message: "Discount successfully applied to selected categories.",
+    });
+  } catch (error) {
+    console.error("Error applying discount to categories:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to apply discount to categories.",
+    });
+  }
+};
+
+
+export const removeDiscountFromProducts = async (req, res) => {
+  try {
+    const { discountId } = req.params; // Get discountId from params
+    const { productIds } = req.body;   // Product IDs in request body
+
+    if (!productIds || productIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Product IDs are required.",
+      });
+    }
+
+    await RemoveDiscountFromProducts(discountId, productIds);
+
+    return res.status(200).json({
+      success: true,
+      message: "Discount successfully removed from selected products.",
+    });
+  } catch (error) {
+    console.error("Error removing discount from products:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to remove discount from products.",
+    });
+  }
+};
+
+
+
+export const removeDiscountFromCategory = async (req, res) => {
+  try {
+    const { discountId } = req.params; // Get discountId from params
+    const { categoryIds } = req.body;   // Category IDs in request body
+
+    if (!categoryIds || categoryIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Category IDs are required.",
+      });
+    }
+
+    await RemoveDiscountFromCategory(discountId, categoryIds);
+
+    return res.status(200).json({
+      success: true,
+      message: "Discount successfully removed from selected categories.",
+    });
+  } catch (error) {
+    console.error("Error removing discount from categories:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to remove discount from categories.",
+    });
+  }
+};
+

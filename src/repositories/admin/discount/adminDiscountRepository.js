@@ -34,7 +34,6 @@ export async function PostDiscounts(discountData) {
   }
 }
 
-
 // Delete a discount by ID
 export async function DeleteDiscount(id) {
   try {
@@ -65,4 +64,86 @@ export async function GetSubCategoryDiscounts() {
     console.error("Error fetching discounts not applied to subcategories:", error);
     throw error;
   }
+}
+
+export async function ApplyDiscountToProducts(discountId, productIds) {
+  await knex("Discount_AppliedToProducts")
+    .insert(
+      productIds.map((productId) => ({
+        Discount_Id: discountId,
+        Product_Id: productId,
+      }))
+    );
+
+  console.log(`Discount ID ${discountId} applied to products: ${productIds}`);
+}
+
+
+
+export async function ApplyDiscountToCategory(discountId, categoryIds) {
+  await knex("Discount_AppliedToCategories")
+    .insert(
+      categoryIds.map((categoryId) => ({
+        Discount_Id: discountId,
+        Category_Id: categoryId,
+      }))
+    );
+
+  console.log(`Discount ID ${discountId} applied to categories: ${categoryIds}`);
+}
+
+
+export const getAllProducts = async (req, res) => {
+  try {
+    const products = await knex("Product").select("Id", "Name", "Published");
+
+    return res.status(200).json({
+      success: true,
+      products,
+    });
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch products.",
+    });
+  }
+};
+
+export const getAllCategories = async (req, res) => {
+  try {
+    const categories = await knex("Category").select("Id", "Name");
+
+    return res.status(200).json({
+      success: true,
+      categories,
+    });
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch categories.",
+    });
+  }
+};
+
+
+export async function RemoveDiscountFromProducts(discountId, productIds) {
+  await knex("Discount_AppliedToProducts")
+    .whereIn("Product_Id", productIds)
+    .andWhere("Discount_Id", discountId)
+    .del();
+
+  console.log(`Discount ID ${discountId} removed from products: ${productIds}`);
+}
+
+
+
+export async function RemoveDiscountFromCategory(discountId, categoryIds) {
+  await knex("Discount_AppliedToCategories")
+    .whereIn("Category_Id", categoryIds)
+    .andWhere("Discount_Id", discountId)
+    .del();
+
+  console.log(`Discount ID ${discountId} removed from categories: ${categoryIds}`);
 }

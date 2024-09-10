@@ -45,7 +45,7 @@ export async function listOrders() {
 // Get a single order by ID
 export async function getOrderById(orderId) {
   try {
-    // Fetch the order details along with order items, product details, vendor names, and picture details
+    // Fetch the order details along with order items, product details, vendor names, picture details, and item location
     const order = await knex('dbo.Order as o')
       .where('o.Id', orderId)
       .select(
@@ -64,16 +64,17 @@ export async function getOrderById(orderId) {
         'oi.PriceExclTax',
         'p.Name as ProductName',
         'p.VendorId',
+        'p.ItemLocation', // Include ItemLocation from Product table
         'v.Name as VendorName',
         'pic.MimeType',
         'pic.SeoFilename',
         'pic.Id as PictureId'
       )
       .leftJoin('dbo.OrderItem as oi', 'o.Id', 'oi.OrderId')
-      .leftJoin('dbo.Product as p', 'oi.ProductId', 'p.Id')
-      .leftJoin('dbo.Vendor as v', 'p.VendorId', 'v.Id')
-      .leftJoin('dbo.Product_Picture_Mapping as ppm', 'p.Id', 'ppm.ProductId')
-      .leftJoin('dbo.Picture as pic', 'ppm.PictureId', 'pic.Id');
+      .leftJoin('dbo.Product as p', 'oi.ProductId', 'p.Id') // Join with Product table
+      .leftJoin('dbo.Vendor as v', 'p.VendorId', 'v.Id') // Join with Vendor table
+      .leftJoin('dbo.Product_Picture_Mapping as ppm', 'p.Id', 'ppm.ProductId') // Join with Picture Mapping
+      .leftJoin('dbo.Picture as pic', 'ppm.PictureId', 'pic.Id'); // Join with Picture table
 
     if (!order || order.length === 0) {
       return { success: false, message: "Order not found." };
@@ -103,6 +104,7 @@ export async function getOrderById(orderId) {
           Id: item.ProductId,
           Name: item.ProductName,
           VendorId: item.VendorId,
+          ItemLocation: item.ItemLocation ? item.ItemLocation : "No location Found",
           imageUrl,
           vendorName: item.VendorName ? item.VendorName : 'No vendor found',
         },
