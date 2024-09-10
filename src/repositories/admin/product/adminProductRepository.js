@@ -390,14 +390,12 @@ export async function listBestsellers(sortBy, size, user) {
     }
 }
 
-
 export async function ListSearchProducts(categoryName, productName, published, page, size) {
     try {
         const offset = (page - 1) * size;
-
         let query = knex('Product')
-            .distinct('Product.Id') // Ensure distinct products
             .select([
+                'Product.Id',
                 'Product.Name',
                 'Product.Price',
                 'Product.HasTierPrices',
@@ -405,20 +403,32 @@ export async function ListSearchProducts(categoryName, productName, published, p
                 'Product.ShortDescription',
                 'Product.OrderMinimumQuantity',
                 'Product.OrderMaximumQuantity',
-                'Product_Picture_Mapping.PictureId',
                 'Product.StockQuantity',
                 'Product.Published',
                 'Product.Deleted',
-                'Picture.MimeType',
-                'Picture.SeoFilename',
+                knex.raw('MAX(Product_Picture_Mapping.PictureId) as PictureId'),
+                knex.raw('MAX(Picture.MimeType) as MimeType'),
+                knex.raw('MAX(Picture.SeoFilename) as SeoFilename'),
                 knex.raw('COUNT(*) OVER() AS total_count')
             ])
             .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
             .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
             .where('Product.Deleted', false)
+            .groupBy(
+                'Product.Id',
+                'Product.Name',
+                'Product.Price',
+                'Product.HasTierPrices',
+                'Product.FullDescription',
+                'Product.ShortDescription',
+                'Product.OrderMinimumQuantity',
+                'Product.OrderMaximumQuantity',
+                'Product.StockQuantity',
+                'Product.Published',
+                'Product.Deleted'
+            )
             .orderBy('Product.Name');
 
-        // Add category name to query if provided
         if (categoryName) {
             query = query
                 .join('Product_Category_Mapping', 'Product.Id', 'Product_Category_Mapping.ProductId')
@@ -426,35 +436,48 @@ export async function ListSearchProducts(categoryName, productName, published, p
                 .where('Category.Name', 'like', `%${categoryName}%`);
         }
 
-        // Add product name to query if provided
         if (productName) {
             query = query.andWhere('Product.Name', 'like', `%${productName}%`);
         }
 
-        // Add published status to query if provided
-        if (typeof published === 'boolean') {
-            query = query.andWhere('Product.Published', published);
+        if (published === 0 || published === 1) {
+            query = query.andWhere('Product.Published', published === 1);
         }
 
-        // Apply pagination
         query = query.limit(size).offset(offset);
 
-        // Debugging: Log the generated SQL query
         console.log(query.toString());
 
         const products = await query;
 
-        // Debugging: Log the number of products retrieved
-        console.log('Number of products retrieved:', products.length);
+        const productsWithImageUrls = products.map(product => ({
+            Id: product.Id.toString(),
+            Name: product.Name,
+            Price: product.Price,
+            HasTierPrices: product.HasTierPrices,
+            FullDescription: product.FullDescription,
+            ShortDescription: product.ShortDescription,
+            OrderMinimumQuantity: product.OrderMinimumQuantity,
+            OrderMaximumQuantity: product.OrderMaximumQuantity,
+            StockQuantity: product.StockQuantity,
+            Published: product.Published,
+            Deleted: product.Deleted,
+            total_count: product.total_count,
+            imageUrl: product.PictureId && product.MimeType && product.SeoFilename
+                ? generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename)
+                : null
+        }));
 
-        const totalItems = products.length > 0 ? products[0].total_count : 0;
+        console.log('Number of products retrieved:', productsWithImageUrls.length);
+
+        const totalItems = productsWithImageUrls.length > 0 ? productsWithImageUrls[0].total_count : 0;
         const totalPages = Math.ceil(totalItems / size);
 
         return {
             totalItems,
             totalPages,
             currentPage: page,
-            products,
+            products: productsWithImageUrls,
         };
     } catch (error) {
         console.error('Error in ListSearchProducts:', error);

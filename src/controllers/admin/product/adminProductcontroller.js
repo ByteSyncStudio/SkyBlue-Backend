@@ -233,7 +233,7 @@ export async function getBestSellers(req, res) {
 export async function getProducts(req, res) {
     try {
         const { category, product, published, size, page } = req.query
-        const result = await ListSearchProducts(category, product, published, parseInt(page) || 1, parseInt(size) || 10)
+        const result = await ListSearchProducts(category, product, parseInt(published), parseInt(page) || 1, parseInt(size) || 10)
         res.status(200).send(result);
     } catch (error) {
         console.error(error);
