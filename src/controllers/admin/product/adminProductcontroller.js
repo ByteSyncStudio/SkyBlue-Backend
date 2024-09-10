@@ -2,6 +2,7 @@ import knex from "../../../config/knex.js";
 import { AddProduct, MapToCategory, AddTierPrices, AddPicture, MapProductToPicture, UpdateProduct, UpdateCategoryMapping, UpdateProductPictures, UpdateTierPrices, DeleteProduct, DeleteProductPictures, listBestsellers } from "../../../repositories/admin/product/adminProductRepository.js";
 import multer from 'multer';
 import { queueFileUpload } from '../../../config/ftpsClient.js';
+import { ListSearchProducts } from "../../../repositories/admin/product/adminProductRepository.js";
 
 const upload = multer({ dest: 'uploads/' });
 
@@ -151,18 +152,18 @@ export const updateProduct = [
 
                 // 3. Update tier prices
 
-                    const tierPrices = [
-                        { roleId: Role1, price: Price1 },
-                        { roleId: Role2, price: Price2 },
-                        { roleId: Role3, price: Price3 },
-                        { roleId: Role4, price: Price4 },
-                        { roleId: Role5, price: Price5 },
-                    ].filter(tp => tp.roleId != null && tp.price != null);
+                const tierPrices = [
+                    { roleId: Role1, price: Price1 },
+                    { roleId: Role2, price: Price2 },
+                    { roleId: Role3, price: Price3 },
+                    { roleId: Role4, price: Price4 },
+                    { roleId: Role5, price: Price5 },
+                ].filter(tp => tp.roleId != null && tp.price != null);
 
-                    if (tierPrices.length > 0) {
-                        await UpdateTierPrices(productId, tierPrices, trx);
-                    }
-                
+                if (tierPrices.length > 0) {
+                    await UpdateTierPrices(productId, tierPrices, trx);
+                }
+
 
                 // 4. Handle picture updates
                 //? Delete and add new images
@@ -223,6 +224,17 @@ export async function getBestSellers(req, res) {
         const size = req.query.size || 5;
         const products = await listBestsellers(sortBy, size, req.user);
         res.status(200).send(products)
+    } catch (error) {
+        console.error(error);
+        res.status(error.statusCode || 500).send(error.message || 'Server error');
+    }
+}
+
+export async function getProducts(req, res) {
+    try {
+        const { category, product, published, size, page } = req.query
+        const result = await ListSearchProducts(category, product, published, parseInt(page) || 1, parseInt(size) || 10)
+        res.status(200).send(result);
     } catch (error) {
         console.error(error);
         res.status(error.statusCode || 500).send(error.message || 'Server error');

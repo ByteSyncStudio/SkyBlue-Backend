@@ -389,3 +389,77 @@ export async function listBestsellers(sortBy, size, user) {
         throw error;
     }
 }
+
+
+export async function ListSearchProducts(categoryName, productName, published, page, size) {
+    try {
+        const offset = (page - 1) * size;
+
+        let query = knex('Product')
+            .distinct('Product.Id') // Ensure distinct products
+            .select([
+                'Product.Name',
+                'Product.Price',
+                'Product.HasTierPrices',
+                'Product.FullDescription',
+                'Product.ShortDescription',
+                'Product.OrderMinimumQuantity',
+                'Product.OrderMaximumQuantity',
+                'Product_Picture_Mapping.PictureId',
+                'Product.StockQuantity',
+                'Product.Published',
+                'Product.Deleted',
+                'Picture.MimeType',
+                'Picture.SeoFilename',
+                knex.raw('COUNT(*) OVER() AS total_count')
+            ])
+            .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
+            .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
+            .where('Product.Deleted', false)
+            .orderBy('Product.Name');
+
+        // Add category name to query if provided
+        if (categoryName) {
+            query = query
+                .join('Product_Category_Mapping', 'Product.Id', 'Product_Category_Mapping.ProductId')
+                .join('Category', 'Product_Category_Mapping.CategoryId', 'Category.Id')
+                .where('Category.Name', 'like', `%${categoryName}%`);
+        }
+
+        // Add product name to query if provided
+        if (productName) {
+            query = query.andWhere('Product.Name', 'like', `%${productName}%`);
+        }
+
+        // Add published status to query if provided
+        if (typeof published === 'boolean') {
+            query = query.andWhere('Product.Published', published);
+        }
+
+        // Apply pagination
+        query = query.limit(size).offset(offset);
+
+        // Debugging: Log the generated SQL query
+        console.log(query.toString());
+
+        const products = await query;
+
+        // Debugging: Log the number of products retrieved
+        console.log('Number of products retrieved:', products.length);
+
+        const totalItems = products.length > 0 ? products[0].total_count : 0;
+        const totalPages = Math.ceil(totalItems / size);
+
+        return {
+            totalItems,
+            totalPages,
+            currentPage: page,
+            products,
+        };
+    } catch (error) {
+        console.error('Error in ListSearchProducts:', error);
+        error.statusCode = 500;
+        error.message = "Error in ListSearchProducts";
+        throw error;
+    }
+}

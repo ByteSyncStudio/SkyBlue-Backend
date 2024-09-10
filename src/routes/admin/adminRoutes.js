@@ -16,6 +16,7 @@ import {
   addProduct,
   updateProduct,
   deleteProduct,
+  getProducts,
 } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
   getAllCustomersWithRoles,
@@ -992,5 +993,7 @@ router.post("/category/add", addCategory);
 router.patch("/category/edit/:id", updateCategory);
 
 router.delete("/category/delete/:id", deleteCategory);
+
+router.get("/product/search", getProducts);
 
 export default router;
