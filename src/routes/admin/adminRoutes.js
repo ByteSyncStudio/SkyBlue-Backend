@@ -31,6 +31,7 @@ import {
   postDiscounts,
 } from "../../controllers/admin/discount/adminDiscountController.js";
 import { getAllCategories, addCategory, updateCategory, deleteCategory } from "../../controllers/admin/category/adminCategoryController.js";
+import { addSlider, deleteSlider, updateSlider } from "../../controllers/admin/slider/adminSliderController.js";
 
 const router = express.Router();
 
@@ -995,5 +996,90 @@ router.patch("/category/edit/:id", updateCategory);
 router.delete("/category/delete/:id", deleteCategory);
 
 router.get("/product/search", getProducts);
+
+/**
+ * @swagger
+ * /admin/slider/add:
+ *   post:
+ *     summary: Add a new slider
+ *     tags: [Admin]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *               type:
+ *                 type: string
+ *               displayOrder:
+ *                 type: integer
+ *     responses:
+ *       201:
+ *         description: Slider added successfully
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/slider/add", addSlider);
+
+/**
+ * @swagger
+ * /admin/slider/{sliderId}:
+ *   delete:
+ *     summary: Delete a slider
+ *     tags: [Admin]
+ *     parameters:
+ *       - in: path
+ *         name: sliderId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Slider deleted successfully
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
+router.delete("/slider/:sliderId", deleteSlider);
+
+/**
+ * @swagger
+ * /admin/slider/{sliderId}:
+ *   patch:
+ *     summary: Update a slider
+ *     tags: [Admin]
+ *     parameters:
+ *       - in: path
+ *         name: sliderId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               type:
+ *                 type: string
+ *               displayOrder:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Slider updated successfully
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
+router.patch("/slider/:sliderId", updateSlider);
 
 export default router;
