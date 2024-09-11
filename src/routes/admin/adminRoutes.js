@@ -34,6 +34,7 @@ import {
   removeDiscountFromProducts,
 } from "../../controllers/admin/discount/adminDiscountController.js";
 import { getAllCategories, getAllProducts } from "../../repositories/admin/discount/adminDiscountRepository.js";
+import { getallCustomerStats, getallOrderStats, getOrderTotals } from "../../controllers/admin/stats/adminStatsController.js";
 
 const router = express.Router();
 
@@ -1194,6 +1195,91 @@ router.post("/removeDiscountFromProduct/:discountId", removeDiscountFromProducts
  *         description: Internal server error
  */
 router.post("/removeDiscountFromCategory/:discountId", removeDiscountFromCategory);
+
+/**
+ * @swagger
+ * /admin/ordersStats:
+ *   get:
+ *     summary: Retrieve statistics for all orders
+ *     tags: [Admin]
+ *     responses:
+ *       200:
+ *         description: Order statistics data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 totalOrders:
+ *                   type: integer
+ *                   example: 1234
+ *                 totalRevenue:
+ *                   type: number
+ *                   format: float
+ *                   example: 56789.00
+ *                 averageOrderValue:
+ *                   type: number
+ *                   format: float
+ *                   example: 45.67
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/ordersStats", getallOrderStats);
+
+/**
+ * @swagger
+ * /admin/customersStats:
+ *   get:
+ *     summary: Retrieve statistics for all customers
+ *     tags: [Admin]
+ *     responses:
+ *       200:
+ *         description: Customer statistics data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 totalCustomers:
+ *                   type: integer
+ *                   example: 5678
+ *                 activeCustomers:
+ *                   type: integer
+ *                   example: 2345
+ *                 newCustomersThisMonth:
+ *                   type: integer
+ *                   example: 123
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/customersStats", getallCustomerStats);
+
+/**
+ * @swagger
+ * /admin/orderTotals:
+ *   get:
+ *     summary: Retrieve the total number of orders and revenue
+ *     tags: [Admin]
+ *     responses:
+ *       200:
+ *         description: Total orders and revenue data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 totalOrders:
+ *                   type: integer
+ *                   example: 1234
+ *                 totalRevenue:
+ *                   type: number
+ *                   format: float
+ *                   example: 56789.00
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/orderTotals", getOrderTotals);
+
 
 
 export default router;
