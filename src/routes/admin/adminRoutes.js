@@ -31,7 +31,7 @@ import {
   postDiscounts,
 } from "../../controllers/admin/discount/adminDiscountController.js";
 import { getAllCategories, addCategory, updateCategory, deleteCategory } from "../../controllers/admin/category/adminCategoryController.js";
-import { addSlider, deleteSlider, updateSlider } from "../../controllers/admin/slider/adminSliderController.js";
+import { addSlider, deleteSlider, updateSlider, getSliderByType } from "../../controllers/admin/slider/adminSliderController.js";
 
 const router = express.Router();
 
@@ -1081,5 +1081,27 @@ router.delete("/slider/:sliderId", deleteSlider);
  *         description: Internal server error
  */
 router.patch("/slider/:sliderId", updateSlider);
+
+/**
+ * @swagger
+ * /admin/slider/{type}:
+ *   get:
+ *     summary: Get sliders by type
+ *     tags: [Admin]
+ *     parameters:
+ *       - in: path
+ *         name: type
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sliders fetched successfully
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/slider/:type", getSliderByType);
 
 export default router;

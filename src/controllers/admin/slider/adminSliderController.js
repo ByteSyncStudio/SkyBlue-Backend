@@ -1,5 +1,5 @@
 import multer from 'multer';
-import { AddSlider, AddPicture, MapSliderToPicture, DeleteSlider, UpdateSlider } from '../../../repositories/admin/slider/adminSliderRepository.js';
+import { AddSlider, AddPicture, MapSliderToPicture, DeleteSlider, UpdateSlider, GetSliderByType } from '../../../repositories/admin/slider/adminSliderRepository.js';
 import { queueFileUpload } from '../../../config/ftpsClient.js';
 import knex from "../../../config/knex.js";
 
@@ -76,6 +76,18 @@ export const updateSlider = async (req, res) => {
         res.status(200).send({ success: true, message: 'Slider Updated.' });
     } catch (error) {
         console.error('Error in updateSlider:', error);
+        res.status(error.statusCode || 500).send(error.message || 'Server error');
+    }
+};
+
+export const getSliderByType = async (req, res) => {
+    const { type } = req.params;
+
+    try {
+        const sliders = await GetSliderByType(type);
+        res.status(200).send(sliders);
+    } catch (error) {
+        console.error('Error in getSliderByType:', error);
         res.status(error.statusCode || 500).send(error.message || 'Server error');
     }
 };

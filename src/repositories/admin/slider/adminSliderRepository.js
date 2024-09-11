@@ -75,3 +75,23 @@ export async function UpdateSlider(sliderId, updateData, trx) {
         throw error;
     }
 }
+
+export async function GetSliderByType(type) {
+    try {
+        const sliders = await knex('Slider')
+            .join('Slider_Picture_Mapping', 'Slider.Id', 'Slider_Picture_Mapping.SliderId')
+            .join('Picture', 'Slider_Picture_Mapping.PictureId', 'Picture.Id')
+            .select('Slider.Id as SliderId', 'Slider.DisplayOrder','Picture.Id as PictureId', 'Picture.MimeType')
+            .where('Slider.Type', type);
+
+        return sliders.map(slider => {
+            const formattedId = slider.PictureId.toString().padStart(7, '0');
+            const fileExtension = slider.MimeType.split('/')[1];
+            const image = `https://skybluewholesale.com/Content/Images/Sliders/${formattedId}.${fileExtension}`;
+            return { sliderId: slider.SliderId, image, displayOrder: slider.DisplayOrder};
+        });
+    } catch (error) {
+        console.error("Error fetching sliders by type:\n", error);
+        throw error;
+    }
+}
