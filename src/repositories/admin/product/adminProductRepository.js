@@ -446,8 +446,6 @@ export async function ListSearchProducts(categoryName, productName, published, p
 
         query = query.limit(size).offset(offset);
 
-        console.log(query.toString());
-
         const products = await query;
 
         const productsWithImageUrls = products.map(product => ({
