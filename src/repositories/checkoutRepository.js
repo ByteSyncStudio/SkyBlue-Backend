@@ -1,6 +1,14 @@
 import { calculateTotalPriceWithTax } from "../utils/taxUtils.js";
 import knex from "../config/knex.js";
 import { v4 as uuidv4 } from "uuid";
+import {
+  fetchCartItems,
+  getCategoryMappings,
+  getDiscountCategories,
+  getDiscountProducts,
+  getDiscounts,
+  getTierPrices,
+} from "../utils/Helper.js";
 
 async function createCheckoutOrder(
   customerId,
@@ -14,61 +22,95 @@ async function createCheckoutOrder(
     2: { currencyCode: "CAD", currencyRate: 1.0 },
   };
 
-  const [customer, customerRoles, discount] = await Promise.all([
+  const [customer, customerRoles] = await Promise.all([
     knex("Customer").where({ Id: customerId }).select("Email").first(),
     knex("Customer_CustomerRole_Mapping")
       .where({ Customer_Id: customerId })
       .pluck("CustomerRole_Id"),
-    knex("Discount").where({ DiscountTypeId: 1 }).select("DiscountAmount").first(),
   ]);
 
   if (!customer) throw new Error("Customer not found.");
   if (customerRoles.length === 0) throw new Error("Customer roles not found.");
 
-  return await knex.transaction(async (trx) => {
-    const cartItems = await trx("ShoppingCartItem")
-      .join("Product", "ShoppingCartItem.ProductId", "Product.Id")
-      .where({ "ShoppingCartItem.CustomerId": customerId })
-      .select(
-        "ShoppingCartItem.Quantity",
-        "Product.Id as ProductId",
-        "ShoppingCartItem.ShoppingCartTypeId"
-      );
-      //.join to category map wrt Pid, go discount table whawtver discountTypeId 5 put that disocunt
+  // Fetch the store details
+  const store = await knex("Store")
+    .where({ Id: 3 })
+    .select("Id", "Name")
+    .first();
+  if (!store) throw new Error("Store not found.");
 
+  return await knex.transaction(async (trx) => {
+    const cartItems = await fetchCartItems(customerId);
     if (cartItems.length === 0) throw new Error("No items in cart.");
 
-    const tierPrices = await trx("TierPrice")
-      .whereIn("CustomerRoleId", customerRoles)
-      .whereIn(
-        "ProductId",
-        cartItems.map((row) => row.ProductId)
-      )
-      .select("ProductId", "CustomerRoleId", "Price");
+    const productIds = cartItems.map((item) => item.ProductId);
+    const categoryMappings = (await getCategoryMappings(productIds)) || [];
+    const categoryIds =
+      categoryMappings.map((mapping) => mapping.CategoryId) || [];
+    const discountCategories = (await getDiscountCategories(categoryIds)) || [];
+    const discountProductMappings =
+      (await getDiscountProducts(productIds)) || [];
 
+    const discountIds = [
+      ...new Set([
+        ...discountCategories.map((d) => d.Discount_Id),
+        ...discountProductMappings.map((d) => d.Discount_Id),
+      ]),
+    ];
+    const discounts = (await getDiscounts(discountIds)) || [];
+
+    console.log("Discounts:", discounts);
+
+    const tierPrices = (await getTierPrices(productIds, customerRoles)) || [];
     const tierPriceMap = new Map();
     tierPrices.forEach((tierPrice) => {
       tierPriceMap.set(
         `${tierPrice.ProductId}-${tierPrice.CustomerRoleId}`,
         tierPrice.Price
       );
+      console.log("tierPriceMap:", tierPriceMap);
     });
 
-    // Resolve prices for each cart item
     const updatedCartItems = await Promise.all(
       cartItems.map(async (item) => {
+        // Filter applicable discounts for the current product
+        const applicableDiscounts = [
+          ...discounts.filter((d) =>
+            discountProductMappings.some(
+              (mapping) =>
+                mapping.Product_Id === item.ProductId &&
+                mapping.Discount_Id === d.Id
+            )
+          ),
+          ...discounts.filter((d) =>
+            discountCategories.some(
+              (mapping) =>
+                mapping.Category_Id ===
+                  categoryMappings.find((cm) => cm.ProductId === item.ProductId)
+                    ?.CategoryId && mapping.Discount_Id === d.Id
+            )
+          ),
+        ];
+
+        // Calculate the maximum applicable discount
+        const discountAmount = applicableDiscounts.reduce(
+          (acc, d) => Math.max(acc, d.DiscountAmount || 0),
+          0
+        );
+
+        // Apply the discount to the item price
+        const discountedPrice = item.Price - discountAmount;
+
+        // Find the tier price if applicable
         const price = customerRoles.reduce((acc, roleId) => {
           const tieredPrice = tierPriceMap.get(`${item.ProductId}-${roleId}`);
           return tieredPrice !== undefined ? Math.min(acc, tieredPrice) : acc;
         }, Infinity);
 
+        // Resolve the final price, fallback to product price if no tier price is found
         const resolvedPrice = isFinite(price)
-          ? price
-          : await trx("Product")
-              .where({ Id: item.ProductId })
-              .select("Price")
-              .first()
-              .then((p) => p.Price);
+          ? Math.min(price, discountedPrice)
+          : discountedPrice;
 
         return {
           ...item,
@@ -80,7 +122,16 @@ async function createCheckoutOrder(
     const { totalPrice, taxAmount, finalPrice, taxRate } =
       await calculateTotalPriceWithTax(customerEmail, updatedCartItems);
 
-    //console.log("Updated Cart Items:", updatedCartItems); // Log the updated cart items
+    console.log(
+      "totalPrice:",
+      totalPrice,
+      "taxAmount:",
+      taxAmount,
+      "finalPrice:",
+      finalPrice,
+      "taxRate:",
+      taxRate
+    );
 
     const address = await trx("Address")
       .where({ Email: customerEmail })
@@ -105,10 +156,20 @@ async function createCheckoutOrder(
 
     const formattedTaxRates = `${taxRate.toFixed(4)}:${taxAmount.toFixed(2)};`;
 
+    const specialDiscount = await trx("Discount")
+      .where({ DiscountTypeId: 1 })
+      .select("DiscountAmount")
+      .first();
+
+    const specialDiscountAmount = specialDiscount
+      ? specialDiscount.DiscountAmount
+      : 0;
+    const finalPriceAfterSpecialDiscount = finalPrice - specialDiscountAmount;
+
     const [order] = await trx("Order")
       .insert({
         OrderGuid: uuidv4(),
-        StoreId: 3,
+        StoreId: store.Id,
         CustomerId: customerId,
         BillingAddressId: billingAddressId,
         ShippingAddressId: shippingAddressId,
@@ -130,8 +191,8 @@ async function createCheckoutOrder(
         PaymentMethodAdditionalFeeExclTax: 0,
         TaxRates: formattedTaxRates,
         OrderTax: taxAmount,
-        OrderDiscount: discount.DiscountAmount,
-        OrderTotal: finalPrice,
+        OrderDiscount: specialDiscountAmount,
+        OrderTotal: finalPriceAfterSpecialDiscount,
         RefundedAmount: 0,
         CheckoutAttributeDescription: "",
         CustomerLanguageId: 1,
@@ -154,59 +215,57 @@ async function createCheckoutOrder(
       })
       .returning("*");
 
-    await trx("Order")
-      .where({ Id: order.Id })
-      .update({ CustomOrderNumber: order.Id });
-
-    const orderItemsPromises = updatedCartItems.map(async (item) => {
-      const product = await trx("Product")
-        .where({ Id: item.ProductId })
-        .select("BoxQty", "Price")
-        .first();
-
-      if (!product) {
-        throw new Error(`Product not found for ProductId: ${item.ProductId}`);
-      }
-
-      const unitPriceExclTax =
-        product.BoxQty === 0
-          ? item.Price
-          : item.Price / product.BoxQty / (1 + taxRate);
-      const unitPriceInclTax = unitPriceExclTax * (1 + taxRate);
-      const priceInclTax = unitPriceInclTax * item.Quantity;
-      const priceExclTax = unitPriceExclTax * item.Quantity;
-
-      console.log("Item", item);
-
-      return trx("OrderItem").insert({
-        OrderItemGuid: uuidv4(),
-        OrderId: order.Id,
-        ProductId: item.ProductId,
-        Quantity: item.Quantity,
-        UnitPriceInclTax: unitPriceInclTax,
-        UnitPriceExclTax: unitPriceExclTax,
-        PriceInclTax: priceInclTax,
-        PriceExclTax: priceExclTax,
-        DiscountAmountInclTax: 0,
-        DiscountAmountExclTax: 0,
-        OriginalProductCost: item.Price,
-        AttributeDescription: "",
-        AttributesXml: "",
-        DownloadCount: 0,
-        IsDownloadActivated: 0,
-        LicenseDownloadId: null,
-        ItemWeight: 0,
-        RentalStartDateUtc: null,
-        RentalEndDateUtc: null,
-      });
+    await trx("Order").where({ Id: order.Id }).update({
+      CustomOrderNumber: order.Id,
     });
 
-    await Promise.all(orderItemsPromises);
+    const orderItems = await Promise.all(
+      updatedCartItems.map(async (item) => {
+        const product = await trx("Product")
+          .where({ Id: item.ProductId })
+          .select("Name", "ProductCost", "BoxQty")
+          .first();
 
-    // Remove items from the ShoppingCartItem table for the given customerId
-    await trx("ShoppingCartItem").where({ CustomerId: customerId }).del();
+        const unitPriceExclTax =
+          product.BoxQty && product.BoxQty > 0
+            ? item.Price / product.BoxQty
+            : item.Price;
 
-    return order;
+        const unitPriceInclTax = unitPriceExclTax * (1 + taxRate / 100);
+
+        const [orderItem] = await trx("OrderItem")
+          .insert({
+            OrderItemGuid: uuidv4(),
+            OrderId: order.Id,
+            ProductId: item.ProductId,
+            Quantity: item.Quantity,
+            UnitPriceInclTax: unitPriceInclTax,
+            UnitPriceExclTax: unitPriceExclTax,
+            PriceInclTax: item.Quantity * unitPriceInclTax,
+            PriceExclTax: item.Quantity * unitPriceExclTax,
+            DiscountAmountInclTax: 0,
+            DiscountAmountExclTax: 0,
+            OriginalProductCost: item.Price,
+            AttributeDescription: "",
+            AttributesXml: "",
+            DownloadCount: 0,
+            IsDownloadActivated: 0,
+            ItemWeight: 0,
+            RentalStartDateUtc: null,
+            RentalEndDateUtc: null,
+          })
+          .returning("*");
+
+        return orderItem;
+      })
+    );
+
+    console.log("Inserted Order Items:", orderItems);
+
+    return {
+      order,
+      orderItems,
+    };
   });
 }
 

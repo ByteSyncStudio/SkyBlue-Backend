@@ -52,6 +52,8 @@ export const getCartItemsController = async (req, res) => {
 
     const user = req.user;
 
+    console.log("User:", user);
+
     const response = await getCartItems(user);
     res.status(200).json(response);
   } catch (error) {
