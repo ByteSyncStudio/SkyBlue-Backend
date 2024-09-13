@@ -4,9 +4,9 @@ import { generateImageUrl2 } from '../../../utils/imageUtils.js';
 export async function AddProduct(product, trx) {
     try {
         const [productId] = await trx('Product').insert({
-            ProductTypeId: 5,
-            ParentGroupedProductId: 0,
-            VisibleIndividually: 1,
+            ProductTypeId: 5, //? Default
+            ParentGroupedProductId: 0, //? Default
+            VisibleIndividually: 1, //? Default
             Name: product.Name,
             ShortDescription: product.ShortDescription,
             FullDescription: product.FullDescription,
@@ -15,20 +15,20 @@ export async function AddProduct(product, trx) {
             AdminComment: product.AdminComment,
             ProductTemplateId: 1,
             VendorId: product.VendorId ?? 0,
-            ShowOnHomePage: 0,
-            AllowCustomerReviews: 1,
-            ApprovedRatingSum: 0,
-            NotApprovedRatingSum: 0,
-            ApprovedTotalReviews: 0,
-            NotApprovedTotalReviews: 0,
-            SubjectToAcl: 0,
-            LimitedToStores: 1,
-            IsGiftCard: 0,
-            GiftCardTypeId: 0,
-            RequireOtherProducts: 0,
-            AutomaticallyAddRequiredProducts: 0,
-            IsDownload: 0,
-            DownloadId: 0,
+            ShowOnHomePage: 0, //? Default
+            AllowCustomerReviews: 1, //? Default
+            ApprovedRatingSum: 0, //? Default
+            NotApprovedRatingSum: 0, //? Default
+            ApprovedTotalReviews: 0, //? Default
+            NotApprovedTotalReviews: 0, //? Default
+            SubjectToAcl: 0, //? Default
+            LimitedToStores: 1, //? Default
+            IsGiftCard: 0, //? Default
+            GiftCardTypeId: 0, //? Default
+            RequireOtherProducts: 0, //? Default
+            AutomaticallyAddRequiredProducts: 0, //? Default
+            IsDownload: 0, //? Default
+            DownloadId: 0, //? Default
             UnlimitedDownloads: 1, //? Default
             MaxNumberOfDownloads: 1, //? Default
             DownloadActivationTypeId: 0, //? Default
@@ -96,7 +96,7 @@ export async function AddProduct(product, trx) {
             UpdatedOnUtc: new Date().toISOString(),
             ItemLocation: product.ItemLocation,
             BoxQty: product.BoxQty,
-            Stock: 0,
+            Stock: 0, //? Default
         }).returning('Id')
         return productId.Id
     } catch (error) {
@@ -425,9 +425,10 @@ export async function ListSearchProducts(categoryName, productName, published, p
                 'Product.OrderMaximumQuantity',
                 'Product.StockQuantity',
                 'Product.Published',
-                'Product.Deleted'
+                'Product.Deleted',
+                'Product.UpdatedOnUTC'
             )
-            .orderBy('Product.Name');
+            .orderBy('Product.UpdatedOnUTC', 'desc');
 
         if (categoryName) {
             query = query
@@ -481,6 +482,93 @@ export async function ListSearchProducts(categoryName, productName, published, p
         console.error('Error in ListSearchProducts:', error);
         error.statusCode = 500;
         error.message = "Error in ListSearchProducts";
+        throw error;
+    }
+}
+
+/**
+ * Retrieves a single product along with its category and tier prices.
+ * 
+ * @param {number} productId - The ID of the product to retrieve.
+ * @returns {Promise<Object>} A promise that resolves to an object containing the product details, category, and tier prices.
+ */
+export async function GetProduct(productId) {
+    try {
+        // Fetch the product details
+        const product = await knex('Product')
+            .select([
+                'Product.Id',
+                'Product.Name',
+                'Product.Price',
+                'Product.HasTierPrices',
+                'Product.FullDescription',
+                'Product.ShortDescription',
+                'Product.OrderMinimumQuantity',
+                'Product.OrderMaximumQuantity',
+                'Product.StockQuantity',
+                'Product.Published',
+                'Product.Deleted',
+                'Product.CreatedOnUtc',
+                'Product.UpdatedOnUtc',
+                'Product_Picture_Mapping.PictureId',
+                'Picture.MimeType',
+                'Picture.SeoFilename'
+            ])
+            .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
+            .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
+            .where('Product.Id', productId)
+            .first();
+
+        if (!product) {
+            throw new Error(`Product with ID ${productId} not found`);
+        }
+
+        // Fetch the category details
+        const categoryMapping = await knex('Product_Category_Mapping')
+            .select('CategoryId')
+            .where('ProductId', productId)
+            .first();
+
+        let category = null;
+        if (categoryMapping) {
+            category = await knex('Category')
+                .select('Id', 'Name')
+                .where('Id', categoryMapping.CategoryId)
+                .first();
+        }
+
+        // Fetch the tier prices
+        const tierPrices = await knex('TierPrice')
+            .select('CustomerRoleId', 'Quantity', 'Price', 'StartDateTimeUtc', 'EndDateTimeUtc')
+            .where('ProductId', productId);
+
+        // Generate the image URL
+        const imageUrl = product.PictureId
+            ? generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename)
+            : null;
+
+        // Construct the response object
+        const response = {
+            Id: product.Id,
+            Name: product.Name,
+            Price: product.Price,
+            FullDescription: product.FullDescription,
+            ShortDescription: product.ShortDescription,
+            OrderMinimumQuantity: product.OrderMinimumQuantity,
+            OrderMaximumQuantity: product.OrderMaximumQuantity,
+            StockQuantity: product.StockQuantity,
+            Published: product.Published,
+            Deleted: product.Deleted,
+            CreatedOnUtc: product.CreatedOnUtc,
+            UpdatedOnUtc: product.UpdatedOnUtc,
+            ImageUrl: imageUrl,
+            Category: category,
+            TierPrices: tierPrices
+        };
+
+        return response;
+    } catch (error) {
+        console.error('Error in GetProduct:', error);
         throw error;
     }
 }

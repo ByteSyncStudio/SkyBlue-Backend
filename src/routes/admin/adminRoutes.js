@@ -17,6 +17,7 @@ import {
   updateProduct,
   deleteProduct,
   getProducts,
+  getProduct,
 } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
   getAllCustomersWithRoles,
@@ -34,7 +35,7 @@ import {
   removeDiscountFromCategory,
   removeDiscountFromProducts,
 } from "../../controllers/admin/discount/adminDiscountController.js";
-import { getAllCategories, addCategory, updateCategory, deleteCategory } from "../../controllers/admin/category/adminCategoryController.js";
+import { getAllCategories as getAllCategories_Category, addCategory, updateCategory, deleteCategory } from "../../controllers/admin/category/adminCategoryController.js";
 import { addSlider, deleteSlider, updateSlider, getSliderByType } from "../../controllers/admin/slider/adminSliderController.js";
 import { getAllCategories, getAllProducts } from "../../repositories/admin/discount/adminDiscountRepository.js";
 import { getallCustomerStats, getallOrderStats, getOrderTotals } from "../../controllers/admin/stats/adminStatsController.js";
@@ -993,7 +994,7 @@ router.post("/post-discounts", postDiscounts);
  */
 router.delete("/delete-discount/:id", deleteDiscounts);
 
-router.get("/category/all", getAllCategories);
+router.get("/category/all", getAllCategories_Category);
 
 router.post("/category/add", addCategory);
 
@@ -1002,6 +1003,8 @@ router.patch("/category/edit/:id", updateCategory);
 router.delete("/category/delete/:id", deleteCategory);
 
 router.get("/product/search", getProducts);
+
+router.get("/product/:id", getProduct);
 
 /**
  * @swagger

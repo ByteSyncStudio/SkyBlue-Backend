@@ -1,5 +1,5 @@
 import knex from "../../../config/knex.js";
-import { AddProduct, MapToCategory, AddTierPrices, AddPicture, MapProductToPicture, UpdateProduct, UpdateCategoryMapping, UpdateProductPictures, UpdateTierPrices, DeleteProduct, DeleteProductPictures, listBestsellers } from "../../../repositories/admin/product/adminProductRepository.js";
+import { AddProduct, MapToCategory, AddTierPrices, AddPicture, MapProductToPicture, UpdateProduct, UpdateCategoryMapping, UpdateProductPictures, UpdateTierPrices, DeleteProduct, DeleteProductPictures, listBestsellers, GetProduct } from "../../../repositories/admin/product/adminProductRepository.js";
 import multer from 'multer';
 import { queueFileUpload } from '../../../config/ftpsClient.js';
 import { ListSearchProducts } from "../../../repositories/admin/product/adminProductRepository.js";
@@ -235,6 +235,17 @@ export async function getProducts(req, res) {
         const { category, product, published, size, page } = req.query
         const result = await ListSearchProducts(category, product, parseInt(published), parseInt(page) || 1, parseInt(size) || 10)
         res.status(200).send(result);
+    } catch (error) {
+        console.error(error);
+        res.status(error.statusCode || 500).send(error.message || 'Server error');
+    }
+}
+
+export async function getProduct(req, res) {
+    const productId = req.params.id;
+    try {
+        const result = await GetProduct(productId)
+        res.status(200).send(result)
     } catch (error) {
         console.error(error);
         res.status(error.statusCode || 500).send(error.message || 'Server error');
