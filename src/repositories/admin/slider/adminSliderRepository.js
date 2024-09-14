@@ -5,6 +5,7 @@ export async function AddSlider(slider, trx) {
         const [sliderId] = await trx('Slider').insert({
             Type: slider.type,
             DisplayOrder: slider.displayOrder,
+            Link: slider.link
         }).returning('Id');
         return sliderId.Id;
     } catch (error) {
@@ -55,19 +56,36 @@ export async function UpdateSlider(sliderId, updateData, trx) {
     try {
         const updateFields = {};
 
-        // Dynamically add fields to updateFields if they are present in updateData
-        for (const key in updateData) {
-            if (updateData.hasOwnProperty(key)) {
-                updateFields[key] = updateData[key];
+        // Ensure updateData is an object
+        if (typeof updateData === 'object' && updateData !== null) {
+            // Dynamically add fields to updateFields if they are present in updateData
+            for (const key in updateData) {
+                if (Object.prototype.hasOwnProperty.call(updateData, key)) {
+                    let newKey = key.charAt(0).toUpperCase() + key.slice(1);
+                    if (key === 'link') {
+                        newKey = 'Link';
+                    } else if (key === 'image') {
+                        newKey = 'Image';
+                    } else if (key === 'displayOrder') {
+                        newKey = 'DisplayOrder';
+                    } else if (key === 'pictureId') {
+                        // Handle the new pictureId separately
+                        await trx('Slider_Picture_Mapping')
+                            .where({ SliderId: sliderId })
+                            .update({ PictureId: updateData[key] });
+                        continue; // Skip adding pictureId to updateFields
+                    }
+                    updateFields[newKey] = updateData[key];
+                }
             }
         }
 
-        // Perform the update
-        await trx('Slider')
-            .where({ Id: sliderId })
-            .update({
-                ...updateFields,
-            });
+        // Only perform the update if there are fields to update
+        if (Object.keys(updateFields).length > 0) {
+            await trx('Slider')
+                .where({ Id: sliderId })
+                .update(updateFields);
+        }
 
         console.log('Slider updated with ID:', sliderId);
     } catch (error) {
@@ -82,7 +100,8 @@ export async function GetSliderByType(type) {
             .join('Slider_Picture_Mapping', 'Slider.Id', 'Slider_Picture_Mapping.SliderId')
             .join('Picture', 'Slider_Picture_Mapping.PictureId', 'Picture.Id')
             .select('Slider.Id as SliderId', 'Slider.DisplayOrder', 'Slider.Link', 'Picture.Id as PictureId', 'Picture.MimeType')
-            .where('Slider.Type', type);
+            .where('Slider.Type', type)
+            .orderBy('Slider.Id', 'desc');
 
         return sliders.map(slider => {
             const formattedId = slider.PictureId.toString().padStart(7, '0');

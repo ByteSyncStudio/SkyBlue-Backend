@@ -137,6 +137,8 @@ export const updateProduct = [
             ...productData // All other fields go into productData
         } = req.body;
 
+        console.log(`Price1: ${Price1}, typeof: ${typeof(Role1)}`)
+
         const files = req.files;
         const seoFilenamesArray = SeoFilenames ? SeoFilenames.split(',').map(name => name.trim()) : [];
 
