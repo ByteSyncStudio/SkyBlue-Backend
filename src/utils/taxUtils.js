@@ -10,14 +10,22 @@ async function calculateTotalPriceWithTax(customerEmail, cartItems) {
     // Fetch customer address details based on email
     const address = await knex("Address")
       .where("Email", email) // Ensure email is treated as a string
-      .select("StateProvinceId")
+      .select("StateProvinceId", "CountryId")
       .first();
 
     if (!address) {
       throw new Error("Address not found for the given email.");
     }
 
-    const { StateProvinceId } = address;
+    const { StateProvinceId, CountryId } = address;
+
+    if (!StateProvinceId) {
+      throw new Error("State province ID not found in the address. Please add your state/province.");
+    }
+
+    if (!CountryId) {
+      throw new Error("Country ID not found in the address. Please add your country.");
+    }
 
     // Fetch state province details
     const stateProvince = await knex("StateProvince")
@@ -28,8 +36,6 @@ async function calculateTotalPriceWithTax(customerEmail, cartItems) {
     if (!stateProvince) {
       throw new Error("State province not found.");
     }
-
-    const { CountryId } = stateProvince;
 
     // Fetch tax rate based on state province and country
     const taxRate = await knex("TaxRate")
@@ -46,6 +52,8 @@ async function calculateTotalPriceWithTax(customerEmail, cartItems) {
     let totalPrice = 0;
     cartItems.forEach((item) => {
       let itemPrice;
+
+      console.log("Item:", item);
 
       // Use FinalPrice if there's a discount, otherwise use Price
       if (item.Discount && item.Discount > 0) {
