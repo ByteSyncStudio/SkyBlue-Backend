@@ -262,6 +262,12 @@ async function createCheckoutOrder(
 
     console.log("Inserted Order Items:", orderItems);
 
+    // Delete items from the shopping cart
+    await trx("ShoppingCartItem")
+      .where({ CustomerId: customerId })
+      .del();
+
+
     return {
       order,
       orderItems,
