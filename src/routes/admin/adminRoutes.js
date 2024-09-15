@@ -84,7 +84,7 @@ const router = express.Router();
  *       500:
  *         description: Internal server error
  */
-router.post('/login', adminAccess, adminLogin);
+router.post('/login', adminLogin);
 
 router.use(authenticateToken);
 
