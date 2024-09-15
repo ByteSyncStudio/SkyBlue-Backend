@@ -1,48 +1,77 @@
 import knex from "../../../config/knex.js";
 
-// Function to fetch order stats based on the filter
-export const GetallOrderStats = async (filter) => {
+//get stats
+export const GetStats = async () => {
   try {
-    let dateRange = getDateRange(filter);
-
-    // Query to get total number of orders within the date range
-    const orderCount = await knex('dbo.Order')
-      .whereBetween('CreatedonUtc', [dateRange.start, dateRange.end])
-      .count('Id as totalOrders')
-      .first();
+    const [totalCustomers, registeredCustomers, totalOrders, newOrders] =
+      await Promise.all([
+        knex("dbo.Customer").count("Id as totalCustomers").first(),
+        knex("dbo.Customer")
+          .where("Deleted", false)
+          .count("Id as registeredCustomers")
+          .first(),
+        knex("dbo.Order").count("Id as totalOrders").first(),
+        knex("dbo.Order")
+          .where(
+            "CreatedOnUtc",
+            ">=",
+            new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+          )
+          .count("Id as newOrders")
+          .first(),
+      ]);
 
     return {
-      totalOrders: orderCount.totalOrders,
-      dateRange: dateRange,  // Returning the date range for reference
+      totalCustomers: totalCustomers.totalCustomers,
+      registeredCustomers: registeredCustomers.registeredCustomers,
+      totalOrders: totalOrders.totalOrders,
+      newOrders: newOrders.newOrders,
     };
   } catch (error) {
-    console.error("Error fetching order stats:", error);
-    throw new Error("Failed to fetch order stats");
-  }
-};
-
-// Function to fetch customer stats based on the filter
-export const GetallCustomerStats = async (filter) => {
-  try {
-    let dateRange = getDateRange(filter);
-
-    // Query to get total number of customers within the date range
-    const customerCount = await knex('dbo.Customer')
-      .whereBetween('CreatedonUtc', [dateRange.start, dateRange.end])
-      .count('Id as totalCustomers')
-      .first();
-
-    return {
-      totalCustomers: customerCount.totalCustomers,
-      dateRange: dateRange,  // Returning the date range for reference
-    };
-  } catch (error) {
-    console.error("Error fetching customer stats:", error);
-    throw new Error("Failed to fetch customer stats");
+    console.error("Error fetching stats:", error);
+    throw new Error("Failed to fetch stats");
   }
 };
 
 export const GetOrderTotals = async () => {
+  try {
+    const endDate = new Date();
+    const ranges = {
+      today: [new Date().setHours(0, 0, 0, 0), endDate],
+      week: [
+        new Date(
+          new Date().setDate(endDate.getDate() - endDate.getDay() + 1)
+        ).setHours(0, 0, 0, 0),
+        endDate,
+      ],
+      month: [new Date(endDate.getFullYear(), endDate.getMonth(), 1), endDate],
+      year: [new Date(endDate.getFullYear(), 0, 1), endDate],
+    };
+
+    const totals = await Promise.all(
+      Object.entries(ranges).map(async ([key, [startDate, endDate]]) => {
+        const result = await knex("dbo.Order")
+          .whereBetween("CreatedOnUtc", [new Date(startDate).toISOString(), new Date(endDate).toISOString()])
+          .sum("OrderTotal as totalOrderAmount")
+          .first();
+        return { [key]: result.totalOrderAmount || 0 };
+      })
+    );
+
+    const totalAllTime = await knex("dbo.Order")
+      .sum("OrderTotal as totalOrderAmount")
+      .first();
+
+    return totals.reduce((acc, curr) => ({ ...acc, ...curr }), {
+      allTime: totalAllTime.totalOrderAmount || 0,
+    });
+  } catch (error) {
+    console.error("Error fetching order totals:", error);
+    throw error;
+  }
+};
+
+export const GetValueOrders = async () => {
   try {
     const endDate = new Date(); // End of the current day
 
@@ -63,64 +92,241 @@ export const GetOrderTotals = async () => {
     // This year
     const yearStart = new Date(endDate.getFullYear(), 0, 1); // Beginning of this year
 
-    // Helper function to get totals for a given date range
-    const getTotalsForRange = async (startDate, endDate) => {
-      return await knex('dbo.Order')
-        .whereBetween('CreatedOnUtc', [startDate, endDate])
-        .select(
-          knex.raw('SUM(OrderTotal) as totalOrderAmount'),
-          knex.raw('SUM(OrderTotal + OrderTax) as totalOrderAmountWithTax')
-        )
+    // Helper function to get counts for a given date range
+    const getCountsForRange = async (startDate, endDate) => {
+      const result = await knex("dbo.Order")
+        .whereBetween("CreatedOnUtc", [startDate, endDate])
+        .count("Id as totalOrders")
         .first();
+      return result.totalOrders || 0;
     };
 
-    // Fetch totals for today
-    const totalToday = await getTotalsForRange(todayStart, endDate);
+    // Fetch counts for today
+    const totalToday = await getCountsForRange(todayStart, endDate);
 
-    // Fetch totals for this week
-    const totalWeek = await getTotalsForRange(weekStart, endDate);
+    // Fetch counts for this week
+    const totalWeek = await getCountsForRange(weekStart, endDate);
 
-    // Fetch totals for this month
-    const totalMonth = await getTotalsForRange(monthStart, endDate);
+    // Fetch counts for this month
+    const totalMonth = await getCountsForRange(monthStart, endDate);
 
-    // Fetch totals for this year
-    const totalYear = await getTotalsForRange(yearStart, endDate);
+    // Fetch counts for this year
+    const totalYear = await getCountsForRange(yearStart, endDate);
 
-    // Return all the totals
+    // Return all the counts
     return {
-      today: totalToday || { totalOrderAmount: 0, totalOrderAmountWithTax: 0 },
-      thisWeek: totalWeek || { totalOrderAmount: 0, totalOrderAmountWithTax: 0 },
-      thisMonth: totalMonth || { totalOrderAmount: 0, totalOrderAmountWithTax: 0 },
-      thisYear: totalYear || { totalOrderAmount: 0, totalOrderAmountWithTax: 0 },
+      today: totalToday,
+      thisWeek: totalWeek,
+      thisMonth: totalMonth,
+      thisYear: totalYear,
     };
   } catch (error) {
-    console.error("Error fetching order totals with tax:", error);
+    console.error("Error fetching order counts:", error);
+    throw error;
+  }
+};
+
+//getting active customers
+
+
+export const GetActiveCustomers = async () => {
+  try {
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 8);
+  
+
+    // Fetch the top 150 most recent active customers with an email who registered in the past 6 months
+    const customers = await knex("dbo.Customer")
+      .select("Id", "Email")
+      .where({ IsApproved: 1 })
+      .whereNotNull("Email") // Ensure the email field is not null
+      .andWhere("CreatedOnUtc", ">=", sixMonthsAgo)
+      .orderBy("CreatedOnUtc", "desc")
+      .limit(150);
+
+    // Fetch orders and order items for each customer
+    const customerDetails = await Promise.all(
+      customers.map(async (customer) => {
+        // Fetch orders for the customer
+        const orders = await knex("dbo.Order")
+          .select("Id", "OrderSubtotalExclTax")
+          .where({ CustomerId: customer.Id });
+
+        // If the customer has no orders, return null
+        if (orders.length === 0) {
+          return null;
+        }
+
+        // Fetch order items for each order
+        const orderDetails = await Promise.all(
+          orders.map(async (order) => {
+            const orderItems = await knex("dbo.OrderItem")
+              .select("Quantity")
+              .where({ OrderId: order.Id });
+
+            // Calculate total quantity from order items
+            const totalQuantity = orderItems.reduce(
+              (sum, item) => sum + item.Quantity,
+              0
+            );
+
+            return {
+              orderId: order.Id,
+              orderSubtotalExclTax: order.OrderSubtotalExclTax,
+              totalQuantity,
+            };
+          })
+        );
+
+        return {
+          Email: customer.Email,
+          orders: orderDetails,
+          length: orderDetails.length,
+        };
+      })
+    );
+
+    // Filter out null values (customers with no orders)
+    const filteredCustomerDetails = customerDetails.filter(
+      (customer) => customer !== null
+    );
+
+    return filteredCustomerDetails;
+  } catch (error) {
+    console.error("Error fetching active customers:", error);
     throw error;
   }
 };
 
 
-// Utility function to get the start and end date range for week, month, or year
-const getDateRange = (filter) => {
-  const today = new Date();
-  let start, end;
+export const GetNewCustomers = async () => {
+  try {
+    const endDate = new Date(); // End of the current day
 
-  switch (filter) {
-    case 'year':
-      start = new Date(today.getFullYear(), 0, 1);  // January 1st
-      end = new Date(today.getFullYear(), 11, 31);  // December 31st
-      break;
-    case 'month':
-      start = new Date(today.getFullYear(), today.getMonth(), 1);  // First day of the current month
-      end = new Date(today.getFullYear(), today.getMonth() + 1, 0);  // Last day of the current month
-      break;
-    case 'week':
-    default:
-      const startOfWeek = today.getDate() - today.getDay();  // Subtract days to get Sunday
-      start = new Date(today.setDate(startOfWeek));
-      end = new Date(today.setDate(startOfWeek + 6));  // Add 6 days to get Saturday
-      break;
+    // Define date ranges
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const monthStart = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(endDate.getMonth() - 3);
+
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(endDate.getMonth() - 6);
+
+    const yearStart = new Date(endDate.getFullYear(), 0, 1);
+
+    // Helper function to get counts for a given date range
+    const getCountForRange = async (startDate, endDate) => {
+      const result = await knex("dbo.Customer")
+        .whereBetween("CreatedOnUtc", [startDate, endDate])
+        .count("Id as totalCustomers")
+        .first();
+      return result.totalCustomers || 0;
+    };
+
+    // Fetch counts for today
+    const totalToday = await getCountForRange(todayStart, endDate);
+
+    // Fetch counts for this month
+    const totalMonth = await getCountForRange(monthStart, endDate);
+
+    // Fetch counts for the last 3 months
+    const totalThreeMonths = await getCountForRange(threeMonthsAgo, endDate);
+
+    // Fetch counts for the past 6 months
+    const totalSixMonths = await getCountForRange(sixMonthsAgo, endDate);
+
+    // Fetch counts for this year
+    const totalYear = await getCountForRange(yearStart, endDate);
+
+    // Return all the counts
+    return {
+      today: totalToday,
+      thisMonth: totalMonth,
+      lastThreeMonths: totalThreeMonths,
+      lastSixMonths: totalSixMonths,
+      thisYear: totalYear,
+    };
+  } catch (error) {
+    console.error('Error fetching new customers:', error);
+    throw new Error('Failed to fetch new customers');
   }
+};
 
-  return { start, end };
+
+
+export const GetBestSellersByQuantity = async () => {
+  try {
+    // Fetch best sellers by quantity
+    const bestSellersByQuantity = await knex('dbo.OrderItem')
+      .select('ProductId')
+      .sum('Quantity as TotalQuantity')  // Sum total quantity for each product
+      .groupBy('ProductId')
+      .orderBy('TotalQuantity', 'desc')
+      .limit(30); // Adjust limit as needed
+
+    // Extract product IDs
+    const productIds = bestSellersByQuantity.map(item => item.ProductId);
+
+    // Fetch product details
+    const products = await knex('dbo.Product')
+      .select('Id', 'Name')
+      .whereIn('Id', productIds);
+
+    // Create a map of product details for quick lookup
+    const productMap = new Map(products.map(product => [product.Id, product.Name]));
+
+    // Enrich best sellers by quantity with product names and total quantity
+    const enrichedBestSellersByQuantity = bestSellersByQuantity.map(item => ({
+      ProductId: item.ProductId,
+      Quantity: item.TotalQuantity,  // Total quantity sold for the product
+      Name: productMap.get(item.ProductId) || 'Unknown',  // Get the product name or use 'Unknown'
+    }));
+
+    return enrichedBestSellersByQuantity;
+  } catch (error) {
+    console.error("Error fetching best sellers by quantity:", error);
+    throw error;
+  }
+};
+
+
+
+export const GetBestSellerByAmount = async (req, res) => {
+  try {
+    // Fetch best sellers by amount and quantity
+    const bestSellersByAmount = await knex('dbo.OrderItem')
+      .select('ProductId')
+      .sum('PriceExclTax as TotalAmount')
+      .sum('Quantity as TotalQuantity')  // Add total quantity
+      .groupBy('ProductId')
+      .orderBy('TotalAmount', 'desc')
+      .limit(500); // Adjust limit as needed
+
+    // Extract product IDs
+    const productIds = bestSellersByAmount.map(item => item.ProductId);
+
+    // Fetch product details
+    const products = await knex('dbo.Product')
+      .select('Id', 'Name')
+      .whereIn('Id', productIds);
+
+    // Create a map of product details for quick lookup
+    const productMap = new Map(products.map(product => [product.Id, product.Name]));
+
+    // Enrich best sellers by amount with product names and quantities
+    const enrichedBestSellersByAmount = bestSellersByAmount.map(item => ({
+      ProductId: item.ProductId,
+      Amount: item.TotalAmount,
+      Quantity: item.TotalQuantity,  // Include total quantity
+      Name: productMap.get(item.ProductId) || 'Unknown',
+    }));
+
+    return enrichedBestSellersByAmount;
+  } catch (error) {
+    console.error("Error fetching best sellers by amount:", error);
+    throw error;
+  }
 };

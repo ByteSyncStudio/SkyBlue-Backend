@@ -1,12 +1,22 @@
-import { GetallCustomerStats, GetallOrderStats, GetOrderTotals } from "../../../repositories/admin/stats/adminStatsRepositories.js";
+import {  GetActiveCustomers, GetBestSellerByAmount, GetBestSellersByQuantity, GetNewCustomers, GetOrderTotals, GetStats, GetValueOrders } from "../../../repositories/admin/stats/adminStatsRepositories.js";
 
-export const getallOrderStats = async (req, res) => {
+
+//getting stats for heaader
+export const getStats = async (req, res) => {
   try {
-    // Get filter options from query parameters (default to 'week')
-    const filter = req.query.filter || 'week';
-    
-    // Call the repository function to fetch data based on the filter
-    const orderStats = await GetallOrderStats(filter);
+    const stats = await GetStats();
+    res.json(stats);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+//getting stats for Orders in amount
+export const getOrderStats= async (req, res) => {
+  try {
+    // Call the repository function to fetch data
+    const orderStats = await GetOrderTotals();
 
     res.status(200).json({ success: true, data: orderStats });
   } catch (error) {
@@ -15,35 +25,54 @@ export const getallOrderStats = async (req, res) => {
   }
 }
 
-export const getallCustomerStats = async (req, res) => {
+//getting stats of how much Orders in values
+export const getValueOrders = async (req, res) => {
   try {
-    // Get filter options from query parameters (default to 'week')
-    const filter = req.query.filter || 'week';
-
-    // Call the repository function to fetch data based on the filter
-    const customerStats = await GetallCustomerStats(filter);
-
-    res.status(200).json({ success: true, data: customerStats });
+    const orderValues = await GetValueOrders()
+    res.status(200).json({ success: true, values: orderValues });
   } catch (error) {
-    console.log("Error on getting Customers");
-    res.status(500).json({ success: false, message: "Failed to fetch customer stats" });
+    console.log("Erroor");
   }
 }
 
-export const getOrderTotals = async (req, res) => {
+//getting stats of active customers
+export const getActiveCustomers = async (req, res) => {
   try {
-    // Get totals for today, week, month, and year
-    const totals = await GetOrderTotals();
-
-    res.status(200).json({
-      success: true,
-      totals,
-    });
+    const activeCustomers = await GetActiveCustomers();
+    res.json(activeCustomers);
   } catch (error) {
-    console.log("Error fetching order totals with tax:", error);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error.",
-    });
+    console.error("Error fetching active customers:", error);
+    res.status(500).json({ error: "Failed to retrieve active customers." });
   }
 };
+
+//getting stats of new customers ac to year month and day
+export const getNewCustomers = async (req, res) => {
+  try {
+    const result = await GetNewCustomers();
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching new customers:', error);
+    res.status(500).json({ error: 'Failed to fetch new customers' });
+  }
+}
+
+//getting stats of best sellers
+
+export const getBestSellerByQunatity = async (req, res) => {
+  try {
+    const data = await GetBestSellersByQuantity();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch best sellers by quantity' });
+  }
+}
+
+export const getBestSellerByAmount = async (req, res) => {
+  try {
+    const data = await GetBestSellerByAmount();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch best sellers by amount' });
+  }
+}

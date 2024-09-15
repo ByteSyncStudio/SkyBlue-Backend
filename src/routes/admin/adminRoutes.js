@@ -38,8 +38,19 @@ import {
 } from "../../controllers/admin/discount/adminDiscountController.js";
 import { getAllCategories as getAllCategories_Category, addCategory, updateCategory, deleteCategory } from "../../controllers/admin/category/adminCategoryController.js";
 import { addSlider, deleteSlider, updateSlider, getSliderByType } from "../../controllers/admin/slider/adminSliderController.js";
-import { getAllCategories, getAllProducts } from "../../repositories/admin/discount/adminDiscountRepository.js";
-import { getallCustomerStats, getallOrderStats, getOrderTotals } from "../../controllers/admin/stats/adminStatsController.js";
+import {
+  getAllCategories,
+  getAllProducts,
+} from "../../repositories/admin/discount/adminDiscountRepository.js";
+import {
+  getActiveCustomers,
+  getBestSellerByAmount,
+  getBestSellerByQunatity,
+  getNewCustomers,
+  getOrderStats,
+  getStats,
+  getValueOrders,
+} from "../../controllers/admin/stats/adminStatsController.js";
 import { adminLogin } from "../../controllers/admin/auth/adminLoginController.js";
 
 const router = express.Router();
@@ -1146,7 +1157,6 @@ router.patch("/slider/:sliderId", updateSlider);
  */
 router.get("/slider/:type", getSliderByType);
 
-
 /**
  * @swagger
  * /admin/allProductForDiscount:
@@ -1313,7 +1323,10 @@ router.post("/applyDiscountToCategory/:discountId", applyDiscountToCategory);
  *       500:
  *         description: Internal server error
  */
-router.post("/removeDiscountFromProduct/:discountId", removeDiscountFromProducts);
+router.post(
+  "/removeDiscountFromProduct/:discountId",
+  removeDiscountFromProducts
+);
 
 /**
  * @swagger
@@ -1350,47 +1363,20 @@ router.post("/removeDiscountFromProduct/:discountId", removeDiscountFromProducts
  *       500:
  *         description: Internal server error
  */
-router.post("/removeDiscountFromCategory/:discountId", removeDiscountFromCategory);
+router.post(
+  "/removeDiscountFromCategory/:discountId",
+  removeDiscountFromCategory
+);
 
 /**
  * @swagger
- * /admin/ordersStats:
+ * /admin/stats:
  *   get:
- *     summary: Retrieve statistics for all orders
+ *     summary: Retrieve various statistics
  *     tags: [Admin]
  *     responses:
  *       200:
- *         description: Order statistics data
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 totalOrders:
- *                   type: integer
- *                   example: 1234
- *                 totalRevenue:
- *                   type: number
- *                   format: float
- *                   example: 56789.00
- *                 averageOrderValue:
- *                   type: number
- *                   format: float
- *                   example: 45.67
- *       500:
- *         description: Internal server error
- */
-router.get("/ordersStats", getallOrderStats);
-
-/**
- * @swagger
- * /admin/customersStats:
- *   get:
- *     summary: Retrieve statistics for all customers
- *     tags: [Admin]
- *     responses:
- *       200:
- *         description: Customer statistics data
+ *         description: Statistics retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -1398,44 +1384,214 @@ router.get("/ordersStats", getallOrderStats);
  *               properties:
  *                 totalCustomers:
  *                   type: integer
- *                   example: 5678
- *                 activeCustomers:
+ *                   example: 1000
+ *                 registeredCustomers:
  *                   type: integer
- *                   example: 2345
- *                 newCustomersThisMonth:
+ *                   example: 800
+ *                 totalOrders:
  *                   type: integer
- *                   example: 123
+ *                   example: 5000
+ *                 newOrders:
+ *                   type: integer
+ *                   example: 50
  *       500:
  *         description: Internal server error
  */
-router.get("/customersStats", getallCustomerStats);
+router.get("/stats", getStats);
 
 /**
  * @swagger
- * /admin/orderTotals:
+ * /admin/orderStats:
  *   get:
- *     summary: Retrieve the total number of orders and revenue
+ *     summary: Retrieve order statistics
  *     tags: [Admin]
  *     responses:
  *       200:
- *         description: Total orders and revenue data
+ *         description: Order statistics retrieved successfully
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 totalOrders:
+ *                 today:
  *                   type: integer
- *                   example: 1234
- *                 totalRevenue:
- *                   type: number
- *                   format: float
- *                   example: 56789.00
+ *                   example: 10
+ *                 thisWeek:
+ *                   type: integer
+ *                   example: 50
+ *                 thisMonth:
+ *                   type: integer
+ *                   example: 200
+ *                 thisYear:
+ *                   type: integer
+ *                   example: 2400
+ *                 allTime:
+ *                   type: integer
+ *                   example: 10000
  *       500:
  *         description: Internal server error
  */
-router.get("/orderTotals", getOrderTotals);
+router.get("/orderStats", getOrderStats);
+
+/**
+ * @swagger
+ * /admin/orderValue:
+ *   get:
+ *     summary: Retrieve the number of orders
+ *     tags: [Admin]
+ *     responses:
+ *       200:
+ *         description: Number of orders retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 today:
+ *                   type: integer
+ *                   example: 10
+ *                 thisWeek:
+ *                   type: integer
+ *                   example: 50
+ *                 thisMonth:
+ *                   type: integer
+ *                   example: 200
+ *                 thisYear:
+ *                   type: integer
+ *                   example: 2400
+ *                 allTime:
+ *                   type: integer
+ *                   example: 10000
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/orderValue", getValueOrders);
+
+/**
+ * @swagger
+ * /admin/activeCustomers:
+ *   get:
+ *     summary: Retrieve a list of active customers
+ *     tags: [Admin]
+ *     responses:
+ *       200:
+ *         description: A list of active customers
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                     example: 1
+ *                   email:
+ *                     type: string
+ *                     example: user@example.com
+ *                   firstName:
+ *                     type: string
+ *                     example: John
+ *                   lastName:
+ *                     type: string
+ *                     example: Doe
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/activeCustomers", getActiveCustomers);
+
+/**
+ * @swagger
+ * /admin/newCustomers:
+ *   get:
+ *     summary: Retrieve a list of new customers
+ *     tags: [Admin]
+ *     responses:
+ *       200:
+ *         description: A list of new customers
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                     example: 1
+ *                   email:
+ *                     type: string
+ *                     example: user@example.com
+ *                   firstName:
+ *                     type: string
+ *                     example: John
+ *                   lastName:
+ *                     type: string
+ *                     example: Doe
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/newCustomers", getNewCustomers);
 
 
+/**
+ * @swagger
+ * /admin/bestSellerByAmount:
+ *   get:
+ *     summary: Retrieve the best-selling products by amount
+ *     tags: [Admin]
+ *     responses:
+ *       200:
+ *         description: Best-selling products by amount retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   productId:
+ *                     type: integer
+ *                     example: 1
+ *                   productName:
+ *                     type: string
+ *                     example: "Product Name"
+ *                   totalAmount:
+ *                     type: number
+ *                     example: 1000.50
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/bestSellerByAmount", getBestSellerByAmount);
+
+/**
+ * @swagger
+ * /admin/bestSellerByQuantity:
+ *   get:
+ *     summary: Retrieve the best-selling products by quantity
+ *     tags: [Admin]
+ *     responses:
+ *       200:
+ *         description: Best-selling products by quantity retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   productId:
+ *                     type: integer
+ *                     example: 1
+ *                   productName:
+ *                     type: string
+ *                     example: "Product Name"
+ *                   totalQuantity:
+ *                     type: integer
+ *                     example: 100
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/bestSellerByQuantity", getBestSellerByQunatity);
 
 export default router;
