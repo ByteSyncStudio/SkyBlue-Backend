@@ -506,6 +506,10 @@ export async function GetFlatCategories() {
     try {
         const result = await knex('Category')
         .select("*")
+        .where({
+            Deleted: 0,
+            Published: 1
+        })
         return result
     } catch (error) {
         console.error("Error deleting discount mapping:\n", error);
