@@ -147,3 +147,9 @@ export async function RemoveDiscountFromCategory(discountId, categoryIds) {
 
   console.log(`Discount ID ${discountId} removed from categories: ${categoryIds}`);
 }
+
+
+export async function GetDiscountWithTypes(typeId) {
+  return await knex('Discount')
+  .where('DiscountTypeId', typeId)
+}

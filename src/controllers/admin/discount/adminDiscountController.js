@@ -1,4 +1,4 @@
-import { ApplyDiscountToCategory, ApplyDiscountToProducts, DeleteDiscount, GetAllDiscounts, GetSubCategoryDiscounts, PostDiscounts, RemoveDiscountFromCategory, RemoveDiscountFromProducts } from "../../../repositories/admin/discount/adminDiscountRepository.js";
+import { ApplyDiscountToCategory, ApplyDiscountToProducts, DeleteDiscount, GetAllDiscounts, GetDiscountWithTypes, GetSubCategoryDiscounts, PostDiscounts, RemoveDiscountFromCategory, RemoveDiscountFromProducts } from "../../../repositories/admin/discount/adminDiscountRepository.js";
 
 // Controller to get all discounts
 export const getAllDiscounts = async (req, res) => {
@@ -191,3 +191,36 @@ export const removeDiscountFromCategory = async (req, res) => {
   }
 };
 
+export async function getDiscountWithTypes(req, res) {
+  try {
+    const type = req.params.type;
+    let typeId;
+
+    switch (type) {
+      case "product":
+        typeId = 2;
+        break;
+      case "category":
+        typeId = 5;
+        break;
+      case "order":
+        typeId = 1;
+        break;
+      default:
+        return res.status(400).json({
+          success: false,
+          message: "Invalid discount type provided.",
+        });
+    }
+
+    console.log(`Fetching discounts for type: ${type} with typeId: ${typeId}`);
+    const result = await GetDiscountWithTypes(typeId);
+    res.status(200).send(result);
+  } catch (error) {
+    console.error("Error fetching discount with types:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to get discount.",
+    });
+  }
+}

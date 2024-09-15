@@ -30,6 +30,7 @@ import {
   applyDiscountToProducts,
   deleteDiscounts,
   getAllDiscounts,
+  getDiscountWithTypes,
   getSubCategoryDiscounts,
   postDiscounts,
   removeDiscountFromCategory,
@@ -39,8 +40,39 @@ import { getAllCategories as getAllCategories_Category, addCategory, updateCateg
 import { addSlider, deleteSlider, updateSlider, getSliderByType } from "../../controllers/admin/slider/adminSliderController.js";
 import { getAllCategories, getAllProducts } from "../../repositories/admin/discount/adminDiscountRepository.js";
 import { getallCustomerStats, getallOrderStats, getOrderTotals } from "../../controllers/admin/stats/adminStatsController.js";
+import { adminLogin } from "../../controllers/admin/auth/adminLoginController.js";
 
 const router = express.Router();
+
+
+/**
+ * @swagger
+ * /admin/login:
+ *   post:
+ *     summary: Admin login
+ *     tags: [Admin]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *       401:
+ *         description: Invalid email or password
+ *       403:
+ *         description: Access denied
+ *       500:
+ *         description: Internal server error
+ */
+router.post('/login', adminLogin);
 
 /**
  * @swagger
@@ -927,6 +959,7 @@ router.get("/alldiscounts", getAllDiscounts);
  */
 router.get("/discount/subcategories", getSubCategoryDiscounts);
 
+router.get("/discount/:type", getDiscountWithTypes);
 /**
  * @swagger
  * /post-discounts:

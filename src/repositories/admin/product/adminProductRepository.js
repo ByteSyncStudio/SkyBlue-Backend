@@ -312,6 +312,46 @@ export async function DeleteProduct(productId) {
     });
 }
 
+export async function MapDiscountToProduct(productId, discountId, trx) {
+    try {
+        await trx('Discount_AppliedToProducts').insert({
+            Discount_Id: discountId,
+            Product_Id: productId
+        });
+    } catch (error) {
+        console.error("Error mapping discount to product:\n", error);
+        throw error;
+    }
+}
+
+export async function UpdateDiscountMapping(productId, discountId, trx) {
+    try {
+        // Delete existing discount mappings for the product
+        await trx('Discount_AppliedToProducts')
+            .where('Product_Id', productId)
+            .del();
+
+        // Only insert a new mapping if discountId is not 0
+        if (discountId !== 0) {
+            await MapDiscountToProduct(productId, discountId, trx);
+        }
+    } catch (error) {
+        console.error("Error updating discount mapping:\n", error);
+        throw error;
+    }
+}
+
+export async function DeleteDiscountMapping(productId, trx) {
+    try {
+        await trx('Discount_AppliedToProducts')
+            .where('Product_Id', productId)
+            .del();
+    } catch (error) {
+        console.error("Error deleting discount mapping:\n", error);
+        throw error;
+    }
+}
+
 /**
 * * Retrieves a list of best-selling products sorted by a specified criterion.*
 * **
@@ -467,8 +507,6 @@ export async function ListSearchProducts(categoryName, productName, published, p
                 : null
         }));
 
-        console.log('Number of products retrieved:', productsWithImageUrls.length);
-
         const totalItems = productsWithImageUrls.length > 0 ? productsWithImageUrls[0].total_count : 0;
         const totalPages = Math.ceil(totalItems / size);
 
@@ -542,6 +580,9 @@ export async function GetProduct(productId) {
             .select('CustomerRoleId', 'Quantity', 'Price', 'StartDateTimeUtc', 'EndDateTimeUtc')
             .where('ProductId', productId);
 
+        const discount = await knex('Discount_AppliedToProducts')
+        .where('Product_Id', productId)
+
         // Generate the image URL
         const imageUrl = product.PictureId
             ? generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename)
@@ -563,7 +604,8 @@ export async function GetProduct(productId) {
             UpdatedOnUtc: product.UpdatedOnUtc,
             ImageUrl: imageUrl,
             Category: category,
-            TierPrices: tierPrices
+            TierPrices: tierPrices,
+            Discount: discount
         };
 
         return response;

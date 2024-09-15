@@ -1,5 +1,5 @@
 import knex from "../../../config/knex.js";
-import { AddProduct, MapToCategory, AddTierPrices, AddPicture, MapProductToPicture, UpdateProduct, UpdateCategoryMapping, UpdateProductPictures, UpdateTierPrices, DeleteProduct, DeleteProductPictures, listBestsellers, GetProduct } from "../../../repositories/admin/product/adminProductRepository.js";
+import { AddProduct, MapToCategory, AddTierPrices, AddPicture, MapProductToPicture, UpdateProduct, UpdateCategoryMapping, UpdateProductPictures, UpdateTierPrices, DeleteProduct, DeleteProductPictures, listBestsellers, GetProduct, MapDiscountToProduct, UpdateDiscountMapping, DeleteDiscountMapping } from "../../../repositories/admin/product/adminProductRepository.js";
 import multer from 'multer';
 import { queueFileUpload } from '../../../config/ftpsClient.js';
 import { ListSearchProducts } from "../../../repositories/admin/product/adminProductRepository.js";
@@ -39,11 +39,12 @@ export const addProduct = [
             OrderMaximumQuantity,
             CategoryId,
             StockQuantity,
-            SeoFilenames // Array of SEO filenames for pictures
+            SeoFilenames, // Array of SEO filenames for pictures
+            DiscountId
         } = req.body;
 
 
-        const files = req.files; // Changed from req.images to req.files
+        const files = req.files;
 
         const seoFilenamesArray = SeoFilenames ? SeoFilenames.split(',').map(name => name.trim()) : [];
 
@@ -106,6 +107,12 @@ export const addProduct = [
                 } else {
                     console.log('No images to process');
                 }
+
+                // 5. Map discount to product
+                if (DiscountId) {
+                    await MapDiscountToProduct(productId, DiscountId, trx);
+                    console.log('Discount mapped to product:', DiscountId);
+                }
             });
 
             res.status(201).send({ success: true, message: 'Product Added.' });
@@ -134,6 +141,7 @@ export const updateProduct = [
             Role5,
             CategoryId,
             SeoFilenames,
+            DiscountId,
             ...productData // All other fields go into productData
         } = req.body;
 
@@ -142,6 +150,8 @@ export const updateProduct = [
         const files = req.files;
         const seoFilenamesArray = SeoFilenames ? SeoFilenames.split(',').map(name => name.trim()) : [];
 
+        console.log('Product data: ', productData)
+        console.log('Files: ', files)
         try {
             await knex.transaction(async (trx) => {
                 // 1. Update the product
@@ -197,6 +207,15 @@ export const updateProduct = [
                     }
                 } else {
                     console.log('No new images to process');
+                }
+
+                // 5. Update discount mapping
+                if (DiscountId === "0") {
+                    await DeleteDiscountMapping(productId, trx);
+                    console.log('Discount mapping deleted for product:', productId);
+                } else if (DiscountId) {
+                    await UpdateDiscountMapping(productId, DiscountId, trx);
+                    console.log('Discount mapping updated for product:', productId);
                 }
             });
 
