@@ -57,10 +57,6 @@ import { authenticateToken, authorizeRoles } from '../../middleware/authMiddlewa
 
 const router = express.Router();
 
-router.use(authenticateToken);
-
-const adminAccess = authorizeRoles(['Registered', 'Administrators'])
-
 /**
  * @swagger
  * /admin/login:
@@ -89,6 +85,10 @@ const adminAccess = authorizeRoles(['Registered', 'Administrators'])
  *         description: Internal server error
  */
 router.post('/login', adminAccess, adminLogin);
+
+router.use(authenticateToken);
+
+const adminAccess = authorizeRoles(['Registered', 'Administrators'])
 
 /**
  * @swagger
@@ -1536,7 +1536,6 @@ router.get("/activeCustomers", adminAccess, getActiveCustomers);
  *         description: Internal server error
  */
 router.get("/newCustomers", adminAccess, getNewCustomers);
-
 
 /**
  * @swagger
