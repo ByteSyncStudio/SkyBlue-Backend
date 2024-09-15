@@ -1,4 +1,5 @@
 import jsonwebtoken from 'jsonwebtoken';
+import { getUserRoles } from '../repositories/auth/loginRepository.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 

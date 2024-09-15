@@ -53,9 +53,13 @@ import {
   getValueOrders,
 } from "../../controllers/admin/stats/adminStatsController.js";
 import { adminLogin } from "../../controllers/admin/auth/adminLoginController.js";
+import { authenticateToken, authorizeRoles } from '../../middleware/authMiddleware.js';
 
 const router = express.Router();
 
+router.use(authenticateToken);
+
+const adminAccess = authorizeRoles(['Registered', 'Administrators'])
 
 /**
  * @swagger
@@ -84,7 +88,7 @@ const router = express.Router();
  *       500:
  *         description: Internal server error
  */
-router.post('/login', adminLogin);
+router.post('/login', adminAccess, adminLogin);
 
 /**
  * @swagger
@@ -117,7 +121,7 @@ router.post('/login', adminLogin);
  *       500:
  *         description: Internal server error
  */
-router.get("/unapproved", getUnapprovedUsers);
+router.get("/unapproved", adminAccess, getUnapprovedUsers);
 
 /**
  * @swagger
@@ -142,9 +146,9 @@ router.get("/unapproved", getUnapprovedUsers);
  *       500:
  *         description: Internal server error
  */
-router.put("/approve/:id", approveUser);
+router.put("/approve/:id", adminAccess, approveUser);
 
-router.post("/product/add", addProduct);
+router.post("/product/add", adminAccess, addProduct);
 
 /**
  * @swagger
@@ -243,9 +247,9 @@ router.post("/product/add", addProduct);
  *       500:
  *         description: Internal server error
  */
-router.patch("/product/:id", updateProduct);
+router.patch("/product/:id", adminAccess, updateProduct);
 
-router.delete("/product/tier-price", deleteTierPrice);
+router.delete("/product/tier-price", adminAccess, deleteTierPrice);
 
 /**
  * @swagger
@@ -268,7 +272,7 @@ router.delete("/product/tier-price", deleteTierPrice);
  *       500:
  *         description: Internal server error
  */
-router.delete("/product/:id", deleteProduct);
+router.delete("/product/:id", adminAccess, deleteProduct);
 
 
 /**
@@ -335,7 +339,7 @@ router.delete("/product/:id", deleteProduct);
  *       500:
  *         description: Internal server error
  */
-router.get("/vendors", getAllVendors);
+router.get("/vendors", adminAccess, getAllVendors);
 
 /**
  * @swagger
@@ -476,7 +480,7 @@ router.get("/vendors", getAllVendors);
  *                   type: string
  *                   example: "Server error"
  */
-router.post("/create-vendors", createNewVendor);
+router.post("/create-vendors", adminAccess, createNewVendor);
 
 /**
  * @swagger
@@ -637,7 +641,7 @@ router.post("/create-vendors", createNewVendor);
  *                   type: string
  *                   example: "Server error"
  */
-router.patch("/editvendor/:id", patchVendor);
+router.patch("/editvendor/:id", adminAccess, patchVendor);
 
 /**
  * @swagger
@@ -681,7 +685,7 @@ router.patch("/editvendor/:id", patchVendor);
  *                     description: The date and time when the order was created.
  *                     example: "2023-10-01T12:00:00Z"
  */
-router.get("/all-orders", getallOrders);
+router.get("/all-orders", adminAccess, getallOrders);
 
 /**
  * @swagger
@@ -809,7 +813,7 @@ router.get("/all-orders", getallOrders);
  *                         description: The rental end date and time.
  *                         example: "2023-10-10T12:00:00Z"
  */
-router.get("/single-order/:id", getSingleOrder);
+router.get("/single-order/:id", adminAccess, getSingleOrder);
 
 /**
  * @swagger
@@ -850,7 +854,7 @@ router.get("/single-order/:id", getSingleOrder);
  *       500:
  *         description: Internal server error
  */
-router.get("/customer/all", getAllCustomersWithRoles);
+router.get("/customer/all", adminAccess, getAllCustomersWithRoles);
 
 /**
  * @swagger
@@ -910,11 +914,11 @@ router.get("/customer/all", getAllCustomersWithRoles);
  *       500:
  *         description: Internal server error
  */
-router.patch("/customer/:id", updateCustomerRolesAndStatus);
+router.patch("/customer/:id", adminAccess, updateCustomerRolesAndStatus);
 
-router.get("/customer/roles", getCustomerRoles);
+router.get("/customer/roles", adminAccess, getCustomerRoles);
 
-router.get("/bestseller", getBestSellers);
+router.get("/bestseller", adminAccess, getBestSellers);
 
 /**
  * @swagger
@@ -941,7 +945,7 @@ router.get("/bestseller", getBestSellers);
  *                     description: The discount name.
  *                     example: "Summer Sale"
  */
-router.get("/alldiscounts", getAllDiscounts);
+router.get("/alldiscounts", adminAccess, getAllDiscounts);
 
 /**
  * @swagger
@@ -973,9 +977,9 @@ router.get("/alldiscounts", getAllDiscounts);
  *                     description: The discount percentage.
  *                     example: 15.5
  */
-router.get("/discount/subcategories", getSubCategoryDiscounts);
+router.get("/discount/subcategories", adminAccess, getSubCategoryDiscounts);
 
-router.get("/discount/:type", getDiscountWithTypes);
+router.get("/discount/:type", adminAccess, getDiscountWithTypes);
 /**
  * @swagger
  * /post-discounts:
@@ -1020,7 +1024,7 @@ router.get("/discount/:type", getDiscountWithTypes);
  *                   description: The discount percentage.
  *                   example: 20.0
  */
-router.post("/post-discounts", postDiscounts);
+router.post("/post-discounts", adminAccess, postDiscounts);
 
 /**
  * @swagger
@@ -1041,19 +1045,19 @@ router.post("/post-discounts", postDiscounts);
  *       404:
  *         description: Discount not found.
  */
-router.delete("/delete-discount/:id", deleteDiscounts);
+router.delete("/delete-discount/:id", adminAccess, deleteDiscounts);
 
-router.get("/category/all", getAllCategories_Category);
+router.get("/category/all", adminAccess, getAllCategories_Category);
 
-router.post("/category/add", addCategory);
+router.post("/category/add", adminAccess, addCategory);
 
-router.patch("/category/edit/:id", updateCategory);
+router.patch("/category/edit/:id", adminAccess, updateCategory);
 
-router.delete("/category/delete/:id", deleteCategory);
+router.delete("/category/delete/:id", adminAccess, deleteCategory);
 
-router.get("/product/search", getProducts);
+router.get("/product/search", adminAccess, getProducts);
 
-router.get("/product/:id", getProduct);
+router.get("/product/:id", adminAccess, getProduct);
 
 /**
  * @swagger
@@ -1083,7 +1087,7 @@ router.get("/product/:id", getProduct);
  *       500:
  *         description: Internal server error
  */
-router.post("/slider/add", addSlider);
+router.post("/slider/add", adminAccess, addSlider);
 
 /**
  * @swagger
@@ -1105,7 +1109,7 @@ router.post("/slider/add", addSlider);
  *       500:
  *         description: Internal server error
  */
-router.delete("/slider/:sliderId", deleteSlider);
+router.delete("/slider/:sliderId", adminAccess, deleteSlider);
 
 /**
  * @swagger
@@ -1138,7 +1142,7 @@ router.delete("/slider/:sliderId", deleteSlider);
  *       500:
  *         description: Internal server error
  */
-router.patch("/slider/:sliderId", updateSlider);
+router.patch("/slider/:sliderId", adminAccess, updateSlider);
 
 /**
  * @swagger
@@ -1160,7 +1164,7 @@ router.patch("/slider/:sliderId", updateSlider);
  *       500:
  *         description: Internal server error
  */
-router.get("/slider/:type", getSliderByType);
+router.get("/slider/:type", adminAccess, getSliderByType);
 
 /**
  * @swagger
@@ -1190,7 +1194,7 @@ router.get("/slider/:type", getSliderByType);
  *       500:
  *         description: Internal server error
  */
-router.get("/allProductForDiscount", getAllProducts);
+router.get("/allProductForDiscount", adminAccess, getAllProducts);
 
 /**
  * @swagger
@@ -1217,7 +1221,7 @@ router.get("/allProductForDiscount", getAllProducts);
  *       500:
  *         description: Internal server error
  */
-router.get("/allCategoryForDiscount", getAllCategories);
+router.get("/allCategoryForDiscount", adminAccess, getAllCategories);
 
 /**
  * @swagger
@@ -1254,7 +1258,7 @@ router.get("/allCategoryForDiscount", getAllCategories);
  *       500:
  *         description: Internal server error
  */
-router.post("/applyDiscountToProduct/:discountId", applyDiscountToProducts);
+router.post("/applyDiscountToProduct/:discountId", adminAccess, applyDiscountToProducts);
 
 /**
  * @swagger
@@ -1291,7 +1295,7 @@ router.post("/applyDiscountToProduct/:discountId", applyDiscountToProducts);
  *       500:
  *         description: Internal server error
  */
-router.post("/applyDiscountToCategory/:discountId", applyDiscountToCategory);
+router.post("/applyDiscountToCategory/:discountId", adminAccess, applyDiscountToCategory);
 
 /**
  * @swagger
@@ -1328,10 +1332,7 @@ router.post("/applyDiscountToCategory/:discountId", applyDiscountToCategory);
  *       500:
  *         description: Internal server error
  */
-router.post(
-  "/removeDiscountFromProduct/:discountId",
-  removeDiscountFromProducts
-);
+router.post("/removeDiscountFromProduct/:discountId", adminAccess, removeDiscountFromProducts);
 
 /**
  * @swagger
@@ -1368,9 +1369,7 @@ router.post(
  *       500:
  *         description: Internal server error
  */
-router.post(
-  "/removeDiscountFromCategory/:discountId",
-  removeDiscountFromCategory
+router.post("/removeDiscountFromCategory/:discountId", adminAccess, removeDiscountFromCategory
 );
 
 /**
@@ -1402,7 +1401,7 @@ router.post(
  *       500:
  *         description: Internal server error
  */
-router.get("/stats", getStats);
+router.get("/stats", adminAccess, getStats);
 
 /**
  * @swagger
@@ -1436,7 +1435,7 @@ router.get("/stats", getStats);
  *       500:
  *         description: Internal server error
  */
-router.get("/orderStats", getOrderStats);
+router.get("/orderStats", adminAccess, getOrderStats);
 
 /**
  * @swagger
@@ -1470,7 +1469,7 @@ router.get("/orderStats", getOrderStats);
  *       500:
  *         description: Internal server error
  */
-router.get("/orderValue", getValueOrders);
+router.get("/orderValue", adminAccess, getValueOrders);
 
 /**
  * @swagger
@@ -1503,7 +1502,7 @@ router.get("/orderValue", getValueOrders);
  *       500:
  *         description: Internal server error
  */
-router.get("/activeCustomers", getActiveCustomers);
+router.get("/activeCustomers", adminAccess, getActiveCustomers);
 
 /**
  * @swagger
@@ -1536,7 +1535,7 @@ router.get("/activeCustomers", getActiveCustomers);
  *       500:
  *         description: Internal server error
  */
-router.get("/newCustomers", getNewCustomers);
+router.get("/newCustomers", adminAccess, getNewCustomers);
 
 
 /**
@@ -1567,7 +1566,7 @@ router.get("/newCustomers", getNewCustomers);
  *       500:
  *         description: Internal server error
  */
-router.get("/bestSellerByAmount", getBestSellerByAmount);
+router.get("/bestSellerByAmount", adminAccess, getBestSellerByAmount);
 
 /**
  * @swagger
@@ -1597,6 +1596,6 @@ router.get("/bestSellerByAmount", getBestSellerByAmount);
  *       500:
  *         description: Internal server error
  */
-router.get("/bestSellerByQuantity", getBestSellerByQunatity);
+router.get("/bestSellerByQuantity", adminAccess, getBestSellerByQunatity);
 
 export default router;

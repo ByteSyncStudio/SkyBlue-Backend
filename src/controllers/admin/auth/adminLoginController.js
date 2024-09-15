@@ -47,6 +47,7 @@ export const adminLogin = async (req, res, next) => {
                 {
                     email: email,
                     id: user.Id,
+                    roles: roles
                 },
                 JWT_SECRET, { expiresIn: JWT_EXPIRATION });
 
