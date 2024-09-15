@@ -502,6 +502,16 @@ async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10, u
     }
 }
 
+export async function GetFlatCategories() {
+    try {
+        const result = await knex('Category')
+        .select("*")
+        return result
+    } catch (error) {
+        console.error("Error deleting discount mapping:\n", error);
+        throw error;
+    }
+}
 
 
 export { listCategory, listProductsFromCategory, listBestsellers, listNewArrivals, listSearchProducts };

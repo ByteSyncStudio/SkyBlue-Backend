@@ -57,7 +57,7 @@ export async function GetAllCategories(searchTerm = '') {
     return JSON.stringify(organizedCategories, null, 2); // Pretty print JSON
 }
 
-export async function AddCategory(Name, ParentCategoryId, Published) {
+export async function AddCategory(Name, ParentCategoryId, Published, DiscountId) {
     try {
         const [newCategoryId] = await knex.transaction(async (trx) => {
             const [categoryId] = await trx('Category')
@@ -79,6 +79,11 @@ export async function AddCategory(Name, ParentCategoryId, Published) {
                     UpdatedOnUtc: new Date().toISOString(),
                 })
                 .returning('Id');
+
+            if (DiscountId) {
+                await MapDiscountToCategory(categoryId, DiscountId, trx);
+            }
+
             return categoryId;
         });
         return newCategoryId;
@@ -91,11 +96,12 @@ export async function AddCategory(Name, ParentCategoryId, Published) {
 export async function UpdateCategory(categoryId, updatedCategory) {
     try {
         const updateFields = {};
+        const { DiscountId, ...categoryData } = updatedCategory;
 
         // Dynamically add fields to updateFields if they are present in updateData
-        for (const key in updatedCategory) {
-            if (updatedCategory.hasOwnProperty(key)) {
-                updateFields[key] = updatedCategory[key];
+        for (const key in categoryData) {
+            if (categoryData.hasOwnProperty(key)) {
+                updateFields[key] = categoryData[key];
             }
         }
 
@@ -106,6 +112,13 @@ export async function UpdateCategory(categoryId, updatedCategory) {
                     ...updateFields,
                     UpdatedOnUtc: new Date().toISOString()
                 });
+
+            if (DiscountId === "0") {
+                await DeleteDiscountMapping(categoryId, trx);
+            } else if (DiscountId) {
+                await DeleteDiscountMapping(categoryId, trx);
+                await MapDiscountToCategory(categoryId, DiscountId, trx);
+            }
         });
         return categoryId;
     } catch (error) {
@@ -124,6 +137,29 @@ export async function DeleteCategory(categoryId) {
         return categoryId;
     } catch (error) {
         console.error("Error deleting category:\n", error);
+        throw error;
+    }
+}
+
+export async function MapDiscountToCategory(categoryId, discountId, trx) {
+    try {
+        await trx('Discount_AppliedToCategories').insert({
+            Discount_Id: discountId,
+            Category_Id: categoryId
+        });
+    } catch (error) {
+        console.error("Error mapping discount to category:\n", error);
+        throw error;
+    }
+}
+
+export async function DeleteDiscountMapping(categoryId, trx) {
+    try {
+        await trx('Discount_AppliedToCategories')
+            .where('Category_Id', categoryId)
+            .del();
+    } catch (error) {
+        console.error("Error deleting discount mapping:\n", error);
         throw error;
     }
 }

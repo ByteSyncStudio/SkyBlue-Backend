@@ -1,5 +1,5 @@
 import knex from "../../../config/knex.js";
-import { AddProduct, MapToCategory, AddTierPrices, AddPicture, MapProductToPicture, UpdateProduct, UpdateCategoryMapping, UpdateProductPictures, UpdateTierPrices, DeleteProduct, DeleteProductPictures, listBestsellers, GetProduct, MapDiscountToProduct, UpdateDiscountMapping, DeleteDiscountMapping } from "../../../repositories/admin/product/adminProductRepository.js";
+import { AddProduct, MapToCategory, AddTierPrices, AddPicture, MapProductToPicture, UpdateProduct, UpdateCategoryMapping, UpdateProductPictures, UpdateTierPrices, DeleteProduct, DeleteProductPictures, listBestsellers, GetProduct, MapDiscountToProduct, UpdateDiscountMapping, DeleteDiscountMapping, DeleteTierPrice } from "../../../repositories/admin/product/adminProductRepository.js";
 import multer from 'multer';
 import { queueFileUpload } from '../../../config/ftpsClient.js';
 import { ListSearchProducts } from "../../../repositories/admin/product/adminProductRepository.js";
@@ -145,7 +145,7 @@ export const updateProduct = [
             ...productData // All other fields go into productData
         } = req.body;
 
-        console.log(`Price1: ${Price1}, typeof: ${typeof(Role1)}`)
+        console.log(`Price1: ${Price1}, typeof: ${typeof (Role1)}`)
 
         const files = req.files;
         const seoFilenamesArray = SeoFilenames ? SeoFilenames.split(',').map(name => name.trim()) : [];
@@ -270,5 +270,16 @@ export async function getProduct(req, res) {
     } catch (error) {
         console.error(error);
         res.status(error.statusCode || 500).send(error.message || 'Server error');
+    }
+}
+
+export async function deleteTierPrice(req, res) {
+    try {
+        const { productId, customerRoleId } = req.body;
+        const result = await DeleteTierPrice(productId, customerRoleId)
+        res.status(200).json({ success: true });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Server error');
     }
 }

@@ -18,6 +18,7 @@ import {
   deleteProduct,
   getProducts,
   getProduct,
+  deleteTierPrice,
 } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
   getAllCustomersWithRoles,
@@ -244,6 +245,8 @@ router.post("/product/add", addProduct);
  */
 router.patch("/product/:id", updateProduct);
 
+router.delete("/product/tier-price", deleteTierPrice);
+
 /**
  * @swagger
  * /admin/product/{id}:
@@ -266,6 +269,8 @@ router.patch("/product/:id", updateProduct);
  *         description: Internal server error
  */
 router.delete("/product/:id", deleteProduct);
+
+
 /**
  * @swagger
  * /admin/vendors:

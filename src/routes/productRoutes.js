@@ -1,6 +1,6 @@
 import express from 'express';
 import { authenticateToken, authorizeRoles } from '../middleware/authMiddleware.js';
-import { getCategory, getProductsFromCategories, getBestSellers, getNewArrivals, searchProducts } from '../controllers/productController.js';
+import { getCategory, getProductsFromCategories, getBestSellers, getNewArrivals, searchProducts, getFlatCategories } from '../controllers/productController.js';
 
 const router = express.Router();
 
@@ -146,5 +146,7 @@ router.get('/newarrivals', getNewArrivals)
  *         description: Internal server error
  */
 router.get('/search/:category', searchProducts)
+
+router.get('/categories-flat', getFlatCategories)
 
 export default router;

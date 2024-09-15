@@ -13,13 +13,13 @@ export async function getAllCategories(req, res) {
 
 export async function addCategory(req, res) {
     try {
-        let { Name, ParentCategoryId, Published } = req.body;
+        let { Name, ParentCategoryId, Published, DiscountId } = req.body;
 
         if (ParentCategoryId === undefined) {
             ParentCategoryId = 0;
         }
 
-        const newCategoryId = await AddCategory(Name, ParentCategoryId, Published);
+        const newCategoryId = await AddCategory(Name, ParentCategoryId, Published, DiscountId);
         res.status(201).send({ Id: newCategoryId });
     } catch (error) {
         console.error(error);

@@ -614,3 +614,18 @@ export async function GetProduct(productId) {
         throw error;
     }
 }
+
+export async function DeleteTierPrice(productId, customerRoleId) {
+    try {
+        return await knex('TierPrice')
+            .where({
+                ProductId: productId,
+                CustomerRoleId: customerRoleId
+            })
+            .del();
+    } catch (error) {
+        console.error('Error in DeleteTierPrices:', error);
+        error.statusCode = 500;
+        throw error;
+    }
+}

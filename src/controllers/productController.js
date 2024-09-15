@@ -1,4 +1,4 @@
-import { listCategory, listProductsFromCategory, listBestsellers, listNewArrivals, listSearchProducts } from "../repositories/productRepository.js";
+import { listCategory, listProductsFromCategory, listBestsellers, listNewArrivals, listSearchProducts, GetFlatCategories } from "../repositories/productRepository.js";
 
 async function getCategory(req, res) {
     try {
@@ -65,6 +65,16 @@ async function searchProducts(req, res) {
         res.status(200).send(products);
     }
     catch (error) {
+        console.error(error);
+        res.status(error.statusCode || 500).send(error.message || 'Server error');
+    }
+}
+
+export async function getFlatCategories(req, res) {
+    try {
+        const result = await GetFlatCategories();
+        res.status(200).send(result);
+    } catch (error) {
         console.error(error);
         res.status(error.statusCode || 500).send(error.message || 'Server error');
     }
