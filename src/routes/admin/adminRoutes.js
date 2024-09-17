@@ -37,7 +37,7 @@ import {
   removeDiscountFromCategory,
   removeDiscountFromProducts,
 } from "../../controllers/admin/discount/adminDiscountController.js";
-import { getAllCategories as getAllCategories_Category, addCategory, updateCategory, deleteCategory } from "../../controllers/admin/category/adminCategoryController.js";
+import { getAllCategories as getAllCategories_Category, addCategory, updateCategory, deleteCategory, getSingleCategory } from "../../controllers/admin/category/adminCategoryController.js";
 import { addSlider, deleteSlider, updateSlider, getSliderByType } from "../../controllers/admin/slider/adminSliderController.js";
 import {
   getAllCategories,
@@ -1054,6 +1054,8 @@ router.post("/category/add", adminAccess, addCategory);
 router.patch("/category/edit/:id", adminAccess, updateCategory);
 
 router.delete("/category/delete/:id", adminAccess, deleteCategory);
+
+router.get('/category/single/:id', getSingleCategory);
 
 router.get("/product/search", adminAccess, getProducts);
 

@@ -163,3 +163,12 @@ export async function DeleteDiscountMapping(categoryId, trx) {
         throw error;
     }
 }
+
+export async function GetSingleCategory(categoryId) {
+    const categoryWithDiscount = await knex('Category')
+        .leftJoin('Discount_AppliedToCategories', 'Category.Id', 'Discount_AppliedToCategories.Category_Id')
+        .select('Category.*', 'Discount_AppliedToCategories.*')
+        .where('Category.Id', categoryId);
+
+    return categoryWithDiscount;
+}

@@ -1,12 +1,18 @@
 import knex from "../../../config/knex.js";
 import { generateImageUrl2 } from "../../../utils/imageUtils.js";
 
-export async function listOrders() {
+export async function listOrders(size) {
   try {
     // Fetch orders and order by CreatedonUtc in descending order
-    const orders = await knex('dbo.Order')
+    let query = knex('dbo.Order')
       .select('Id', 'OrderGuid', 'CustomerId', 'OrderStatusId', 'OrderTotal', 'CreatedonUtc')
       .orderBy('CreatedonUtc', 'desc');
+
+    if (size) {
+      query = query.limit(size);
+    }
+
+    const orders = await query;
 
     // Extract CustomerIds from orders and flatten the array
     const customerIds = orders.map(order => order.CustomerId).flat();
@@ -15,15 +21,12 @@ export async function listOrders() {
     const uniqueCustomerIds = [...new Set(customerIds)];
 
     // Fetch customer emails using the unique CustomerIds
-    const customers = await knex('dbo.Customer')
-      .whereIn('Id', uniqueCustomerIds)
-      .select('Id', 'Email');
+    const customers = await knex('dbo.Customer as c')
+      .join('dbo.Address as a', 'c.Email', 'a.Email')
+      .whereIn('c.Id', uniqueCustomerIds)
+      .select('c.Id', 'c.Email', 'a.FirstName', 'a.LastName');
 
-    // Fetch store name where Id is 3
-    const store = await knex('dbo.Store')
-      .where('Id', 3)
-      .select('Name')
-      .first();
+
 
     // Map customer emails and store name to orders
     const ordersWithDetails = orders.map(order => {
@@ -31,7 +34,8 @@ export async function listOrders() {
       return {
         ...order,
         CustomerEmail: customer ? customer.Email : null,
-        StoreName: store ? store.Name : null
+        CustomerFirstName: customer ? customer.FirstName : null,
+        CustomerLastName: customer ? customer.LastName : null,
       };
     });
 
@@ -41,7 +45,6 @@ export async function listOrders() {
     throw error;
   }
 }
-
 // Get a single order by ID
 export async function getOrderById(orderId) {
   try {

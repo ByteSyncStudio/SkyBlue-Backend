@@ -1,8 +1,9 @@
 import { getOrderById, listOrders } from "../../../repositories/admin/Orders/adminOrders.js";
 
 export const getallOrders = async (req, res) => {
+  const size = req.query.size
   try {
-    const orders = await listOrders();
+    const orders = await listOrders(size ? parseInt(size) : 20);
     res.status(200).json({
       success: true,
       data: orders,

@@ -1,4 +1,4 @@
-import { GetAllCategories, AddCategory, UpdateCategory, DeleteCategory } from "../../../repositories/admin/category/adminCategoryRepository.js";
+import { GetAllCategories, AddCategory, UpdateCategory, DeleteCategory, GetSingleCategory } from "../../../repositories/admin/category/adminCategoryRepository.js";
 
 export async function getAllCategories(req, res) {
     try {
@@ -44,6 +44,18 @@ export async function deleteCategory(req, res) {
         const categoryId = req.params.id;
         const result = await DeleteCategory(categoryId);
         res.status(200).send({ success: true, result });
+    } catch (error) {
+        console.error(error);
+        res.status(error.statusCode || 500).send(error.message || 'Server error');
+    }
+}
+
+export async function getSingleCategory(req, res) {
+    try {
+        const categoryId = req.params.id;
+        console.log(categoryId)
+        const result = await GetSingleCategory(categoryId);
+        res.status(200).send(result)
     } catch (error) {
         console.error(error);
         res.status(error.statusCode || 500).send(error.message || 'Server error');
