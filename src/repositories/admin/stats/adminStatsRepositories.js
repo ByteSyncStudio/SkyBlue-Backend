@@ -334,7 +334,7 @@ export const GetBestSellerByAmount = async (req, res) => {
 export async function TotalOrdersInPastMonths() {
   try {
     const currentDate = new Date();
-    const result = {};
+    const result = [];
 
     for (let i = 0; i < 6; i++) {
       const targetDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
@@ -353,7 +353,10 @@ export async function TotalOrdersInPastMonths() {
         'July', 'August', 'September', 'October', 'November', 'December'
       ];
 
-      result[monthNames[month - 1]] = parseInt(orders.total);
+      result.push({
+        month: monthNames[month - 1],
+        orders: parseInt(orders.total)
+      });
     }
 
     return result;
