@@ -330,3 +330,35 @@ export const GetBestSellerByAmount = async (req, res) => {
     throw error;
   }
 };
+
+export async function TotalOrdersInPastMonths() {
+  try {
+    const currentDate = new Date();
+    const result = {};
+
+    for (let i = 0; i < 6; i++) {
+      const targetDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+      const year = targetDate.getFullYear();
+      const month = targetDate.getMonth() + 1; // JavaScript months are 0-indexed
+
+      const orders = await knex('Order')
+        .count('* as total')
+        .where('CreatedOnUtc', '>=', `${year}-${month.toString().padStart(2, '0')}-01`)
+        .andWhere('CreatedOnUtc', '<', `${year}-${(month + 1).toString().padStart(2, '0')}-01`)
+        .andWhere('Deleted', 0)
+        .first();
+
+      const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ];
+
+      result[monthNames[month - 1]] = parseInt(orders.total);
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Error fetching total orders:', error);
+    throw error;
+  }
+}

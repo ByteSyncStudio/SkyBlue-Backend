@@ -51,6 +51,7 @@ import {
   getOrderStats,
   getStats,
   getValueOrders,
+  totalOrdersInPastMonths,
 } from "../../controllers/admin/stats/adminStatsController.js";
 import { adminLogin } from "../../controllers/admin/auth/adminLoginController.js";
 import { authenticateToken, authorizeRoles } from '../../middleware/authMiddleware.js';
@@ -1598,5 +1599,7 @@ router.get("/bestSellerByAmount", adminAccess, getBestSellerByAmount);
  *         description: Internal server error
  */
 router.get("/bestSellerByQuantity", adminAccess, getBestSellerByQunatity);
+
+router.get('/monthly-orders', adminAccess, totalOrdersInPastMonths)
 
 export default router;
