@@ -151,8 +151,8 @@ export async function getOrderById(orderId) {
         customerEmail: customer.Email,
         customerFirstName: customer.FirstName,
         customerLastName: customer.LastName,
-        customerAddress: customer.Address,
-        customerPhone: customer.Phone,
+        customerAddress: customer.Address1,
+        customerPhone: customer.PhoneNumber,
       },
     };
   } catch (error) {
