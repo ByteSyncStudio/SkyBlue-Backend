@@ -132,6 +132,8 @@ export async function getOrderById(orderId) {
     'dbo.Address.FirstName',
     'dbo.Address.LastName',
     'dbo.Address.Address1',
+    'dbo.Address.Address2',
+    'dbo.Address.CountryId',
     'dbo.Address.Company'
   )
   .first();
@@ -153,6 +155,8 @@ export async function getOrderById(orderId) {
         customerFirstName: customer.FirstName,
         customerLastName: customer.LastName,
         customerAddress: customer.Address1,
+        customerCity: customer.Address2,
+        customerCountry: customer.CountryId === 1 ? "United States" : customer.CountryId === 2 ? "Canada" : customer.CountryId,
         customerPhone: customer.PhoneNumber,
         customerCompany: customer.Company[0]
       },
