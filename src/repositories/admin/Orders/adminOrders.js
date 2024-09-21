@@ -131,7 +131,8 @@ export async function getOrderById(orderId) {
     'dbo.Address.PhoneNumber',
     'dbo.Address.FirstName',
     'dbo.Address.LastName',
-    'dbo.Address.Address1'
+    'dbo.Address.Address1',
+    'dbo.Address.Company'
   )
   .first();
 
@@ -153,6 +154,7 @@ export async function getOrderById(orderId) {
         customerLastName: customer.LastName,
         customerAddress: customer.Address1,
         customerPhone: customer.PhoneNumber,
+        customerCompany: customer.Company[0]
       },
     };
   } catch (error) {
