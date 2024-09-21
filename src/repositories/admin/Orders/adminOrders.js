@@ -58,6 +58,9 @@ export async function getOrderById(orderId) {
         'o.OrderStatusId',
         'o.OrderTotal',
         'o.CreatedonUtc',
+        'o.OrderTax',
+        'o.OrderDiscount',
+        'o.ShippingMethod',
         'oi.OrderItemGuid',
         'oi.ProductId',
         'oi.Quantity',
@@ -68,6 +71,8 @@ export async function getOrderById(orderId) {
         'p.Name as ProductName',
         'p.VendorId',
         'p.ItemLocation', // Include ItemLocation from Product table
+        'p.Barcode',
+        'p.Barcode2',
         'v.Name as VendorName',
         'pic.MimeType',
         'pic.SeoFilename',
@@ -107,7 +112,9 @@ export async function getOrderById(orderId) {
           Id: item.ProductId,
           Name: item.ProductName,
           VendorId: item.VendorId,
-          ItemLocation: item.ItemLocation ? item.ItemLocation : "No location Found",
+          ItemLocation: item.ItemLocation,
+          Barcode: item.Barcode,
+          Barcode2: item.Barcode2,
           imageUrl,
           vendorName: item.VendorName ? item.VendorName : 'No vendor found',
         },
@@ -116,9 +123,17 @@ export async function getOrderById(orderId) {
 
     // Fetch customer email
     const customer = await knex('dbo.Customer')
-      .where({ Id: order[0].CustomerId })
-      .select('Email')
-      .first();
+  .join('dbo.Address', 'dbo.Customer.Email', 'dbo.Address.Email')
+  .where({ 'dbo.Customer.Id': order[0].CustomerId })
+  .select(
+    'dbo.Address.Email',
+    'dbo.Address.Company',
+    'dbo.Address.PhoneNumber',
+    'dbo.Address.FirstName',
+    'dbo.Address.LastName',
+    'dbo.Address.Address1'
+  )
+  .first();
 
     return {
       success: true,
@@ -128,9 +143,16 @@ export async function getOrderById(orderId) {
         CustomerId: order[0].CustomerId,
         OrderStatusId: order[0].OrderStatusId,
         OrderTotal: order[0].OrderTotal,
+        OrderTax: order[0].OrderTax,
+        OrderDiscount: order[0].OrderDiscount,
+        ShippingMethod: order[0].ShippingMethod,
         CreatedonUtc: order[0].CreatedonUtc,
         items: orderItemsWithProductDetails,
-        customerEmail: customer ? customer.Email : 'No email found',
+        customerEmail: customer.Email,
+        customerFirstName: customer.FirstName,
+        customerLastName: customer.LastName,
+        customerAddress: customer.Address,
+        customerPhone: customer.Phone,
       },
     };
   } catch (error) {
