@@ -124,6 +124,7 @@ export async function getOrderById(orderId) {
     // Fetch customer email
     const customer = await knex('dbo.Customer')
   .join('dbo.Address', 'dbo.Customer.Email', 'dbo.Address.Email')
+  .join('dbo.StateProvince', 'dbo.Address.StateProvinceId', 'dbo.StateProvince.Id')
   .where({ 'dbo.Customer.Id': order[0].CustomerId })
   .select(
     'dbo.Address.Email',
@@ -134,6 +135,8 @@ export async function getOrderById(orderId) {
     'dbo.Address.Address1',
     'dbo.Address.City',
     'dbo.Address.CountryId',
+    'dbo.Address.ZipPostalCode',
+    'dbo.StateProvince.Name',
     'dbo.Address.Company'
   )
   .first();
@@ -155,8 +158,10 @@ export async function getOrderById(orderId) {
         customerFirstName: customer.FirstName,
         customerLastName: customer.LastName,
         customerAddress: customer.Address1,
-        customerCity: customer.City,
         customerCountry: customer.CountryId === 1 ? "United States" : customer.CountryId === 2 ? "Canada" : customer.CountryId,
+        customerState: customer.Name,
+        customerCity: customer.City,
+        customerZip: customer.ZipPostalCode,
         customerPhone: customer.PhoneNumber,
         customerCompany: customer.Company[0]
       },
