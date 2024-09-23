@@ -365,3 +365,38 @@ export async function TotalOrdersInPastMonths() {
     throw error;
   }
 }
+
+export async function NewCustomersInPastMonths() {
+  try {
+    const currentDate = new Date();
+    const result = [];
+
+    for (let i = 0; i < 6; i++) {
+      const targetDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+      const year = targetDate.getFullYear();
+      const month = targetDate.getMonth() + 1; // JavaScript months are 0-indexed
+
+      const orders = await knex('Customer')
+        .count('* as total')
+        .where('CreatedOnUtc', '>=', `${year}-${month.toString().padStart(2, '0')}-01`)
+        .andWhere('CreatedOnUtc', '<', `${year}-${(month + 1).toString().padStart(2, '0')}-01`)
+        .andWhere('Deleted', 0)
+        .first();
+
+      const monthNames = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      ];
+
+      result.push({
+        month: monthNames[month - 1],
+        customers: parseInt(orders.total)
+      });
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Error fetching total orders:', error);
+    throw error;
+  }
+}
