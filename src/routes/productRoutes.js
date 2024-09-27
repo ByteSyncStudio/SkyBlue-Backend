@@ -1,6 +1,7 @@
 import express from 'express';
 import { authenticateToken, authorizeRoles } from '../middleware/authMiddleware.js';
 import { getCategory, getProductsFromCategories, getBestSellers, getNewArrivals, searchProducts, getFlatCategories } from '../controllers/productController.js';
+import { getSliderByType } from '../controllers/admin/slider/adminSliderController.js';
 
 const router = express.Router();
 
@@ -148,5 +149,27 @@ router.get('/newarrivals', getNewArrivals)
 router.get('/search/:category', searchProducts)
 
 router.get('/categories-flat', getFlatCategories)
+
+/**
+ * @swagger
+ * /admin/slider/{type}:
+ *   get:
+ *     summary: Get sliders by type
+ *     tags: [Admin]
+ *     parameters:
+ *       - in: path
+ *         name: type
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sliders fetched successfully
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/slider/:type", getSliderByType);
 
 export default router;

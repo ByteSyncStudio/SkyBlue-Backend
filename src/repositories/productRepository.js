@@ -171,35 +171,32 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user) {
         const subCategoryIds = await getSubcategories(categoryId);
 
         const query = knex.raw(`
+            WITH RankedProducts AS (
+                SELECT 
+                    p.Id, p.Name, p.HasTierPrices, p.Price, p.FullDescription, p.ShortDescription,
+                    p.OrderMinimumQuantity, p.OrderMaximumQuantity, p.StockQuantity,
+                    ppm.PictureId, pic.MimeType, pic.SeoFilename,
+                    ROW_NUMBER() OVER (PARTITION BY p.Id ORDER BY ppm.DisplayOrder) AS RowNum
+                FROM Product p
+                JOIN Product_Category_Mapping pcm ON p.Id = pcm.ProductId
+                LEFT JOIN Product_Picture_Mapping ppm ON p.Id = ppm.ProductId
+                LEFT JOIN Picture pic ON ppm.PictureId = pic.Id
+                WHERE pcm.CategoryId IN (${subCategoryIds.join(',')})
+                    AND p.Published = 1 AND p.Deleted = 0
+            ),
+            TotalCount AS (
+                SELECT COUNT(DISTINCT Id) AS total_count
+                FROM RankedProducts
+            )
             SELECT 
-                p.Id,
-                p.Name,
-                p.HasTierPrices,
-                p.Price,
-                p.FullDescription,
-                p.ShortDescription,
-                p.OrderMinimumQuantity,
-                p.OrderMaximumQuantity,
-                p.StockQuantity,
-                ppm.PictureId,
-                pic.MimeType,
-                pic.SeoFilename,
-                (SELECT COUNT(DISTINCT p2.Id) 
-                 FROM Product p2 
-                 JOIN Product_Category_Mapping pcm2 ON p2.Id = pcm2.ProductId 
-                 WHERE pcm2.CategoryId IN (${subCategoryIds.join(',')})
-                 AND p2.Published = 1 AND p2.Deleted = 0) AS total_count
-            FROM Product p
-            JOIN Product_Category_Mapping pcm ON p.Id = pcm.ProductId
-            LEFT JOIN Product_Picture_Mapping ppm ON p.Id = ppm.ProductId
-            LEFT JOIN Picture pic ON ppm.PictureId = pic.Id
-            WHERE pcm.CategoryId IN (${subCategoryIds.join(',')})
-            AND p.Published = 1
-            AND p.Deleted = 0
-            GROUP BY p.Id, p.Name, p.HasTierPrices, p.Price, p.FullDescription, p.ShortDescription, 
-                     p.OrderMinimumQuantity, p.OrderMaximumQuantity, p.StockQuantity, 
-                     ppm.PictureId, pic.MimeType, pic.SeoFilename
-            ORDER BY p.Name
+                rp.Id, rp.Name, rp.HasTierPrices, rp.Price, rp.FullDescription, rp.ShortDescription,
+                rp.OrderMinimumQuantity, rp.OrderMaximumQuantity, rp.StockQuantity,
+                rp.PictureId, rp.MimeType, rp.SeoFilename,
+                tc.total_count
+            FROM RankedProducts rp
+            CROSS JOIN TotalCount tc
+            WHERE rp.RowNum = 1
+            ORDER BY rp.Name
             OFFSET ? ROWS
             FETCH NEXT ? ROWS ONLY
         `, [offset, size]);
