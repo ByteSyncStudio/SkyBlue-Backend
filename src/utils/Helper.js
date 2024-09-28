@@ -1,7 +1,7 @@
 //helper fucntion for cart
 
 import knex from "../config/knex.js";
- 
+
 
 export const fetchCartItems = async (userId) => {
   const subquery = knex("Product_Picture_Mapping")
@@ -29,18 +29,21 @@ export const fetchCartItems = async (userId) => {
       "Product.OrderMaximumQuantity",
       "PictureData.PictureId",
       "PictureData.MimeType",
-      "PictureData.SeoFileName", "ShoppingCartItem.ShoppingCartTypeId"
+      "PictureData.SeoFileName",
+      "ShoppingCartItem.ShoppingCartTypeId",
+      knex.raw("Product.StockQuantity as Stock")
     )
     .groupBy(
       "ShoppingCartItem.ProductId", "ShoppingCartItem.ShoppingCartTypeId",
-      
+
       "Product.Name",
       "Product.Price",
       "Product.OrderMinimumQuantity",
       "Product.OrderMaximumQuantity",
       "PictureData.PictureId",
       "PictureData.MimeType",
-      "PictureData.SeoFileName"
+      "PictureData.SeoFileName",
+      "Product.StockQuantity"
     );
 
   return cartItems;
