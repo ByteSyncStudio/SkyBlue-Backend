@@ -508,6 +508,7 @@ export async function GetFlatCategories() {
                 Deleted: 0,
                 Published: 1
             })
+            .orderBy('Name', 'asc')
         return result
     } catch (error) {
         console.error("Error deleting discount mapping:\n", error);
