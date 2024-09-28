@@ -226,7 +226,7 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user) {
                 total_count: product.total_count
             };
         });
-
+        //
         const totalProducts = processedProducts.length > 0 ? processedProducts[0].total_count : 0;
 
         console.log('No. :' + processedProducts.length)
@@ -263,7 +263,7 @@ async function listBestsellers(sortBy, size, user) {
             return cachedBestSellers;
         }
         const orderColumn = sortBy === 'quantity' ? 'TotalQuantity' : 'TotalAmount';
-        
+
         const query = knex.raw(`
             WITH TopProducts AS (
                 SELECT 
@@ -502,11 +502,11 @@ async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10, u
 export async function GetFlatCategories() {
     try {
         const result = await knex('Category')
-        .select("*")
-        .where({
-            Deleted: 0,
-            Published: 1
-        })
+            .select("*")
+            .where({
+                Deleted: 0,
+                Published: 1
+            })
         return result
     } catch (error) {
         console.error("Error deleting discount mapping:\n", error);

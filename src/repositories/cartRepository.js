@@ -126,7 +126,7 @@ async function getCartItems(user) {
         Price: price,
         Discount: discountAmount,
         FinalPrice: finalPrice > 0 ? finalPrice : 0,
-        images: imageUrl,
+        Images: [imageUrl],
       };
     });
 
