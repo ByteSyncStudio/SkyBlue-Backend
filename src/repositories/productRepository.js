@@ -174,7 +174,7 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user) {
             WITH RankedProducts AS (
                 SELECT 
                     p.Id, p.Name, p.HasTierPrices, p.Price, p.FullDescription, p.ShortDescription,
-                    p.OrderMinimumQuantity, p.OrderMaximumQuantity, p.StockQuantity,
+                    p.OrderMinimumQuantity, p.OrderMaximumQuantity, p.StockQuantity, p.CreatedOnUTC,
                     ppm.PictureId, pic.MimeType, pic.SeoFilename,
                     ROW_NUMBER() OVER (PARTITION BY p.Id ORDER BY ppm.DisplayOrder) AS RowNum
                 FROM Product p
@@ -190,7 +190,7 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user) {
             )
             SELECT 
                 rp.Id, rp.Name, rp.HasTierPrices, rp.Price, rp.FullDescription, rp.ShortDescription,
-                rp.OrderMinimumQuantity, rp.OrderMaximumQuantity, rp.StockQuantity,
+                rp.OrderMinimumQuantity, rp.OrderMaximumQuantity, rp.StockQuantity, rp.CreatedOnUTC,
                 rp.PictureId, rp.MimeType, rp.SeoFilename,
                 tc.total_count
             FROM RankedProducts rp
@@ -200,7 +200,7 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user) {
             OFFSET ? ROWS
             FETCH NEXT ? ROWS ONLY
         `, [offset, size]);
-
+        
         const products = await query;
 
         const productIds = products.filter(p => p.HasTierPrices).map(p => p.Id);
@@ -223,10 +223,11 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user) {
                 OrderMaximumQuantity: product.OrderMaximumQuantity,
                 Stock: product.StockQuantity,
                 Images: [imageUrl],
-                total_count: product.total_count
+                total_count: product.total_count,
+                CreatedOnUTC: product.CreatedOnUTC
             };
         });
-
+        //
         const totalProducts = processedProducts.length > 0 ? processedProducts[0].total_count : 0;
 
         console.log('No. :' + processedProducts.length)
@@ -263,7 +264,7 @@ async function listBestsellers(sortBy, size, user) {
             return cachedBestSellers;
         }
         const orderColumn = sortBy === 'quantity' ? 'TotalQuantity' : 'TotalAmount';
-        
+
         const query = knex.raw(`
             WITH TopProducts AS (
                 SELECT 
@@ -502,11 +503,11 @@ async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10, u
 export async function GetFlatCategories() {
     try {
         const result = await knex('Category')
-        .select("*")
-        .where({
-            Deleted: 0,
-            Published: 1
-        })
+            .select("*")
+            .where({
+                Deleted: 0,
+                Published: 1
+            })
         return result
     } catch (error) {
         console.error("Error deleting discount mapping:\n", error);
