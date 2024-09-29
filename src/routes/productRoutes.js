@@ -2,6 +2,7 @@ import express from 'express';
 import { authenticateToken, authorizeRoles } from '../middleware/authMiddleware.js';
 import { getCategory, getProductsFromCategories, getBestSellers, getNewArrivals, searchProducts, getFlatCategories, getImmediateChildCategories } from '../controllers/productController.js';
 import { getSliderByType } from '../controllers/admin/slider/adminSliderController.js';
+import { getAllCategories } from "../controllers/admin/category/adminCategoryController.js";
 
 const router = express.Router();
 
@@ -26,41 +27,6 @@ const productAccess = authorizeRoles(['Registered', 'Administrators'])
  */
 router.get("/category/all", getCategory);
 
-/**
- * @swagger
- * tags:
- *   - name: Product
- *     description: Product related endpoints
- * /product/category/{categoryId}:
- *   get:
- *     summary: Retrieve a list of products from a category
- *     tags: [Product]
- *     parameters:
- *       - in: path
- *         name: categoryId
- *         required: true
- *         schema:
- *           type: integer
- *         description: The ID of the category
- *       - in: query
- *         name: page
- *         required: false
- *         schema:
- *           type: integer
- *         description: The page number
- *       - in: query
- *         name: size
- *         required: false
- *         schema:
- *           type: integer
- *         description: The number of items per page
- *     responses:
- *       200:
- *         description: A list of products.
- *       500:
- *         description: Internal server error
- */
-router.get("/category/:category", getProductsFromCategories);
 
 /**
  * @swagger
@@ -84,7 +50,7 @@ router.get("/category/:category", getProductsFromCategories);
  *         description: A list of bestselling products.
  *       500:
  *         description: Internal server error
- */
+*/
 router.get('/bestseller', getBestSellers);
 
 /**
@@ -101,7 +67,7 @@ router.get('/bestseller', getBestSellers);
  *         description: A list of products.
  *       500:
  *         description: Internal server error
- */
+*/
 router.get('/newarrivals', getNewArrivals)
 
 /**
@@ -145,7 +111,7 @@ router.get('/newarrivals', getNewArrivals)
  *         description: Search Term is required.
  *       500:
  *         description: Internal server error
- */
+*/
 router.get('/search/:category', searchProducts)
 
 router.get('/categories-flat', getFlatCategories)
@@ -169,10 +135,47 @@ router.get('/categories-flat', getFlatCategories)
  *         description: Bad request
  *       500:
  *         description: Internal server error
- */
+*/
 router.get("/slider/:type", getSliderByType);
 
-
 router.get('/category/child/:id', getImmediateChildCategories)
+
+router.get("/category/tree", getAllCategories);
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Product
+ *     description: Product related endpoints
+ * /product/category/{categoryId}:
+ *   get:
+ *     summary: Retrieve a list of products from a category
+ *     tags: [Product]
+ *     parameters:
+ *       - in: path
+ *         name: categoryId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The ID of the category
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         schema:
+ *           type: integer
+ *         description: The page number
+ *       - in: query
+ *         name: size
+ *         required: false
+ *         schema:
+ *           type: integer
+ *         description: The number of items per page
+ *     responses:
+ *       200:
+ *         description: A list of products.
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/category/:category", getProductsFromCategories);
 
 export default router;
