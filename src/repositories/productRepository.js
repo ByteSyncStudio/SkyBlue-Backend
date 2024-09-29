@@ -528,7 +528,9 @@ export async function GetImmediateChildCategories(categoryId) {
                 'Picture.SeoFilename'
             )
             .leftJoin('Picture', 'Category.PictureId', 'Picture.Id')
-            .where('ParentCategoryId', categoryId);
+            .where('ParentCategoryId', categoryId)
+            .where('Published', true)
+            .where('Deleted', false);
 
         const categoriesWithImages = result.map(category => {
             const {PictureId, ...rest} = category;
