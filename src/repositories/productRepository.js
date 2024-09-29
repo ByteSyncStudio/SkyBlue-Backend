@@ -85,6 +85,8 @@ async function listCategory() {
     }
 }
 
+
+//? HELPER FUNCTION
 /**
  * Retrieves all subcategories of a given category, including the category itself.
  * 
@@ -516,5 +518,35 @@ export async function GetFlatCategories() {
     }
 }
 
+export async function GetImmediateChildCategories(categoryId) {
+    try {
+        let result = await knex('Category')
+            .select(
+                'Category.*',
+                'Picture.Id as PictureId',
+                'Picture.MimeType',
+                'Picture.SeoFilename'
+            )
+            .leftJoin('Picture', 'Category.PictureId', 'Picture.Id')
+            .where('ParentCategoryId', categoryId);
+
+        const categoriesWithImages = result.map(category => {
+            const {PictureId, ...rest} = category;
+            const imageUrl = PictureId
+                ? generateImageUrl2(PictureId[0], category.MimeType, category.SeoFilename)
+                : null;
+
+            return {
+                ...rest,
+                ImageUrl: imageUrl
+            };
+        });
+
+        return categoriesWithImages;
+    } catch (error) {
+        console.error("Error fetching child categories:\n", error);
+        throw error;
+    }
+}
 
 export { listCategory, listProductsFromCategory, listBestsellers, listNewArrivals, listSearchProducts };

@@ -1,6 +1,6 @@
 import express from 'express';
 import { authenticateToken, authorizeRoles } from '../middleware/authMiddleware.js';
-import { getCategory, getProductsFromCategories, getBestSellers, getNewArrivals, searchProducts, getFlatCategories } from '../controllers/productController.js';
+import { getCategory, getProductsFromCategories, getBestSellers, getNewArrivals, searchProducts, getFlatCategories, getImmediateChildCategories } from '../controllers/productController.js';
 import { getSliderByType } from '../controllers/admin/slider/adminSliderController.js';
 
 const router = express.Router();
@@ -171,5 +171,8 @@ router.get('/categories-flat', getFlatCategories)
  *         description: Internal server error
  */
 router.get("/slider/:type", getSliderByType);
+
+
+router.get('/category/child/:id', getImmediateChildCategories)
 
 export default router;
