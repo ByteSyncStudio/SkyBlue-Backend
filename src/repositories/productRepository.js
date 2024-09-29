@@ -147,8 +147,7 @@ async function getSubcategories(categoryId) {
  * @param {number} size - The number of items per page.
  * @returns {Promise<Array>} A promise that resolves to an array of product objects.
  */
-async function listProductsFromCategory(categoryId, page = 1, size = 10, user) {
-    //! CACHING CHANGE
+async function listProductsFromCategory(categoryId, page = 1, size = 10, user, minPrice = 0, maxPrice = Number.MAX_SAFE_INTEGER) {
     const cacheKey = `products_${categoryId}_${page}_${size}_${user.roles.map(r => r.Id).join('_')}`;
     const cachedProducts = cache.get(cacheKey);
 
@@ -159,82 +158,53 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user) {
     try {
         const offset = (page - 1) * size;
 
-        let categoryName = "";
-        if (categoryId === -1) {
-            categoryName = getMiscellaneousName().get(-1) || "";
-        } else {
-            categoryName = getSpecificCategories().get(categoryId) || "";
-        }
-
-        if (categoryId === -1) {
-            categoryId = 0;
-        }
-
-        const subCategoryIds = await getSubcategories(categoryId);
-
+        // Combine product query with category name query
         const query = knex.raw(`
-            WITH RankedProducts AS (
+            WITH ProductData AS (
                 SELECT 
-                    p.Id, p.Name, p.HasTierPrices, p.Price, p.FullDescription, p.ShortDescription,
-                    p.OrderMinimumQuantity, p.OrderMaximumQuantity, p.StockQuantity, p.CreatedOnUTC,
+                    p.CreatedonUTC, p.Id, p.Name, p.HasTierPrices, p.Price, 
+                    p.FullDescription, p.ShortDescription, p.OrderMinimumQuantity, 
+                    p.OrderMaximumQuantity, p.StockQuantity,
                     ppm.PictureId, pic.MimeType, pic.SeoFilename,
-                    ROW_NUMBER() OVER (PARTITION BY p.Id ORDER BY ppm.DisplayOrder) AS RowNum
+                    c.Name AS CategoryName,
+                    ROW_NUMBER() OVER (ORDER BY p.Name) AS RowNum,
+                    COUNT(*) OVER () AS total_count
                 FROM Product p
                 JOIN Product_Category_Mapping pcm ON p.Id = pcm.ProductId
+                JOIN Category c ON pcm.CategoryId = c.Id
                 LEFT JOIN Product_Picture_Mapping ppm ON p.Id = ppm.ProductId
                 LEFT JOIN Picture pic ON ppm.PictureId = pic.Id
-                WHERE pcm.CategoryId IN (${subCategoryIds.join(',')})
-                    AND p.Published = 1 AND p.Deleted = 0
-            ),
-            TotalCount AS (
-                SELECT COUNT(DISTINCT Id) AS total_count
-                FROM RankedProducts
+                WHERE pcm.CategoryId = ? AND p.Published = 1 AND p.Deleted = 0
             )
-            SELECT 
-                rp.Id, rp.Name, rp.HasTierPrices, rp.Price, rp.FullDescription, rp.ShortDescription,
-                rp.OrderMinimumQuantity, rp.OrderMaximumQuantity, rp.StockQuantity, rp.CreatedOnUTC,
-                rp.PictureId, rp.MimeType, rp.SeoFilename,
-                tc.total_count
-            FROM RankedProducts rp
-            CROSS JOIN TotalCount tc
-            WHERE rp.RowNum = 1
-            ORDER BY rp.Name
-            OFFSET ? ROWS
-            FETCH NEXT ? ROWS ONLY
-        `, [offset, size]);
-        
+            SELECT * FROM ProductData
+            WHERE RowNum > ? AND RowNum <= ?
+        `, [categoryId === -1 ? 0 : categoryId, offset, offset + size]);
+
         const products = await query;
 
+        // Fetch tier prices for all products at once
         const productIds = products.filter(p => p.HasTierPrices).map(p => p.Id);
         const tierPrices = await getTierPrices(productIds, user.roles);
 
-        const processedProducts = products.map(product => {
-            const imageUrl = product.PictureId
-                ? generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename)
-                : null;
+        const processedProducts = products.map(product => ({
+            Id: product.Id,
+            Name: product.Name,
+            Price: product.HasTierPrices ? (tierPrices[product.Id] || product.Price) : product.Price,
+            FullDescription: product.FullDescription,
+            ShortDescription: product.ShortDescription,
+            OrderMinimumQuantity: product.OrderMinimumQuantity,
+            OrderMaximumQuantity: product.OrderMaximumQuantity,
+            Stock: product.StockQuantity,
+            Images: [product.PictureId ? generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename) : null],
+            total_count: product.total_count,
+            CreatedOnUTC: product.CreatedOnUTC
+        }));
 
-            const price = product.HasTierPrices ? (tierPrices[product.Id] || product.Price) : product.Price;
+        const totalProducts = products.length > 0 ? products[0].total_count : 0;
+        const categoryName = products.length > 0 ? products[0].CategoryName : (categoryId === -1 ? getMiscellaneousName().get(-1) || "" : "Category");
 
-            return {
-                Id: product.Id,
-                Name: product.Name,
-                Price: price,
-                FullDescription: product.FullDescription,
-                ShortDescription: product.ShortDescription,
-                OrderMinimumQuantity: product.OrderMinimumQuantity,
-                OrderMaximumQuantity: product.OrderMaximumQuantity,
-                Stock: product.StockQuantity,
-                Images: [imageUrl],
-                total_count: product.total_count,
-                CreatedOnUTC: product.CreatedOnUTC
-            };
-        });
-        //
-        const totalProducts = processedProducts.length > 0 ? processedProducts[0].total_count : 0;
-
-        console.log('No. :' + processedProducts.length)
         const response = {
-            categoryName: categoryName,
+            categoryName,
             totalProducts,
             totalPages: Math.ceil(totalProducts / size),
             pageNumber: page,
@@ -250,6 +220,7 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user) {
         throw error;
     }
 }
+
 
 /**
 * * Retrieves a list of best-selling products sorted by a specified criterion.*
@@ -533,7 +504,7 @@ export async function GetImmediateChildCategories(categoryId) {
             .where('Deleted', false);
 
         const categoriesWithImages = result.map(category => {
-            const {PictureId, ...rest} = category;
+            const { PictureId, ...rest } = category;
             const imageUrl = PictureId
                 ? generateImageUrl2(PictureId[0], category.MimeType, category.SeoFilename)
                 : null;

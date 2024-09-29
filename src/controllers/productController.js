@@ -16,8 +16,10 @@ async function getProductsFromCategories(req, res) {
         const categoryId = parseInt(req.params.category);
         const page = parseInt(req.query.page, 10) || 1;
         const size = parseInt(req.query.size, 10) || 10;
+        const minPrice = parseFloat(req.query.minPrice) || 0;
+        const maxPrice = parseFloat(req.query.maxPrice) || Number.MAX_SAFE_INTEGER;
 
-        const products = await listProductsFromCategory(categoryId, page, size, req.user);
+        const products = await listProductsFromCategory(categoryId, page, size, req.user, minPrice, maxPrice);
         res.status(200).send(products);
     } catch (error) {
         console.error(error);
