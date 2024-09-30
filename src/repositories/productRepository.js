@@ -147,45 +147,62 @@ async function getSubcategories(categoryId) {
  * @param {number} size - The number of items per page.
  * @returns {Promise<Array>} A promise that resolves to an array of product objects.
  */
-async function listProductsFromCategory(categoryId, page = 1, size = 10, user, minPrice = 0, maxPrice = Number.MAX_SAFE_INTEGER) {
-    const cacheKey = `products_${categoryId}_${page}_${size}_${user.roles.map(r => r.Id).join('_')}`;
+async function listProductsFromCategory(categoryId, page = 1, size = 10, user, minPrice = 0, maxPrice = Number.MAX_SAFE_INTEGER, sortBy = 'recent') {
+    const cacheKey = `products_${categoryId}_${page}_${size}_${user.roles.map(r => r.Id).join('_')}_${sortBy}_${minPrice}_${maxPrice}`;
     const cachedProducts = cache.get(cacheKey);
-
     if (cachedProducts) {
         return cachedProducts;
     }
-
     try {
         const offset = (page - 1) * size;
-
-        // Combine product query with category name query
+        let orderByClause;
+        switch (sortBy) {
+            case 'price_asc':
+                orderByClause = 'p.Price ASC';
+                break;
+            case 'price_desc':
+                orderByClause = 'p.Price DESC';
+                break;
+            case 'name_asc':
+                orderByClause = 'p.Name ASC';
+                break;
+            case 'name_desc':
+                orderByClause = 'p.Name DESC';
+                break;
+            case 'recent':
+            default:
+                orderByClause = 'p.CreatedOnUTC DESC';
+                break;
+        }
         const query = knex.raw(`
             WITH ProductData AS (
-                SELECT 
-                    p.CreatedonUTC, p.Id, p.Name, p.HasTierPrices, p.Price, 
-                    p.FullDescription, p.ShortDescription, p.OrderMinimumQuantity, 
+                SELECT
+                    p.CreatedOnUTC, p.Id, p.Name, p.HasTierPrices, p.Price,
+                    p.FullDescription, p.ShortDescription, p.OrderMinimumQuantity,
                     p.OrderMaximumQuantity, p.StockQuantity,
-                    ppm.PictureId, pic.MimeType, pic.SeoFilename,
                     c.Name AS CategoryName,
-                    ROW_NUMBER() OVER (ORDER BY p.Name) AS RowNum,
-                    COUNT(*) OVER () AS total_count
+                    COUNT(*) OVER () AS total_count,
+                    STRING_AGG(CONCAT(ppm.PictureId, ':', pic.MimeType, ':', pic.SeoFilename), '|') AS ImageData,
+                    ROW_NUMBER() OVER (ORDER BY ${orderByClause}) AS RowNum
                 FROM Product p
                 JOIN Product_Category_Mapping pcm ON p.Id = pcm.ProductId
                 JOIN Category c ON pcm.CategoryId = c.Id
                 LEFT JOIN Product_Picture_Mapping ppm ON p.Id = ppm.ProductId
                 LEFT JOIN Picture pic ON ppm.PictureId = pic.Id
                 WHERE pcm.CategoryId = ? AND p.Published = 1 AND p.Deleted = 0
+                AND p.Price BETWEEN ? AND ?
+                GROUP BY p.CreatedOnUTC, p.Id, p.Name, p.HasTierPrices, p.Price,
+                         p.FullDescription, p.ShortDescription, p.OrderMinimumQuantity,
+                         p.OrderMaximumQuantity, p.StockQuantity, c.Name
             )
             SELECT * FROM ProductData
             WHERE RowNum > ? AND RowNum <= ?
-        `, [categoryId === -1 ? 0 : categoryId, offset, offset + size]);
-
+        `, [categoryId === -1 ? 0 : categoryId, minPrice, maxPrice, offset, offset + size]);
         const products = await query;
-
+       
         // Fetch tier prices for all products at once
         const productIds = products.filter(p => p.HasTierPrices).map(p => p.Id);
         const tierPrices = await getTierPrices(productIds, user.roles);
-
         const processedProducts = products.map(product => ({
             Id: product.Id,
             Name: product.Name,
@@ -195,26 +212,26 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user, m
             OrderMinimumQuantity: product.OrderMinimumQuantity,
             OrderMaximumQuantity: product.OrderMaximumQuantity,
             Stock: product.StockQuantity,
-            Images: [product.PictureId ? generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename) : null],
+            Images: product.ImageData ? product.ImageData.split('|').map(imgData => {
+                const [pictureId, mimeType, seoFilename] = imgData.split(':');
+                return generateImageUrl2(pictureId, mimeType, seoFilename);
+            }).filter(Boolean) : [],
             total_count: product.total_count,
             CreatedOnUTC: product.CreatedOnUTC
         }));
-
         const totalProducts = products.length > 0 ? products[0].total_count : 0;
         const categoryName = products.length > 0 ? products[0].CategoryName : (categoryId === -1 ? getMiscellaneousName().get(-1) || "" : "Category");
-
         const response = {
             categoryName,
             totalProducts,
             totalPages: Math.ceil(totalProducts / size),
             pageNumber: page,
             pageSize: size,
+            sortBy,
             data: processedProducts
         };
-
         cache.set(cacheKey, response);
         return response;
-
     } catch (error) {
         console.error('Error in listProductsFromCategory:', error);
         throw error;

@@ -18,8 +18,15 @@ async function getProductsFromCategories(req, res) {
         const size = parseInt(req.query.size, 10) || 10;
         const minPrice = parseFloat(req.query.minPrice) || 0;
         const maxPrice = parseFloat(req.query.maxPrice) || Number.MAX_SAFE_INTEGER;
+        const sortBy = req.query.sortBy || 'recent';
 
-        const products = await listProductsFromCategory(categoryId, page, size, req.user, minPrice, maxPrice);
+        // Validate sortBy parameter
+        const validSortOptions = ['price_asc', 'price_desc', 'name_asc', 'name_desc', 'recent'];
+        if (!validSortOptions.includes(sortBy)) {
+            return res.status(400).send('Invalid sort option. Valid options are: ' + validSortOptions.join(', '));
+        }
+
+        const products = await listProductsFromCategory(categoryId, page, size, req.user, minPrice, maxPrice, sortBy);
         res.status(200).send(products);
     } catch (error) {
         console.error(error);
