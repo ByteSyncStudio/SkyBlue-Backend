@@ -153,6 +153,7 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user, m
     if (cachedProducts) {
         return cachedProducts;
     }
+
     try {
         const offset = (page - 1) * size;
         let orderByClause;
@@ -174,22 +175,26 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user, m
                 orderByClause = 'p.CreatedOnUTC DESC';
                 break;
         }
-        const query = knex.raw(`
+
+        // Use conditional join and WHERE clause for categoryId check
+        const query = knex.raw(
+            `
             WITH ProductData AS (
                 SELECT
                     p.CreatedOnUTC, p.Id, p.Name, p.HasTierPrices, p.Price,
                     p.FullDescription, p.ShortDescription, p.OrderMinimumQuantity,
                     p.OrderMaximumQuantity, p.StockQuantity,
-                    c.Name AS CategoryName,
+                    CASE WHEN ? = -1 THEN 'All Products' ELSE c.Name END AS CategoryName,
                     COUNT(*) OVER () AS total_count,
                     STRING_AGG(CONCAT(ppm.PictureId, ':', pic.MimeType, ':', pic.SeoFilename), '|') AS ImageData,
                     ROW_NUMBER() OVER (ORDER BY ${orderByClause}) AS RowNum
                 FROM Product p
-                JOIN Product_Category_Mapping pcm ON p.Id = pcm.ProductId
-                JOIN Category c ON pcm.CategoryId = c.Id
+                LEFT JOIN Product_Category_Mapping pcm ON p.Id = pcm.ProductId AND ? <> -1
+                LEFT JOIN Category c ON pcm.CategoryId = c.Id
                 LEFT JOIN Product_Picture_Mapping ppm ON p.Id = ppm.ProductId
                 LEFT JOIN Picture pic ON ppm.PictureId = pic.Id
-                WHERE pcm.CategoryId = ? AND p.Published = 1 AND p.Deleted = 0
+                WHERE p.Published = 1 AND p.Deleted = 0
+                AND (pcm.CategoryId = ? OR ? = -1)
                 AND p.Price BETWEEN ? AND ?
                 GROUP BY p.CreatedOnUTC, p.Id, p.Name, p.HasTierPrices, p.Price,
                          p.FullDescription, p.ShortDescription, p.OrderMinimumQuantity,
@@ -197,12 +202,17 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user, m
             )
             SELECT * FROM ProductData
             WHERE RowNum > ? AND RowNum <= ?
-        `, [categoryId === -1 ? 0 : categoryId, minPrice, maxPrice, offset, offset + size]);
+            `,
+            [categoryId, categoryId, categoryId, categoryId, minPrice, maxPrice, offset, offset + size]
+        );
+
         const products = await query;
-       
+
         // Fetch tier prices for all products at once
         const productIds = products.filter(p => p.HasTierPrices).map(p => p.Id);
         const tierPrices = await getTierPrices(productIds, user.roles);
+
+        // Process products for response
         const processedProducts = products.map(product => ({
             Id: product.Id,
             Name: product.Name,
@@ -219,8 +229,10 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user, m
             total_count: product.total_count,
             CreatedOnUTC: product.CreatedOnUTC
         }));
+
         const totalProducts = products.length > 0 ? products[0].total_count : 0;
-        const categoryName = products.length > 0 ? products[0].CategoryName : (categoryId === -1 ? getMiscellaneousName().get(-1) || "" : "Category");
+        const categoryName = products.length > 0 ? products[0].CategoryName : (categoryId === -1 ? "All Products" : "Category");
+        
         const response = {
             categoryName,
             totalProducts,
@@ -230,6 +242,8 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user, m
             sortBy,
             data: processedProducts
         };
+
+        // Cache the response
         cache.set(cacheKey, response);
         return response;
     } catch (error) {
@@ -237,6 +251,8 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user, m
         throw error;
     }
 }
+
+
 
 
 /**
