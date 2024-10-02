@@ -1,6 +1,7 @@
 import knex from "../config/knex.js";
 import crypto from "crypto";
 import { generateImageUrl2 } from "../utils/imageUtils.js";
+import { getTierPrices } from "./productRepository.js";
 
 export async function GetUserInfo(user) {
     const countries = [
@@ -191,4 +192,126 @@ export async function GetStateList(countryId) {
             'Name'
         ])
         .where('CountryId', countryId)
+}
+
+export async function GetWishListItems(user) {
+    try {
+        const items = await knex('ShoppingCartItem')
+            .leftJoin('Product', 'ShoppingCartItem.ProductId', 'Product.Id')
+            .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
+            .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
+            .select([
+                'Product.CreatedonUTC',
+                'Product.Id',
+                'Product.Name',
+                'Product.HasTierPrices',
+                'Product.Price',
+                'Product.FullDescription',
+                'Product.ShortDescription',
+                'Product.OrderMinimumQuantity',
+                'Product.OrderMaximumQuantity',
+                'Product.StockQuantity',
+                'Product_Picture_Mapping.PictureId',
+                'Picture.MimeType',
+                'Picture.SeoFilename'
+            ])
+            .where('ShoppingCartItem.CustomerId', user.id)
+            .andWhere('ShoppingCartItem.ShoppingCartTypeId', 2)
+            .orderBy('Product.CreatedonUTC', 'desc');
+
+        // Fetch tier prices for all products at once
+        const productIds = items.filter(p => p.HasTierPrices).map(p => p.Id);
+        const tierPrices = await getTierPrices(productIds, user.roles);
+
+        // Process items for response
+        const processedItems = items.map(item => {
+            const imageUrl = item.PictureId ? generateImageUrl2(item.PictureId, item.MimeType, item.SeoFilename) : '';
+            return {
+                Id: item.Id,
+                Name: item.Name,
+                Price: item.HasTierPrices ? (tierPrices[item.Id] || item.Price) : item.Price,
+                FullDescription: item.FullDescription,
+                ShortDescription: item.ShortDescription,
+                OrderMinimumQuantity: item.OrderMinimumQuantity,
+                OrderMaximumQuantity: item.OrderMaximumQuantity,
+                Stock: item.StockQuantity,
+                imageUrl,
+                CreatedOnUTC: item.CreatedonUTC
+            };
+        });
+
+        return processedItems;
+    } catch (error) {
+        console.error("Error in fetching Wishlist items: ", error);
+        throw error;
+    }
+}
+
+export async function AddToWishList(user, productId) {
+    try {
+        await knex.transaction(async (trx) => {
+            // Check if the item already exists in the wishlist
+            const existingItem = await trx('ShoppingCartItem')
+                .where({
+                    ShoppingCartTypeId: 2,
+                    CustomerId: user.id,
+                    ProductId: productId
+                })
+                .first();
+
+            if (existingItem) {
+                throw new Error('Item already exists in the wishlist');
+            }
+
+            // Insert the new item into the wishlist
+            await trx('ShoppingCartItem').insert({
+                StoreId: 3,
+                ShoppingCartTypeId: 2,
+                CustomerId: user.id,
+                ProductId: productId,
+                CustomerEnteredPrice: 0.000,
+                Quantity: 1,
+                CreatedOnUtc: new Date().toISOString(),
+                UpdatedOnUtc: new Date().toISOString(),
+            });
+        });
+
+        return { message: 'Item added to wishlist successfully' };
+    } catch (error) {
+        console.error("Error adding to Wishlist items: ", error);
+        throw error;
+    }
+}
+
+export async function RemoveFromWishList(user, productId) {
+    try {
+        await knex.transaction(async (trx) => {
+            // Check if the item exists in the wishlist
+            const existingItem = await trx('ShoppingCartItem')
+                .where({
+                    ShoppingCartTypeId: 2,
+                    CustomerId: user.id,
+                    ProductId: productId
+                })
+                .first();
+
+            if (!existingItem) {
+                throw new Error('Item does not exist in the wishlist');
+            }
+
+            // Remove the item from the wishlist
+            await trx('ShoppingCartItem')
+                .where({
+                    ShoppingCartTypeId: 2,
+                    CustomerId: user.id,
+                    ProductId: productId
+                })
+                .del();
+        });
+
+        return { message: 'Item removed from wishlist successfully' };
+    } catch (error) {
+        console.error("Error removing from Wishlist items: ", error);
+        throw error;
+    }
 }

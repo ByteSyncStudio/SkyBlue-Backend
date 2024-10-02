@@ -1,4 +1,4 @@
-import { GetUserInfo, ChangePassword, UpdateUserInfo, GetCustomerOrders, GetSingleCustomerOrders, GetCountryList, GetStateList } from '../repositories/customerRepository.js'
+import { GetUserInfo, ChangePassword, UpdateUserInfo, GetCustomerOrders, GetSingleCustomerOrders, GetCountryList, GetStateList, GetWishListItems, AddToWishList, RemoveFromWishList } from '../repositories/customerRepository.js'
 
 
 export async function getCustomerInfo(req, res) {
@@ -101,4 +101,32 @@ export async function getCustomerOrders(req, res) {
     }
 }
 
+export async function getWishListItems(req, res) {
+    try {
+        const items = await GetWishListItems(req.user);
+        res.status(200).send(items);
+    } catch (error) {
+        console.error("Error fetching wishlist:", error);
+        res.status(error.statusCode || 500).json(error.message || 'Server error');
+    }
+}
 
+export async function addToWishList(req, res) {
+    try {
+        const response = await AddToWishList(req.user, req.params.id);
+        res.status(200).send(response);
+    } catch (error) {
+        console.error("Error adding to wishlist:", error);
+        res.status(error.statusCode || 500).json(error.message || 'Server error');
+    }
+}
+
+export async function removeFromWishList(req, res) {
+    try {
+        const response = await RemoveFromWishList(req.user, req.params.id);
+        res.status(200).send(response);
+    } catch (error) {
+        console.error("Error removing from wishlist:", error);
+        res.status(error.statusCode || 500).json(error.message || 'Server error');
+    }
+}

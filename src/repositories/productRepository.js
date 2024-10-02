@@ -17,7 +17,7 @@ function getMiscellaneousName() {
     ]);
 }
 
-async function getTierPrices(productIds, userRoles) {
+export async function getTierPrices(productIds, userRoles) {
     const tierPricingRoles = [6, 7, 8, 9, 10];
     const userTierRole = userRoles.find(role => tierPricingRoles.includes(role.Id));
 

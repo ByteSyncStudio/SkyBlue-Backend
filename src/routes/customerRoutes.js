@@ -1,5 +1,5 @@
 import express from "express";
-import { getCustomerInfo, changePassword, updateCustomerInfo, getCountryList, getStateList, getCustomerOrders, getSingleCustomerOrders } from "../controllers/customerController.js";
+import { getCustomerInfo, changePassword, updateCustomerInfo, getCountryList, getStateList, getCustomerOrders, getSingleCustomerOrders, getWishListItems, addToWishList, removeFromWishList } from "../controllers/customerController.js";
 import { authenticateToken, authorizeRoles } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -325,5 +325,144 @@ router.get('/orders', getCustomerOrders);
  *                   example: "Server error"
  */
 router.get('/single-order/:id', getSingleCustomerOrders);
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Customer
+ *     description: Customer related endpoints
+ * /customer/wishlist:
+ *   get:
+ *     summary: Retrieve wishlist items for the authenticated customer
+ *     tags: [Customer]
+ *     responses:
+ *       200:
+ *         description: Wishlist items retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   Id:
+ *                     type: integer
+ *                     description: The product ID.
+ *                     example: 1
+ *                   Name:
+ *                     type: string
+ *                     description: The name of the product.
+ *                     example: "Product Name"
+ *                   Price:
+ *                     type: number
+ *                     description: The price of the product.
+ *                     example: 100.50
+ *                   FullDescription:
+ *                     type: string
+ *                     description: The full description of the product.
+ *                     example: "This is a full description of the product."
+ *                   ShortDescription:
+ *                     type: string
+ *                     description: The short description of the product.
+ *                     example: "Short description."
+ *                   OrderMinimumQuantity:
+ *                     type: integer
+ *                     description: The minimum quantity for ordering.
+ *                     example: 1
+ *                   OrderMaximumQuantity:
+ *                     type: integer
+ *                     description: The maximum quantity for ordering.
+ *                     example: 10
+ *                   Stock:
+ *                     type: integer
+ *                     description: The stock quantity of the product.
+ *                     example: 50
+ *                   imageUrl:
+ *                     type: string
+ *                     description: The URL of the product image.
+ *                     example: "http://example.com/image.jpg"
+ *                   CreatedOnUTC:
+ *                     type: string
+ *                     format: date-time
+ *                     description: The date and time when the product was created.
+ *                     example: "2023-10-01T12:00:00Z"
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/wishlist', getWishListItems);
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Customer
+ *     description: Customer related endpoints
+ * /customer/wishlist/{id}:
+ *   post:
+ *     summary: Add a product to the wishlist for the authenticated customer
+ *     tags: [Customer]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The product ID to add to the wishlist
+ *     responses:
+ *       200:
+ *         description: Item added to wishlist successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Item added to wishlist successfully."
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+router.post('/wishlist/:id', addToWishList);
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Customer
+ *     description: Customer related endpoints
+ * /customer/wishlist/{id}:
+ *   delete:
+ *     summary: Remove a product from the wishlist for the authenticated customer
+ *     tags: [Customer]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The product ID to remove from the wishlist
+ *     responses:
+ *       200:
+ *         description: Item removed from wishlist successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Item removed from wishlist successfully."
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+router.delete('/wishlist/:id', removeFromWishList);
 
 export default router;
