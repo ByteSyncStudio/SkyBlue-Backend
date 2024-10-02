@@ -235,7 +235,7 @@ export async function GetWishListItems(user) {
                 OrderMinimumQuantity: item.OrderMinimumQuantity,
                 OrderMaximumQuantity: item.OrderMaximumQuantity,
                 Stock: item.StockQuantity,
-                imageUrl,
+                Images: [imageUrl],
                 CreatedOnUTC: item.CreatedonUTC
             };
         });
