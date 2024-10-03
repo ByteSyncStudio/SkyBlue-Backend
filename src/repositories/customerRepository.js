@@ -315,3 +315,20 @@ export async function RemoveFromWishList(user, productId) {
         throw error;
     }
 }
+
+export async function WishlistCheck(user, productId) {
+    try {
+        const item = await knex('ShoppingCartItem')
+            .where({
+                ShoppingCartTypeId: 2,
+                CustomerId: user.id,
+                ProductId: productId
+            })
+            .first();
+
+        return !!item;
+    } catch (error) {
+        console.error("Error checking Wishlist items: ", error);
+        throw error;
+    }
+}

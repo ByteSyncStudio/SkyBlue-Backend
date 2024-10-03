@@ -1,5 +1,5 @@
 import express from "express";
-import { getCustomerInfo, changePassword, updateCustomerInfo, getCountryList, getStateList, getCustomerOrders, getSingleCustomerOrders, getWishListItems, addToWishList, removeFromWishList } from "../controllers/customerController.js";
+import { getCustomerInfo, changePassword, updateCustomerInfo, getCountryList, getStateList, getCustomerOrders, getSingleCustomerOrders, getWishListItems, addToWishList, removeFromWishList, wishlistCheck } from "../controllers/customerController.js";
 import { authenticateToken, authorizeRoles } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -464,5 +464,7 @@ router.post('/wishlist/:id', addToWishList);
  *         description: Internal server error
  */
 router.delete('/wishlist/:id', removeFromWishList);
+
+router.get('/check-wishlist/:id', wishlistCheck);
 
 export default router;
