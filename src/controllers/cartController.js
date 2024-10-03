@@ -1,6 +1,7 @@
 import {
   addToCart,
   allItemRemove,
+  GetCartCount,
   getCartItems,
   removeSingleCartItem,
   updateCart,
@@ -133,3 +134,11 @@ export const allItemRemoveController = async (req, res) => {
       .json({ success: false, message: "Internal server error." });
   }
 };
+
+export async function getCartCount(req, res) {
+  try {
+    res.status(200).json(await GetCartCount(req.user));
+  } catch (error) {
+    console.error("Error in allItemRemoveController:", error);
+  }
+}

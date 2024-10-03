@@ -58,7 +58,7 @@ async function getCartItems(user) {
     const cartItems = await fetchCartItems(user.id);
 
     const productIds = cartItems.map(item => item.ProductId);
-    
+
     // Ensure customerRoles is an array of IDs
     const customerRoles = user.roles.map(role => role.Id);
     console.log("customerRoles:", customerRoles);
@@ -338,6 +338,19 @@ export async function allItemRemove(userId) {
     return { success: true };
   } catch (error) {
     console.error("Error in allItemRemove:", error);
+    return { success: false, message: "Failed to remove all cart items." };
+  }
+}
+
+export async function GetCartCount(user) {
+  try {
+    const items = await knex('ShoppingCartItem')
+      .select('*')
+      .where({ CustomerId: user.id })
+
+    return { count: items.length }
+  } catch (error) {
+    console.error("Error in cart count: ", error);
     return { success: false, message: "Failed to remove all cart items." };
   }
 }

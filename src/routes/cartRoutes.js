@@ -2,6 +2,7 @@ import express from "express";
 import {
   addToCartController,
   allItemRemoveController,
+  getCartCount,
   getCartItemsController,
   removeSingleCartItemController,
   updateCartController,
@@ -157,5 +158,7 @@ router.delete("/remove/:id", cartAccess, removeSingleCartItemController);
  *         description: Server error.
  */
 router.delete("/remove-all", cartAccess, allItemRemoveController);
+
+router.get('/count', getCartCount);
 
 export default router;
