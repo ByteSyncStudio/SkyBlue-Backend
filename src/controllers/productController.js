@@ -72,7 +72,7 @@ async function searchProducts(req, res) {
         const sortBy = req.query.sortBy || 'name_asc'; // Default sort option
 
         // Validate sortBy parameter
-        const validSortOptions = ['price_asc', 'price_desc', 'name_asc', 'name_desc'];
+        const validSortOptions = ['price_asc', 'price_desc', 'name_asc', 'name_desc', 'recent'];
         if (!validSortOptions.includes(sortBy)) {
             return res.status(400).send('Invalid sort option. Valid options are: ' + validSortOptions.join(', '));
         }
