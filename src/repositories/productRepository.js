@@ -421,10 +421,31 @@ async function listNewArrivals(size, user) {
  * @param {number} size - The number of items per page.
  * @returns {Promise<Object>} A promise that resolves to an object containing the search results.
  */
-async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10, user) {
+async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10, user, sortBy = 'recent') {
     try {
         const offset = (page - 1) * size;
 
+        // Determine the sorting clause
+        let orderByClause;
+        switch (sortBy) {
+            case 'price_asc':
+                orderByClause = 'Product.Price ASC';
+                break;
+            case 'price_desc':
+                orderByClause = 'Product.Price DESC';
+                break;
+            case 'name_asc':
+                orderByClause = 'Product.Name ASC';
+                break;
+            case 'name_desc':
+                orderByClause = 'Product.Name DESC';
+                break;
+            default:
+                orderByClause = 'Product.CreatedOnUTC DESC'; // Default sorting by name ascending
+                break;
+        }
+
+        // Start the base query with sorting applied
         let query = knex('Product')
             .distinct('Product.Id') // Ensure distinct products
             .select([
@@ -437,6 +458,7 @@ async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10, u
                 'Product.OrderMaximumQuantity',
                 'Product_Picture_Mapping.PictureId',
                 'Product.StockQuantity',
+                'Product.CreatedOnUTC',
                 'Product.AllowedQuantities',
                 'Picture.MimeType',
                 'Picture.SeoFilename',
@@ -447,10 +469,27 @@ async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10, u
             .where('Product.Name', 'like', `%${searchTerm}%`)
             .where('Product.Published', true)
             .where('Product.Deleted', false)
-            .orderBy('Product.Name')
+            .groupBy([
+                'Product.Id',
+                'Product.Name',
+                'Product.Price',
+                'Product.HasTierPrices',
+                'Product.FullDescription',
+                'Product.ShortDescription',
+                'Product.OrderMinimumQuantity',
+                'Product.OrderMaximumQuantity',
+                'Product_Picture_Mapping.PictureId',
+                'Product.StockQuantity',
+                'Product.CreatedOnUTC',
+                'Product.AllowedQuantities',
+                'Picture.MimeType',
+                'Picture.SeoFilename'
+            ])
+            .orderByRaw(orderByClause) // Apply sorting
             .limit(size)
             .offset(offset);
 
+        // Handle category filtering if categoryId matches specific categories
         if ([36, 111, 189].includes(categoryId)) {
             const subCategoryIds = await getSubcategories(categoryId);
             query = query
@@ -503,12 +542,13 @@ async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10, u
             data: processedProducts
         };
     } catch (error) {
-        console.error(error)
+        console.error(error);
         error.statusCode = 500;
         error.message = "Error in searchProducts";
         throw error;
     }
 }
+
 
 export async function GetFlatCategories() {
     try {

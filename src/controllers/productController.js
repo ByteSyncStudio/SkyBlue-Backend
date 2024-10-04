@@ -58,26 +58,33 @@ async function getNewArrivals(req, res) {
 }
 
 async function searchProducts(req, res) {
-    console.log(req.user)
+    console.log(req.user);
     try {
         if (!req.query.term) {
-            res.status(404).send("Search Term is required.")
-            return
+            res.status(404).send("Search Term is required.");
+            return;
         }
 
         const searchTerm = req.query.term;
-        const page = parseInt(req.query.page) || 1;
-        const size = parseInt(req.query.size) || 10;
-        const category = parseInt(req.params.category);
-        const products = await listSearchProducts(category, searchTerm, page, size, req.user);
+        const page = parseInt(req.query.page, 10) || 1;
+        const size = parseInt(req.query.size, 10) || 10;
+        const category = parseInt(req.params.category, 10);
+        const sortBy = req.query.sortBy || 'name_asc'; // Default sort option
 
+        // Validate sortBy parameter
+        const validSortOptions = ['price_asc', 'price_desc', 'name_asc', 'name_desc'];
+        if (!validSortOptions.includes(sortBy)) {
+            return res.status(400).send('Invalid sort option. Valid options are: ' + validSortOptions.join(', '));
+        }
+
+        const products = await listSearchProducts(category, searchTerm, page, size, req.user, sortBy);
         res.status(200).send(products);
-    }
-    catch (error) {
+    } catch (error) {
         console.error(error);
         res.status(error.statusCode || 500).send(error.message || 'Server error');
     }
 }
+
 
 export async function getFlatCategories(req, res) {
     try {
