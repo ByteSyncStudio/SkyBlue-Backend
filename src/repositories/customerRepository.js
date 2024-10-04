@@ -1,5 +1,6 @@
 import knex from "../config/knex.js";
 import crypto from "crypto";
+import { v4 as uuidv4 } from 'uuid';
 import { generateImageUrl2 } from "../utils/imageUtils.js";
 import { getTierPrices } from "./productRepository.js";
 
@@ -329,6 +330,34 @@ export async function WishlistCheck(user, productId) {
         return !!item;
     } catch (error) {
         console.error("Error checking Wishlist items: ", error);
+        throw error;
+    }
+}
+
+export async function AddToNewsLetter(email) {
+    try {
+        await knex.transaction(async (trx) => {
+            const existingUser = await trx('NewsLetterSubscription')
+                .where({
+                    Email: email
+                })
+                .first();
+
+            if (existingUser) {
+                throw new Error('Email already exists in the wishlist');
+            }
+
+            await trx('NewsLetterSubscription').insert({
+                Email: email,
+                Active: 1,
+                StoreId: 3,
+                CreatedOnUTC: new Date().toISOString(),
+                NewsLetterSubscriptionGuid: uuidv4().toUpperCase()
+            })
+        })
+        return { message: 'Email added to newsletter successfully' };
+    } catch (error) {
+        console.error("Error adding to NewsLetter: ", error);
         throw error;
     }
 }

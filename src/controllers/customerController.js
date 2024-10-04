@@ -1,4 +1,4 @@
-import { GetUserInfo, ChangePassword, UpdateUserInfo, GetCustomerOrders, GetSingleCustomerOrders, GetCountryList, GetStateList, GetWishListItems, AddToWishList, RemoveFromWishList, WishlistCheck } from '../repositories/customerRepository.js'
+import { GetUserInfo, ChangePassword, UpdateUserInfo, GetCustomerOrders, GetSingleCustomerOrders, GetCountryList, GetStateList, GetWishListItems, AddToWishList, RemoveFromWishList, WishlistCheck, AddToNewsLetter } from '../repositories/customerRepository.js'
 
 
 export async function getCustomerInfo(req, res) {
@@ -134,6 +134,16 @@ export async function removeFromWishList(req, res) {
 export async function wishlistCheck(req, res) {
     try {
         res.status(200).send(await WishlistCheck(req.user, req.params.id))
+    } catch (error) {
+        console.error("Error checking wishlist:", error);
+        res.status(error.statusCode || 500).json(error.message || 'Server error');
+    }
+}
+
+export async function addToNewsLetter(req, res) {
+    try {
+        const email = req.body.email
+        res.status(200).send(await AddToNewsLetter(email))
     } catch (error) {
         console.error("Error checking wishlist:", error);
         res.status(error.statusCode || 500).json(error.message || 'Server error');

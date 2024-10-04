@@ -1,5 +1,5 @@
 import express from "express";
-import { getCustomerInfo, changePassword, updateCustomerInfo, getCountryList, getStateList, getCustomerOrders, getSingleCustomerOrders, getWishListItems, addToWishList, removeFromWishList, wishlistCheck } from "../controllers/customerController.js";
+import { getCustomerInfo, changePassword, updateCustomerInfo, getCountryList, getStateList, getCustomerOrders, getSingleCustomerOrders, getWishListItems, addToWishList, removeFromWishList, wishlistCheck, addToNewsLetter } from "../controllers/customerController.js";
 import { authenticateToken, authorizeRoles } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -466,5 +466,7 @@ router.post('/wishlist/:id', addToWishList);
 router.delete('/wishlist/:id', removeFromWishList);
 
 router.get('/check-wishlist/:id', wishlistCheck);
+
+router.post('/newsletter', addToNewsLetter);
 
 export default router;

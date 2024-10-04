@@ -252,9 +252,6 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user, m
     }
 }
 
-
-
-
 /**
 * * Retrieves a list of best-selling products sorted by a specified criterion.*
 * **
@@ -553,6 +550,42 @@ export async function GetImmediateChildCategories(categoryId) {
         console.error("Error fetching child categories:\n", error);
         throw error;
     }
+}
+
+export async function getProductsFromCategories() {
+    //? Fetches products from categoryId and all of it's children
+        const subCategoryIds = await getSubcategories(categoryId);
+
+        const query = knex.raw(`
+            WITH RankedProducts AS (
+                SELECT 
+                    p.Id, p.Name, p.HasTierPrices, p.Price, p.FullDescription, p.ShortDescription,
+                    p.OrderMinimumQuantity, p.OrderMaximumQuantity, p.StockQuantity, p.CreatedOnUTC,
+                    ppm.PictureId, pic.MimeType, pic.SeoFilename,
+                    ROW_NUMBER() OVER (PARTITION BY p.Id ORDER BY ppm.DisplayOrder) AS RowNum
+                FROM Product p
+                JOIN Product_Category_Mapping pcm ON p.Id = pcm.ProductId
+                LEFT JOIN Product_Picture_Mapping ppm ON p.Id = ppm.ProductId
+                LEFT JOIN Picture pic ON ppm.PictureId = pic.Id
+                WHERE pcm.CategoryId IN (${subCategoryIds.join(',')})
+                    AND p.Published = 1 AND p.Deleted = 0
+            ),
+            TotalCount AS (
+                SELECT COUNT(DISTINCT Id) AS total_count
+                FROM RankedProducts
+            )
+            SELECT 
+                rp.Id, rp.Name, rp.HasTierPrices, rp.Price, rp.FullDescription, rp.ShortDescription,
+                rp.OrderMinimumQuantity, rp.OrderMaximumQuantity, rp.StockQuantity, rp.CreatedOnUTC,
+                rp.PictureId, rp.MimeType, rp.SeoFilename,
+                tc.total_count
+            FROM RankedProducts rp
+            CROSS JOIN TotalCount tc
+            WHERE rp.RowNum = 1
+            ORDER BY rp.Name
+            OFFSET ? ROWS
+            FETCH NEXT ? ROWS ONLY
+        `, [offset, size]);
 }
 
 export { listCategory, listProductsFromCategory, listBestsellers, listNewArrivals, listSearchProducts };
