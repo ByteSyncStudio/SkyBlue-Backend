@@ -336,15 +336,13 @@ export async function WishlistCheck(user, productId) {
 
 export async function AddToNewsLetter(email) {
     try {
-        await knex.transaction(async (trx) => {
+        return await knex.transaction(async (trx) => {
             const existingUser = await trx('NewsLetterSubscription')
-                .where({
-                    Email: email
-                })
+                .where({ Email: email })
                 .first();
 
             if (existingUser) {
-                throw new Error('Email already exists in the wishlist');
+                return { success: false, message: 'Email already exists in the newsletter', statusCode: 400 };
             }
 
             await trx('NewsLetterSubscription').insert({
@@ -353,9 +351,10 @@ export async function AddToNewsLetter(email) {
                 StoreId: 3,
                 CreatedOnUTC: new Date().toISOString(),
                 NewsLetterSubscriptionGuid: uuidv4().toUpperCase()
-            })
-        })
-        return { message: 'Email added to newsletter successfully' };
+            });
+
+            return { success: true, message: 'Email added to newsletter successfully', statusCode: 200 };
+        });
     } catch (error) {
         console.error("Error adding to NewsLetter: ", error);
         throw error;

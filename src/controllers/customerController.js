@@ -142,10 +142,11 @@ export async function wishlistCheck(req, res) {
 
 export async function addToNewsLetter(req, res) {
     try {
-        const email = req.body.email
-        res.status(200).send(await AddToNewsLetter(email))
+        const email = req.body.email;
+        const result = await AddToNewsLetter(email);
+        res.status(result.statusCode).json(result);
     } catch (error) {
-        console.error("Error checking wishlist:", error);
-        res.status(error.statusCode || 500).json(error.message || 'Server error');
+        console.error("Error adding to newsletter:", error);
+        res.status(error.statusCode || 500).json({ message: error.message || 'Server error' });
     }
 }
