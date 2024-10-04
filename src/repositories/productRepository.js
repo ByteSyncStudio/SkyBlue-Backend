@@ -183,7 +183,7 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user, m
                 SELECT
                     p.CreatedOnUTC, p.Id, p.Name, p.HasTierPrices, p.Price,
                     p.FullDescription, p.ShortDescription, p.OrderMinimumQuantity,
-                    p.OrderMaximumQuantity, p.StockQuantity,
+                    p.OrderMaximumQuantity, p.AllowedQuantities, p.StockQuantity,
                     CASE WHEN ? = -1 THEN 'All Products' ELSE c.Name END AS CategoryName,
                     COUNT(*) OVER () AS total_count,
                     STRING_AGG(CONCAT(ppm.PictureId, ':', pic.MimeType, ':', pic.SeoFilename), '|') AS ImageData,
@@ -198,7 +198,7 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user, m
                 AND p.Price BETWEEN ? AND ?
                 GROUP BY p.CreatedOnUTC, p.Id, p.Name, p.HasTierPrices, p.Price,
                          p.FullDescription, p.ShortDescription, p.OrderMinimumQuantity,
-                         p.OrderMaximumQuantity, p.StockQuantity, c.Name
+                         p.OrderMaximumQuantity, p.AllowedQuantities, p.StockQuantity, c.Name
             )
             SELECT * FROM ProductData
             WHERE RowNum > ? AND RowNum <= ?
@@ -221,6 +221,7 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user, m
             ShortDescription: product.ShortDescription,
             OrderMinimumQuantity: product.OrderMinimumQuantity,
             OrderMaximumQuantity: product.OrderMaximumQuantity,
+            AllowedQuantities: product.AllowedQuantities,
             Stock: product.StockQuantity,
             Images: product.ImageData ? product.ImageData.split('|').map(imgData => {
                 const [pictureId, mimeType, seoFilename] = imgData.split(':');
@@ -289,6 +290,7 @@ async function listBestsellers(sortBy, size, user) {
                 p.ShortDescription,
                 p.OrderMinimumQuantity,
                 p.OrderMaximumQuantity,
+                p.AllowedQuantities,
                 p.StockQuantity,
                 ppm.PictureId,
                 pic.MimeType,
@@ -320,6 +322,7 @@ async function listBestsellers(sortBy, size, user) {
                 ShortDescription: product.ShortDescription,
                 OrderMinimumQuantity: product.OrderMinimumQuantity,
                 OrderMaximumQuantity: product.OrderMaximumQuantity,
+                AllowedQuantities: product.AllowedQuantities,
                 Stock: product.StockQuantity,
                 Images: [imageUrl],
                 Quantity: product.TotalQuantity,
@@ -355,6 +358,7 @@ async function listNewArrivals(size, user) {
                 'Product.ShortDescription',
                 'Product.OrderMinimumQuantity',
                 'Product.OrderMaximumQuantity',
+                'Product.AllowedQuantities',
                 'Product_Picture_Mapping.PictureId',
                 'product.StockQuantity',
                 'Picture.MimeType',
@@ -391,6 +395,7 @@ async function listNewArrivals(size, user) {
                     ShortDescription: product.ShortDescription,
                     OrderMinimumQuantity: product.OrderMinimumQuantity,
                     OrderMaximumQuantity: product.OrderMaximumQuantity,
+                    AllowedQuantities: product.AllowedQuantities,
                     Stock: product.StockQuantity,
                     Images: [imageUrl]
                 });
@@ -431,7 +436,8 @@ async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10, u
                 'Product.OrderMinimumQuantity',
                 'Product.OrderMaximumQuantity',
                 'Product_Picture_Mapping.PictureId',
-                'product.StockQuantity',
+                'Product.StockQuantity',
+                'Product.AllowedQuantities',
                 'Picture.MimeType',
                 'Picture.SeoFilename',
                 knex.raw('COUNT(*) OVER() AS total_count')
@@ -477,6 +483,7 @@ async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10, u
                     ShortDescription: product.ShortDescription,
                     OrderMinimumQuantity: product.OrderMinimumQuantity,
                     OrderMaximumQuantity: product.OrderMaximumQuantity,
+                    AllowedQuantities: product.AllowedQuantities,
                     Stock: product.StockQuantity,
                     Images: [imageUrl],
                     total_count: product.total_count
