@@ -56,6 +56,7 @@ import {
 } from "../../controllers/admin/stats/adminStatsController.js";
 import { adminLogin } from "../../controllers/admin/auth/adminLoginController.js";
 import { authenticateToken, authorizeRoles } from '../../middleware/authMiddleware.js';
+import { addManufacturer, deleteManufacturer, editManufacturer, getAllManufacturers } from "../../controllers/admin/manufacturer/adminManufacturerController.js";
 
 const router = express.Router();
 
@@ -1604,5 +1605,133 @@ router.get("/bestSellerByQuantity", adminAccess, getBestSellerByQunatity);
 router.get('/monthly-orders', adminAccess, totalOrdersInPastMonths)
 
 router.get('/monthly-customers', adminAccess, newCustomersInPastMonths)
+
+/**
+ * @swagger
+ * /admin/manufacturer:
+ *   get:
+ *     summary: Retrieve a list of all manufacturers
+ *     tags: [Admin]
+ *     responses:
+ *       200:
+ *         description: A list of manufacturers
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                     example: 1
+ *                   Name:
+ *                     type: string
+ *                     example: "Manufacturer Name"
+ *                   Description:
+ *                     type: string
+ *                     example: "Manufacturer Description"
+ *                   CreatedOnUTC:
+ *                     type: string
+ *                     format: date-time
+ *                     example: "2023-10-01T00:00:00Z"
+ *                   UpdatedOnUTC:
+ *                     type: string
+ *                     format: date-time
+ *                     example: "2023-10-01T00:00:00Z"
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/manufacturer', adminAccess, getAllManufacturers);
+
+/**
+ * @swagger
+ * /admin/manufacturer:
+ *   post:
+ *     summary: Add a new manufacturer
+ *     tags: [Admin]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               Name:
+ *                 type: string
+ *                 example: "Manufacturer Name"
+ *               Description:
+ *                 type: string
+ *                 example: "Manufacturer Description"
+ *     responses:
+ *       200:
+ *         description: Manufacturer added successfully
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
+router.post('/manufacturer', adminAccess, addManufacturer);
+
+/**
+ * @swagger
+ * /admin/manufacturer/{id}:
+ *   patch:
+ *     summary: Update a manufacturer
+ *     tags: [Admin]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The manufacturer ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               Name:
+ *                 type: string
+ *                 example: "Updated Manufacturer Name"
+ *               Description:
+ *                 type: string
+ *                 example: "Updated Manufacturer Description"
+ *     responses:
+ *       200:
+ *         description: Manufacturer updated successfully
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: Manufacturer not found
+ *       500:
+ *         description: Internal server error
+ */
+router.patch('/manufacturer/:id', adminAccess, editManufacturer);
+
+/**
+ * @swagger
+ * /admin/manufacturer/{id}:
+ *   delete:
+ *     summary: Delete a manufacturer
+ *     tags: [Admin]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The manufacturer ID
+ *     responses:
+ *       200:
+ *         description: Manufacturer deleted successfully
+ *       404:
+ *         description: Manufacturer not found
+ *       500:
+ *         description: Internal server error
+ */
+router.delete('/manufacturer/:id', adminAccess, deleteManufacturer);
 
 export default router;
