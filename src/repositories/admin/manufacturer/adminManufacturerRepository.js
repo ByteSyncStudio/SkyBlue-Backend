@@ -12,6 +12,25 @@ export async function GetAllManufacturers() {
     }
 }
 
+export async function GetManufacturersProducts(id) {
+    try {
+        return await knex('Manufacturer as m')
+        .leftJoin('Product_Manufacturer_Mapping as pmm', 'm.Id', 'pmm.ManufacturerId')
+        .leftJoin('Product as p', 'pmm.ProductId', 'p.Id')
+        .select([
+            'p.Id',
+            'p.Name',
+            'pmm.IsFeaturedProduct'
+        ])
+        .where('m.Id', id)
+    } catch (error) {
+        console.error('Error in fetching manufacturers', error);
+        error.statusCode = 500;
+        error.message = 'Error getting users.';
+        throw error;
+    }
+}
+
 export async function AddManufacturer(name, description) {
     const trx = await knex.transaction();
 

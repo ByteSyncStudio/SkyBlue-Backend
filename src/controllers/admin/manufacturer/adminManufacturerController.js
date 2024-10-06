@@ -1,8 +1,20 @@
-import { AddManufacturer, DeleteManufacturer, EditManufacturer, GetAllManufacturers } from "../../../repositories/admin/manufacturer/adminManufacturerRepository.js";
+import { AddManufacturer, DeleteManufacturer, EditManufacturer, GetAllManufacturers, GetManufacturersProducts } from "../../../repositories/admin/manufacturer/adminManufacturerRepository.js";
 
 export async function getAllManufacturers(req, res) {
     try {
         res.status(200).send(await GetAllManufacturers())
+    } catch (error) {
+        console.error("Error fetching customer orders:", error);
+        res.status(error.statusCode || 500).send({
+            success: false,
+            message: error.message || 'Server error'
+        });
+    }
+}
+
+export async function getManufacturersProducts(req, res) {
+    try {
+        res.status(200).send(await GetManufacturersProducts(req.params.id))
     } catch (error) {
         console.error("Error fetching customer orders:", error);
         res.status(error.statusCode || 500).send({

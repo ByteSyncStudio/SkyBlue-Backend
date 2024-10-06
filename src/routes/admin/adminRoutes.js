@@ -56,7 +56,7 @@ import {
 } from "../../controllers/admin/stats/adminStatsController.js";
 import { adminLogin } from "../../controllers/admin/auth/adminLoginController.js";
 import { authenticateToken, authorizeRoles } from '../../middleware/authMiddleware.js';
-import { addManufacturer, deleteManufacturer, editManufacturer, getAllManufacturers } from "../../controllers/admin/manufacturer/adminManufacturerController.js";
+import { addManufacturer, deleteManufacturer, editManufacturer, getAllManufacturers, getManufacturersProducts } from "../../controllers/admin/manufacturer/adminManufacturerController.js";
 
 const router = express.Router();
 
@@ -1643,6 +1643,46 @@ router.get('/monthly-customers', adminAccess, newCustomersInPastMonths)
  *         description: Internal server error
  */
 router.get('/manufacturer', adminAccess, getAllManufacturers);
+
+/**
+ * @swagger
+ * /manufacturer/products/{id}:
+ *   get:
+ *     summary: Get Manufacturer's Products
+ *     tags: [Admin]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The manufacturer ID
+ *     responses:
+ *       200:
+ *         description: A list of products
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   productId:
+ *                     type: string
+ *                     description: The product ID
+ *                   productName:
+ *                     type: string
+ *                     description: The name of the product
+ *                   price:
+ *                     type: number
+ *                     format: float
+ *                     description: The price of the product
+ *       404:
+ *         description: Manufacturer not found
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/manufacturer/products/:id', getManufacturersProducts)
 
 /**
  * @swagger
