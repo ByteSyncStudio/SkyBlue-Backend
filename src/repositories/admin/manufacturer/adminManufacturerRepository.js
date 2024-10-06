@@ -3,7 +3,7 @@ import knex from "../../../config/knex.js";
 
 export async function GetAllManufacturers() {
     try {
-        return await knex('Manufacturer').select('*')
+        return await knex('Manufacturer').select('*').where('Deleted', false).andWhere('Published', true)
     } catch (error) {
         console.error('Error in fetching manufacturers', error);
         error.statusCode = 500;
