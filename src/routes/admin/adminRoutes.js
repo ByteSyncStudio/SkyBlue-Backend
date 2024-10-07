@@ -19,6 +19,7 @@ import {
   getProducts,
   getProduct,
   deleteTierPrice,
+  listInventory,
 } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
   getAllCustomersWithRoles,
@@ -57,6 +58,7 @@ import {
 import { adminLogin } from "../../controllers/admin/auth/adminLoginController.js";
 import { authenticateToken, authorizeRoles } from '../../middleware/authMiddleware.js';
 import { addManufacturer, deleteManufacturer, editManufacturer, getAllManufacturers, getManufacturersProducts } from "../../controllers/admin/manufacturer/adminManufacturerController.js";
+import { currentCartsTotalItems, specificCart } from "../../controllers/admin/sales/adminSalesController.js";
 
 const router = express.Router();
 
@@ -1646,7 +1648,7 @@ router.get('/manufacturer', adminAccess, getAllManufacturers);
 
 /**
  * @swagger
- * /manufacturer/products/{id}:
+ * /admin/manufacturer/products/{id}:
  *   get:
  *     summary: Get Manufacturer's Products
  *     tags: [Admin]
@@ -1773,5 +1775,200 @@ router.patch('/manufacturer/:id', adminAccess, editManufacturer);
  *         description: Internal server error
  */
 router.delete('/manufacturer/:id', adminAccess, deleteManufacturer);
+
+/**
+ * @swagger
+ * /admin/inventory:
+ *   get:
+ *     tags:
+ *       [Admin]
+ *     summary: List inventory items
+ *     description: Retrieve a list of inventory items based on various query parameters.
+ *     operationId: listInventory
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: category
+ *         in: query
+ *         description: Filter by category
+ *         required: false
+ *         type: string
+ *       - name: product
+ *         in: query
+ *         description: Filter by product name
+ *         required: false
+ *         type: string
+ *       - name: manufacturer
+ *         in: query
+ *         description: Filter by manufacturer
+ *         required: false
+ *         type: string
+ *       - name: published
+ *         in: query
+ *         description: Filter by published status (1 for published, 0 for unpublished)
+ *         required: false
+ *         type: integer
+ *         format: int32
+ *       - name: size
+ *         in: query
+ *         description: Number of items per page
+ *         required: false
+ *         type: integer
+ *         format: int32
+ *         default: 18
+ *       - name: page
+ *         in: query
+ *         description: Page number
+ *         required: false
+ *         type: integer
+ *         format: int32
+ *         default: 1
+ *     responses:
+ *       200:
+ *         description: Successful operation
+ *         schema:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               id:
+ *                 type: integer
+ *                 format: int32
+ *               name:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *               manufacturer:
+ *                 type: string
+ *               published:
+ *                 type: boolean
+ *               stockQuantity:
+ *                 type: integer
+ *                 format: int32
+ *       500:
+ *         description: Server error
+ */
+router.get('/inventory', adminAccess, listInventory);
+
+/**
+ * @swagger
+ * /admin/current-carts:
+ *   get:
+ *     summary: Get current carts with total items and quantities
+ *     tags: 
+ *       [Admin]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: size
+ *         schema:
+ *           type: integer
+ *         description: Number of items per page
+ *     responses:
+ *       200:
+ *         description: A list of current carts with total items and quantities
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   CustomerId:
+ *                     type: integer
+ *                     description: ID of the customer
+ *                   TotalItems:
+ *                     type: integer
+ *                     description: Total number of items in the cart
+ *                   TotalQuantity:
+ *                     type: integer
+ *                     description: Total quantity of items in the cart
+ *                   LastCreatedDate:
+ *                     type: string
+ *                     format: date-time
+ *                     description: The date and time when the last item was created
+ *                   LastUpdatedDate:
+ *                     type: string
+ *                     format: date-time
+ *                     description: The date and time when the last item was updated
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   description: Indicates if the request was successful
+ *                 message:
+ *                   type: string
+ *                   description: Error message
+ */
+router.get('/current-carts', adminAccess, currentCartsTotalItems);
+
+/**
+ * @swagger
+ * /admin/specific-cart/{id}:
+ *   get:
+ *     summary: Get details of a specific cart by ID
+ *     tags: 
+ *       [Admin]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID of the cart to retrieve
+ *     responses:
+ *       200:
+ *         description: Details of the specific cart
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 CustomerId:
+ *                   type: integer
+ *                   description: ID of the customer
+ *                 Items:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       ItemId:
+ *                         type: integer
+ *                         description: ID of the item
+ *                       Quantity:
+ *                         type: integer
+ *                         description: Quantity of the item
+ *                       CreatedOnUtc:
+ *                         type: string
+ *                         format: date-time
+ *                         description: The date and time when the item was created
+ *                       UpdatedOnUtc:
+ *                         type: string
+ *                         format: date-time
+ *                         description: The date and time when the item was updated
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   description: Indicates if the request was successful
+ *                 message:
+ *                   type: string
+ *                   description: Error message
+ */
+router.get('/specific-cart/:id', adminAccess, specificCart);
 
 export default router;

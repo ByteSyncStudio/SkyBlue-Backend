@@ -1,5 +1,5 @@
 import knex from "../../../config/knex.js";
-import { AddProduct, MapToCategory, AddTierPrices, AddPicture, MapProductToPicture, UpdateProduct, UpdateCategoryMapping, UpdateProductPictures, UpdateTierPrices, DeleteProduct, DeleteProductPictures, listBestsellers, GetProduct, MapDiscountToProduct, UpdateDiscountMapping, DeleteDiscountMapping, DeleteTierPrice } from "../../../repositories/admin/product/adminProductRepository.js";
+import { AddProduct, MapToCategory, AddTierPrices, AddPicture, MapProductToPicture, UpdateProduct, UpdateCategoryMapping, UpdateProductPictures, UpdateTierPrices, DeleteProduct, DeleteProductPictures, listBestsellers, GetProduct, MapDiscountToProduct, UpdateDiscountMapping, DeleteDiscountMapping, DeleteTierPrice, ListInventory } from "../../../repositories/admin/product/adminProductRepository.js";
 import multer from 'multer';
 import { queueFileUpload } from '../../../config/ftpsClient.js';
 import { ListSearchProducts } from "../../../repositories/admin/product/adminProductRepository.js";
@@ -278,6 +278,17 @@ export async function deleteTierPrice(req, res) {
         const { productId, customerRoleId } = req.body;
         const result = await DeleteTierPrice(productId, customerRoleId)
         res.status(200).json({ success: true });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Server error');
+    }
+}
+
+export async function listInventory(req, res) {
+    try {
+        const { category, product, manufacturer, published, size, page } = req.query
+        const result = await ListInventory(category, product, manufacturer, parseInt(published), parseInt(page) || 1, parseInt(size) || 18)
+        res.status(200).send(result);
     } catch (error) {
         console.error(error);
         res.status(500).send('Server error');

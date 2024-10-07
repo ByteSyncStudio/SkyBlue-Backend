@@ -629,3 +629,110 @@ export async function DeleteTierPrice(productId, customerRoleId) {
         throw error;
     }
 }
+
+export async function ListInventory(categoryName, productName, manufacturerId, published, page = 1, size = 18) {
+    try {
+        const offset = (page - 1) * size;
+        let query = knex('Product')
+            .select([
+                'Product.Id',
+                'Product.Name',
+                'Product.Price',
+                'Product.HasTierPrices',
+                'Product.FullDescription',
+                'Product.ShortDescription',
+                'Product.OrderMinimumQuantity',
+                'Product.OrderMaximumQuantity',
+                'Product.StockQuantity',
+                'Product.ProductCost',
+                'Product.Published',
+                'Product.Deleted',
+                knex.raw('MAX(Product_Picture_Mapping.PictureId) as PictureId'),
+                knex.raw('MAX(Picture.MimeType) as MimeType'),
+                knex.raw('MAX(Picture.SeoFilename) as SeoFilename'),
+                knex.raw('COUNT(*) OVER() AS total_count')
+            ])
+            .leftJoin('Product_Picture_Mapping', 'Product.Id', 'Product_Picture_Mapping.ProductId')
+            .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
+            .where('Product.Deleted', false)
+            .groupBy(
+                'Product.Id',
+                'Product.Name',
+                'Product.Price',
+                'Product.HasTierPrices',
+                'Product.FullDescription',
+                'Product.ShortDescription',
+                'Product.OrderMinimumQuantity',
+                'Product.OrderMaximumQuantity',
+                'Product.StockQuantity',
+                'Product.ProductCost',
+                'Product.Published',
+                'Product.Deleted',
+                'Product.UpdatedOnUTC'
+            )
+            .orderBy('Product.UpdatedOnUTC', 'desc');
+
+        if (categoryName) {
+            query = query
+                .join('Product_Category_Mapping', 'Product.Id', 'Product_Category_Mapping.ProductId')
+                .join('Category', 'Product_Category_Mapping.CategoryId', 'Category.Id')
+                .where('Category.Name', 'like', `%${categoryName}%`);
+        }
+
+        if (productName) {
+            query = query.andWhere('Product.Name', 'like', `%${productName}%`);
+        }
+
+        if (manufacturerId) {
+            query = query
+                .join('Product_Manufacturer_Mapping as pmm', 'Product.Id', 'pmm.ProductId')
+                .join('Manufacturer as m', 'pmm.ManufacturerId', 'm.Id')
+                .where('m.Id', manufacturerId);
+        }
+
+        if (published === 0 || published === 1) {
+            query = query.andWhere('Product.Published', published === 1);
+        }
+
+        query = query.limit(size).offset(offset);
+
+        const products = await query;
+
+        const productsWithImageUrls = products.map(product => ({
+            Id: product.Id.toString(),
+            Name: product.Name,
+            Price: product.Price,
+            HasTierPrices: product.HasTierPrices,
+            FullDescription: product.FullDescription,
+            ShortDescription: product.ShortDescription,
+            OrderMinimumQuantity: product.OrderMinimumQuantity,
+            OrderMaximumQuantity: product.OrderMaximumQuantity,
+            StockQuantity: product.StockQuantity,
+            ProductCost: product.ProductCost,
+            Published: product.Published,
+            Deleted: product.Deleted,
+            total_count: product.total_count,
+            imageUrl: product.PictureId && product.MimeType && product.SeoFilename
+                ? generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename)
+                : null
+        }));
+
+        console.log(productsWithImageUrls.length)
+
+        const totalItems = productsWithImageUrls.length > 0 ? productsWithImageUrls[0].total_count : 0;
+        const totalPages = Math.ceil(totalItems / size);
+
+        return {
+            totalItems,
+            totalPages,
+            currentPage: page,
+            products: productsWithImageUrls,
+        };
+        
+    } catch (error) {
+        console.error('Error in ListSearchProducts:', error);
+        error.statusCode = 500;
+        error.message = "Error in ListSearchProducts";
+        throw error;
+    }
+}

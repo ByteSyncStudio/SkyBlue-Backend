@@ -16,7 +16,7 @@ export async function getManufacturersProducts(req, res) {
     try {
         res.status(200).send(await GetManufacturersProducts(req.params.id))
     } catch (error) {
-        console.error("Error fetching customer orders:", error);
+        console.error("Error fetching manufacturer products:", error);
         res.status(error.statusCode || 500).send({
             success: false,
             message: error.message || 'Server error'
@@ -34,7 +34,7 @@ export async function addManufacturer(req, res) {
         res.status(200).send(await AddManufacturer(Name, Description));
 
     } catch (error) {
-        console.error("Error fetching customer orders:", error);
+        console.error("Error adding manufacturers:", error);
         res.status(error.statusCode || 500).send({
             success: false,
             message: error.message || 'Server error'
