@@ -23,6 +23,7 @@ import {
 } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
   getAllCustomersWithRoles,
+  getCustomerByOrderTotal,
   getCustomerRoles,
   updateCustomerRolesAndStatus,
 } from "../../controllers/admin/customer/adminCustomerController.js";
@@ -1970,5 +1971,118 @@ router.get('/current-carts', adminAccess, currentCartsTotalItems);
  *                   description: Error message
  */
 router.get('/specific-cart/:id', adminAccess, specificCart);
+
+/**
+ * @swagger
+ * /admin/customer-by-report:
+ *   get:
+ *     summary: Retrieve customers and their order totals within a specified date range
+ *     tags: 
+ *       - Admin
+ *     parameters:
+ *       - in: query
+ *         name: sortBy
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [order_total, order_count]
+ *           default: order_total
+ *         description: Criteria to sort the results by (order total or order count).
+ *       - in: query
+ *         name: start
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: >
+ *           Start date for filtering orders (in UTC). Example: `2024-01-01T00:00:00.000Z`.
+ *           If not provided, the results will not be filtered by start date.
+ *       - in: query
+ *         name: end
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: >
+ *           End date for filtering orders (in UTC). Example: `2024-12-31T23:59:59.000Z`.
+ *           If not provided, the results will not be filtered by end date.
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination.
+ *       - in: query
+ *         name: size
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           default: 25
+ *         description: Number of results per page for pagination.
+ *     responses:
+ *       200:
+ *         description: List of customers with their order totals and other details.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 totalItems:
+ *                   type: integer
+ *                   description: Total number of customers matching the criteria.
+ *                 totalPages:
+ *                   type: integer
+ *                   description: Total number of pages.
+ *                 currentPage:
+ *                   type: integer
+ *                   description: The current page number.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       CustomerId:
+ *                         type: integer
+ *                         description: Unique identifier for the customer.
+ *                       Email:
+ *                         type: string
+ *                         description: Email of the customer.
+ *                       OrderTotal:
+ *                         type: number
+ *                         format: float
+ *                         description: Total amount of orders placed by the customer.
+ *                       TotalOrders:
+ *                         type: integer
+ *                         description: Total number of orders placed by the customer.
+ *                       LastOrderDate:
+ *                         type: string
+ *                         format: date-time
+ *                         description: Date of the most recent order by the customer.
+ *       400:
+ *         description: Invalid input or missing required parameters.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   description: Error message indicating what was invalid.
+ *       500:
+ *         description: Server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   description: Indicates if the request was successful.
+ *                 message:
+ *                   type: string
+ *                   description: Error message.
+ */
+router.get('/customer-report', adminAccess, getCustomerByOrderTotal);
 
 export default router;

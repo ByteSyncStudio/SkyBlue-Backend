@@ -14,7 +14,7 @@ export async function GetAllCustomersWithRoles(page = 1, pageSize = 25, email = 
         // Main query to get customers with their latest address
         let customerQuery = knex('Customer')
             .join(latestAddressSubquery, 'Customer.Email', 'LatestAddress.Email')
-            .join('Address', function() {
+            .join('Address', function () {
                 this.on('Address.Email', '=', 'Customer.Email')
                     .andOn('Address.Id', '=', 'LatestAddress.LatestAddressId');
             })
@@ -154,10 +154,75 @@ export async function UpdateCustomerRolesAndStatus(customerId, rolesToAdd, roles
 export async function GetCustomerRoles() {
     try {
         return await knex('CustomerRole')
-        .select([
-            'Id',
-            'Name'
-        ])
+            .select([
+                'Id',
+                'Name'
+            ])
+    } catch (error) {
+        console.error(error);
+        error.statusCode = 500;
+        error.message = 'Error getting roles.';
+        throw error;
+    }
+}
+
+export async function GetCustomerByOrderTotal(sortBy, startDate, endDate, page, size) {
+    try {
+        const offset = (page - 1) * size;
+
+        let orderClause;
+
+        switch (sortBy) {
+            case 'order_total':
+                orderClause = 'OrderTotal desc'
+                break;
+                
+            case 'order_count':
+                orderClause = 'TotalOrders desc'
+                break;
+
+            default:
+                orderClause = 'OrderTotal desc'
+                break;
+        }
+
+        let query = knex('Order as o')
+            .leftJoin('Customer as c', 'o.CustomerId', 'c.Id')
+            .select([
+                'o.CustomerId',
+                'c.Email',
+                knex.raw('COUNT(*) OVER() AS total_count')
+            ])
+            .sum('o.OrderSubtotalInclTax as OrderTotal')
+            .count('o.Id as TotalOrders')
+            .max('o.CreatedOnUTC as LastOrderDate')
+            .groupBy('o.CustomerId', 'c.Email')
+
+        if (startDate || endDate) {
+            if (startDate) {
+                query.where('o.CreatedOnUTC', '>=', startDate.toISOString())
+            }
+            if (endDate) {
+                query = query.where('o.CreatedOnUTC', '<=', endDate.toISOString());
+            }
+        }
+
+        query = query.orderByRaw(orderClause).offset(offset).limit(size);
+
+        query = await query;
+
+        const totalItems = query.length > 0 ? query[0].total_count : 0;
+        const totalPages = Math.ceil(totalItems / size);
+        
+        const orders = query.map(({total_count, ...order}) => order)
+
+        return {
+            totalItems,
+            totalPages,
+            currentPage: page,
+            data: orders
+        }
+
     } catch (error) {
         console.error(error);
         error.statusCode = 500;
