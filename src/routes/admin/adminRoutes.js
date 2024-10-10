@@ -60,6 +60,7 @@ import { adminLogin } from "../../controllers/admin/auth/adminLoginController.js
 import { authenticateToken, authorizeRoles } from '../../middleware/authMiddleware.js';
 import { addManufacturer, deleteManufacturer, editManufacturer, getAllManufacturers, getManufacturersProducts } from "../../controllers/admin/manufacturer/adminManufacturerController.js";
 import { currentCartsTotalItems, specificCart } from "../../controllers/admin/sales/adminSalesController.js";
+import { addRole, deleteRole, editRole, getRoles } from "../../controllers/admin/roles/adminRolesController.js";
 
 const router = express.Router();
 
@@ -2084,5 +2085,193 @@ router.get('/specific-cart/:id', adminAccess, specificCart);
  *                   description: Error message.
  */
 router.get('/customer-report', adminAccess, getCustomerByOrderTotal);
+
+/**
+ * @swagger
+ * /admin/roles:
+ *   get:
+ *     summary: Retrieve all roles
+ *     tags: 
+ *       - Admin
+ *     responses:
+ *       200:
+ *         description: List of all roles.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                     description: Unique identifier for the role.
+ *                   Name:
+ *                     type: string
+ *                     description: Name of the role.
+ *                   Active:
+ *                     type: boolean
+ *                     description: Indicates if the role is active.
+ *       500:
+ *         description: Server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ */
+router.get('/roles', adminAccess, getRoles);
+
+/**
+ * @swagger
+ * /admin/roles:
+ *   post:
+ *     summary: Add a new role
+ *     tags:
+ *       - Admin
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               Name:
+ *                 type: string
+ *                 description: Name of the role.
+ *               Active:
+ *                 type: boolean
+ *                 description: Status of the role.
+ *     responses:
+ *       201:
+ *         description: Role added successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                   description: Unique identifier for the role.
+ *                 Name:
+ *                   type: string
+ *                   description: Name of the role.
+ *                 Active:
+ *                   type: boolean
+ *                   description: Status of the role.
+ *       500:
+ *         description: Server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ */
+router.post('/roles', adminAccess, addRole);
+
+/**
+ * @swagger
+ * /admin/roles/{id}:
+ *   patch:
+ *     summary: Edit a role by ID
+ *     tags:
+ *       - Admin
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID of the role to be updated.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               Name:
+ *                 type: string
+ *                 description: Name of the role.
+ *               Active:
+ *                 type: boolean
+ *                 description: Status of the role.
+ *     responses:
+ *       200:
+ *         description: Role updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                   description: Unique identifier for the role.
+ *                 Name:
+ *                   type: string
+ *                   description: Updated name of the role.
+ *                 Active:
+ *                   type: boolean
+ *                   description: Updated status of the role.
+ *       500:
+ *         description: Server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ */
+router.patch('/roles/:id', adminAccess, editRole);
+
+/**
+ * @swagger
+ * /admin/roles/{id}:
+ *   delete:
+ *     summary: Delete a role by ID
+ *     tags:
+ *       - Admin
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID of the role to be deleted.
+ *     responses:
+ *       200:
+ *         description: Role deleted successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   description: Indicates if the role was successfully deleted.
+ *       500:
+ *         description: Server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ */
+router.delete('/roles/:id', adminAccess, deleteRole);
 
 export default router;
