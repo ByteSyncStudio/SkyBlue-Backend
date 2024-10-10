@@ -1974,7 +1974,7 @@ router.get('/specific-cart/:id', adminAccess, specificCart);
 
 /**
  * @swagger
- * /admin/customer-by-report:
+ * /admin/customer-report:
  *   get:
  *     summary: Retrieve customers and their order totals within a specified date range
  *     tags: 

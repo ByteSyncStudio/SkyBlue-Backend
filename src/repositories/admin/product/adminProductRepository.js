@@ -430,7 +430,7 @@ export async function listBestsellers(sortBy, size, user) {
     }
 }
 
-export async function ListSearchProducts(categoryName, productName, published, page, size) {
+export async function ListSearchProducts(categoryName, productName, manufacturerId, published, page, size) {
     try {
         const offset = (page - 1) * size;
         let query = knex('Product')
@@ -443,6 +443,9 @@ export async function ListSearchProducts(categoryName, productName, published, p
                 'Product.ShortDescription',
                 'Product.OrderMinimumQuantity',
                 'Product.OrderMaximumQuantity',
+                'Product.Barcode',
+                'Product.Barcode2',
+                'Product.SKU',
                 'Product.StockQuantity',
                 'Product.Published',
                 'Product.Deleted',
@@ -463,6 +466,9 @@ export async function ListSearchProducts(categoryName, productName, published, p
                 'Product.ShortDescription',
                 'Product.OrderMinimumQuantity',
                 'Product.OrderMaximumQuantity',
+                'Product.Barcode',
+                'Product.Barcode2',
+                'Product.SKU',
                 'Product.StockQuantity',
                 'Product.Published',
                 'Product.Deleted',
@@ -479,6 +485,13 @@ export async function ListSearchProducts(categoryName, productName, published, p
 
         if (productName) {
             query = query.andWhere('Product.Name', 'like', `%${productName}%`);
+        }
+
+        if (manufacturerId) {
+            query = query
+                .join('Product_Manufacturer_Mapping as pmm', 'Product.Id', 'pmm.ProductId')
+                .join('Manufacturer', 'pmm.ManufacturerId', 'Manufacturer.Id')
+                .where('Manufacturer.Id', manufacturerId)
         }
 
         if (published === 0 || published === 1) {
@@ -498,6 +511,9 @@ export async function ListSearchProducts(categoryName, productName, published, p
             ShortDescription: product.ShortDescription,
             OrderMinimumQuantity: product.OrderMinimumQuantity,
             OrderMaximumQuantity: product.OrderMaximumQuantity,
+            Barcode: product.Barcode,
+            BoxBarcode: product.Barcode2,
+            SKU: product.SKU,
             StockQuantity: product.StockQuantity,
             Published: product.Published,
             Deleted: product.Deleted,
