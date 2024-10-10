@@ -44,12 +44,15 @@ export async function SpecificCart(customerId) {
     try {
         let query = await knex('ShoppingCartItem as sci')
             .leftJoin('Product as p', 'sci.ProductId', 'p.Id')
+            .leftJoin('Customer as c', 'sci.CustomerId', 'c.Id')
             .select([
                 'sci.Id',
                 'sci.ProductId',
                 'sci.Quantity',
+                'sci.CreatedOnUTC',
                 'p.Name',
-                'p.Price'
+                'p.Price',
+                'c.Email'
             ])
             .where('sci.CustomerId', customerId);
 
