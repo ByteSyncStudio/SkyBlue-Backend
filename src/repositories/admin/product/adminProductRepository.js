@@ -591,8 +591,8 @@ export async function ListSearchProducts(categoryName, productName, manufacturer
  */
 export async function GetProduct(productId) {
     try {
-        // Fetch the product details
-        const product = await knex('Product')
+        // Construct the query for fetching the product details
+        const productQuery = knex('Product')
             .select([
                 'Product.Id',
                 'Product.Name',
@@ -616,16 +616,29 @@ export async function GetProduct(productId) {
             .where('Product.Id', productId)
             .first();
 
+        // Fetch category, manufacturer, tier prices, and discount in parallel
+        const [product, categoryMapping, manufacturerMapping, tierPrices, discount] = await Promise.all([
+            productQuery,
+            knex('Product_Category_Mapping')
+                .select('CategoryId')
+                .where('ProductId', productId)
+                .first(),
+            knex('Product_Manufacturer_Mapping')
+                .select('ManufacturerId')
+                .where('ProductId', productId)
+                .first(),
+            knex('TierPrice')
+                .select('CustomerRoleId', 'Quantity', 'Price', 'StartDateTimeUtc', 'EndDateTimeUtc')
+                .where('ProductId', productId),
+            knex('Discount_AppliedToProducts')
+                .where('Product_Id', productId)
+        ]);
+
         if (!product) {
             throw new Error(`Product with ID ${productId} not found`);
         }
 
-        // Fetch the category details
-        const categoryMapping = await knex('Product_Category_Mapping')
-            .select('CategoryId')
-            .where('ProductId', productId)
-            .first();
-
+        // Fetch category details if available
         let category = null;
         if (categoryMapping) {
             category = await knex('Category')
@@ -634,12 +647,7 @@ export async function GetProduct(productId) {
                 .first();
         }
 
-        // Fetch Manufacturer details
-        const manufacturerMapping = await knex('Product_Manufacturer_Mapping')
-            .select('ManufacturerId')
-            .where('ProductId', productId)
-            .first();
-
+        // Fetch manufacturer details if available
         let manufacturer = null;
         if (manufacturerMapping) {
             manufacturer = await knex('Manufacturer')
@@ -647,14 +655,6 @@ export async function GetProduct(productId) {
                 .where('Id', manufacturerMapping.ManufacturerId)
                 .first();
         }
-
-        // Fetch the tier prices
-        const tierPrices = await knex('TierPrice')
-            .select('CustomerRoleId', 'Quantity', 'Price', 'StartDateTimeUtc', 'EndDateTimeUtc')
-            .where('ProductId', productId);
-
-        const discount = await knex('Discount_AppliedToProducts')
-        .where('Product_Id', productId)
 
         // Generate the image URL
         const imageUrl = product.PictureId
