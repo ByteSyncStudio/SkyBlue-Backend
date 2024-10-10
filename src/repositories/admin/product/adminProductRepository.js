@@ -119,6 +119,20 @@ export async function MapToCategory(productId, categoryId, trx) {
     }
 }
 
+export async function MapToManufacturer(productId, manufacturerId, trx) {
+    try {
+        await trx('Product_Manufacturer_Mapping').insert({
+            ProductId: productId,
+            ManufacturerId: manufacturerId,
+            IsFeaturedProduct: 0,
+            DisplayOrder: 0
+        });
+    } catch (error) {
+        console.error("Error mapping product to manufacturer:\n", error);
+        throw error;
+    }
+}
+
 export async function AddTierPrices(productId, tierPrices, trx) {
     try {
         const tierPriceInserts = tierPrices.map(tp => ({
@@ -348,6 +362,35 @@ export async function DeleteDiscountMapping(productId, trx) {
             .del();
     } catch (error) {
         console.error("Error deleting discount mapping:\n", error);
+        throw error;
+    }
+}
+
+export async function UpdateManufacturerMapping(productId, manufacturerId, trx) {
+    console.log(productId, manufacturerId);
+
+    const existingMapping = await trx('Product_Manufacturer_Mapping')
+        .where('ProductId', productId)
+        .first();
+
+    if (existingMapping) {
+        await trx('Product_Manufacturer_Mapping')
+            .where('ProductId', productId)
+            .update({ ManufacturerId: manufacturerId });
+    } else {
+        await trx('Product_Manufacturer_Mapping')
+            .insert({ ProductId: productId, ManufacturerId: manufacturerId, IsFeaturedProduct: 0, DisplayOrder: 0});
+    }
+}
+
+
+export async function DeleteManufacturerMapping(productId, trx) {
+    try {
+        await trx('Product_Manufacturer_Mapping')
+            .where('ProductId', productId)
+            .del();
+    } catch (error) {
+        console.error("Error deleting manufacturer mapping:\n", error);
         throw error;
     }
 }
@@ -591,6 +634,20 @@ export async function GetProduct(productId) {
                 .first();
         }
 
+        // Fetch Manufacturer details
+        const manufacturerMapping = await knex('Product_Manufacturer_Mapping')
+            .select('ManufacturerId')
+            .where('ProductId', productId)
+            .first();
+
+        let manufacturer = null;
+        if (manufacturerMapping) {
+            manufacturer = await knex('Manufacturer')
+                .select('Id', 'Name')
+                .where('Id', manufacturerMapping.ManufacturerId)
+                .first();
+        }
+
         // Fetch the tier prices
         const tierPrices = await knex('TierPrice')
             .select('CustomerRoleId', 'Quantity', 'Price', 'StartDateTimeUtc', 'EndDateTimeUtc')
@@ -621,7 +678,8 @@ export async function GetProduct(productId) {
             ImageUrl: imageUrl,
             Category: category,
             TierPrices: tierPrices,
-            Discount: discount
+            Discount: discount,
+            Manufacturer: manufacturer
         };
 
         return response;

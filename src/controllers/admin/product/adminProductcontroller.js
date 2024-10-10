@@ -1,8 +1,9 @@
 import knex from "../../../config/knex.js";
-import { AddProduct, MapToCategory, AddTierPrices, AddPicture, MapProductToPicture, UpdateProduct, UpdateCategoryMapping, UpdateProductPictures, UpdateTierPrices, DeleteProduct, DeleteProductPictures, listBestsellers, GetProduct, MapDiscountToProduct, UpdateDiscountMapping, DeleteDiscountMapping, DeleteTierPrice, ListInventory } from "../../../repositories/admin/product/adminProductRepository.js";
+import { AddProduct, MapToCategory, AddTierPrices, AddPicture, MapProductToPicture, UpdateProduct, UpdateCategoryMapping, UpdateProductPictures, UpdateTierPrices, DeleteProduct, DeleteProductPictures, listBestsellers, GetProduct, MapDiscountToProduct, UpdateDiscountMapping, DeleteDiscountMapping, DeleteTierPrice, ListInventory, MapToManufacturer, DeleteManufacturerMapping, UpdateManufacturerMapping } from "../../../repositories/admin/product/adminProductRepository.js";
 import multer from 'multer';
 import { queueFileUpload } from '../../../config/ftpsClient.js';
 import { ListSearchProducts } from "../../../repositories/admin/product/adminProductRepository.js";
+import { DeleteManufacturer } from "../../../repositories/admin/manufacturer/adminManufacturerRepository.js";
 
 const upload = multer({ dest: 'uploads/' });
 
@@ -40,7 +41,8 @@ export const addProduct = [
             CategoryId,
             StockQuantity,
             SeoFilenames, // Array of SEO filenames for pictures
-            DiscountId
+            DiscountId,
+            ManufacturerId
         } = req.body;
 
 
@@ -113,6 +115,12 @@ export const addProduct = [
                     await MapDiscountToProduct(productId, DiscountId, trx);
                     console.log('Discount mapped to product:', DiscountId);
                 }
+
+                // 6. Map product to manufacturer
+                if (ManufacturerId) {
+                    await MapToManufacturer(productId, ManufacturerId, trx);
+                    console.log('Product mapped to manufacturer: ', ManufacturerId);
+                }
             });
 
             res.status(201).send({ success: true, message: 'Product Added.' });
@@ -142,6 +150,7 @@ export const updateProduct = [
             CategoryId,
             SeoFilenames,
             DiscountId,
+            ManufacturerId,
             ...productData // All other fields go into productData
         } = req.body;
 
@@ -216,6 +225,15 @@ export const updateProduct = [
                 } else if (DiscountId) {
                     await UpdateDiscountMapping(productId, DiscountId, trx);
                     console.log('Discount mapping updated for product:', productId);
+                }
+
+                // 6. Update Manufacturer mapping
+                if (ManufacturerId === "0") {
+                    await DeleteManufacturerMapping(productId, trx);
+                    console.log('Manufacturer mapping deleted for product:', productId);
+                } else if (ManufacturerId) {
+                    await UpdateManufacturerMapping(productId, ManufacturerId, trx);
+                    console.log('Manufacturer mapping updated for product:', productId);
                 }
             });
 
