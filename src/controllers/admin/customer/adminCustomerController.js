@@ -1,4 +1,4 @@
-import { GetAllCustomersWithRoles, GetCustomerByOrderTotal, GetCustomerRoles, UpdateCustomerRolesAndStatus } from "../../../repositories/admin/customer/adminCustomerRepository.js";
+import { EditCustomerActive, EditCustomerDetails, GetAllCustomersWithRoles, GetCustomerByOrderTotal, GetCustomerRoles, GetSingleCustomer, UpdateCustomerRoles } from "../../../repositories/admin/customer/adminCustomerRepository.js";
 
 export async function getAllCustomersWithRoles(req, res) {
     try {
@@ -14,26 +14,27 @@ export async function getAllCustomersWithRoles(req, res) {
     }
 }
 
-export async function updateCustomerRolesAndStatus(req, res) {
-    try {
-        const id = req.params.id;
-        const { roles, removeRoles, active } = req.body;
+// export async function updateCustomerRolesAndStatus(req, res) {
+//     try {
+//         const id = req.params.id;
+//         const { roles, removeRoles, active } = req.body;
 
-        const result = await UpdateCustomerRolesAndStatus(id, roles, removeRoles, active);
+//         const result = await UpdateCustomerRolesAndStatus(id, roles, removeRoles, active);
 
-        if (result.success) {
-            res.status(200).json(result);
-        } else {
-            res.status(404).json(result);
-        }
-    } catch (error) {
-        console.error("Error updating customer:", error);
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Server error'
-        });
-    }
-}
+//         if (result.success) {
+//             res.status(200).json(result);
+//         } else {
+//             res.status(404).json(result);
+//         }
+//     } catch (error) {
+//         console.error("Error updating customer:", error);
+//         res.status(500).json({
+//             success: false,
+//             message: error.message || 'Server error'
+//         });
+//     }
+// }
+
 export async function getCustomerRoles(req, res) {
     try {
         const result = await GetCustomerRoles();
@@ -56,7 +57,7 @@ export async function getCustomerByOrderTotal(req, res) {
         }
 
         //? Time
-        const startDate = req.query.start ? new Date(req.query.start): null;
+        const startDate = req.query.start ? new Date(req.query.start) : null;
         const endDate = req.query.end ? new Date(req.query.end) : null;
         if (startDate && isNaN(startDate) || endDate && isNaN(endDate)) {
             return res.status(400).json({ message: 'Invalid date format.' });
@@ -67,6 +68,78 @@ export async function getCustomerByOrderTotal(req, res) {
         res.status(200).send(result);
     } catch (error) {
         res.status(500).json({
+            success: false,
+            message: error.message || 'Server error'
+        });
+    }
+}
+
+export async function getSingleCustomer(req, res) {
+    try {
+        res.status(200).send(await GetSingleCustomer(req.params.id));
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Server error'
+        });
+    }
+}
+
+export async function editCustomer(req, res) {
+    try {
+        const customerId = req.params.id;
+        const {
+            FirstName,
+            LastName,
+            Company,
+            Address1,
+            Address2,
+            ZipPostalCode,
+            City,
+            CountryId,
+            StateProvinceId,
+            PhoneNumber,
+            Active,
+            roles,
+            removeRoles
+        } = req.body;
+
+        //? Handle Customer 'Active'
+        if (Active !== undefined) {
+            await EditCustomerActive(customerId, Active);
+        }
+
+        //? Handle Customer Roles
+        if (roles !== undefined || removeRoles !== undefined) {
+            await UpdateCustomerRoles(customerId, roles, removeRoles);
+        }
+
+        //? Handle Customer details (Address Table)
+        const updateFields = {
+            FirstName,
+            LastName,
+            Company,
+            Address1,
+            Address2,
+            ZipPostalCode,
+            City,
+            CountryId,
+            StateProvinceId,
+            PhoneNumber
+        };
+
+        // Remove undefined fields
+        Object.keys(updateFields).forEach(key => updateFields[key] === undefined && delete updateFields[key]);
+
+        if (updateFields.length !== 0) {
+            const result = await EditCustomerDetails(customerId, updateFields);
+            res.status(200).json(result);
+        } else {
+            res.status(200).json({ success: true, message: "No fields to update" });
+        }
+    } catch (error) {
+        console.error('Error in editCustomer:', error);
+        res.status(error.statusCode || 500).json({
             success: false,
             message: error.message || 'Server error'
         });
