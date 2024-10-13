@@ -62,6 +62,7 @@ import { authenticateToken, authorizeRoles } from '../../middleware/authMiddlewa
 import { addManufacturer, deleteManufacturer, editManufacturer, getAllManufacturers, getManufacturersProducts } from "../../controllers/admin/manufacturer/adminManufacturerController.js";
 import { currentCartsTotalItems, orderSheet, specificCart } from "../../controllers/admin/sales/adminSalesController.js";
 import { addRole, deleteRole, editRole, getRoles } from "../../controllers/admin/roles/adminRolesController.js";
+import { sendEmail } from "../../controllers/admin/email/adminEmailController.js";
 
 const router = express.Router();
 
@@ -2353,5 +2354,43 @@ router.get('/ordersheet', adminAccess, orderSheet)
 router.get('/customer-details/:id', adminAccess, getSingleCustomer);
 
 router.patch('/customer-details/:id', adminAccess, editCustomer);
+
+/**
+ * @swagger
+ * /admin/send-email:
+ *   post:
+ *     summary: Send an email
+ *     tags:
+ *       - Admin
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               to:
+ *                 type: string
+ *                 description: Recipient email address
+ *               subject:
+ *                 type: string
+ *                 description: Email subject
+ *               text:
+ *                 type: string
+ *                 description: Email content in HTML format
+ *     responses:
+ *       200:
+ *         description: Email sent successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ */
+router.post('/send-email', adminAccess, sendEmail);
 
 export default router;
