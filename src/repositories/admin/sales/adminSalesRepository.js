@@ -94,9 +94,8 @@ export async function OrderSheet(categoryId, tierRole, page = 1, size = Number.M
                 FROM RankedProducts
             )
             SELECT 
-                rp.Id, rp.Name, rp.HasTierPrices, rp.Price, rp.FullDescription, rp.ShortDescription,
-                rp.OrderMinimumQuantity, rp.OrderMaximumQuantity, rp.StockQuantity, rp.CreatedOnUTC,
-                rp.CategoryName, rp.PictureId, rp.MimeType, rp.SeoFilename,
+                rp.Id, rp.Name, rp.Price,
+                rp.CategoryName,
                 tc.total_count
             FROM RankedProducts rp
             CROSS JOIN TotalCount tc

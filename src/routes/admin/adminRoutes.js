@@ -2274,6 +2274,79 @@ router.patch('/roles/:id', adminAccess, editRole);
  */
 router.delete('/roles/:id', adminAccess, deleteRole);
 
+/**
+ * @swagger
+ * /admin/ordersheet:
+ *   get:
+ *     summary: Fetch the order sheet
+ *     tags:
+ *       - Admin
+ *     parameters:
+ *       - in: query
+ *         name: categoryId
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: The ID of the category to filter the order sheet by.
+ *       - in: query
+ *         name: tierRole
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: The tier role to filter the order sheet by.
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           format: int32
+ *           default: 1
+ *         description: The page number for pagination (default is 1).
+ *       - in: query
+ *         name: size
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           format: int32
+ *           default: 10
+ *         description: The number of items per page (default is 10).
+ *     responses:
+ *       200:
+ *         description: Successfully fetched the order sheet.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   description: Indicates if the order sheet was successfully fetched.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                         description: Unique identifier of the order.
+ *                       itemName:
+ *                         type: string
+ *                         description: Name of the item in the order.
+ *                       quantity:
+ *                         type: integer
+ *                         description: Quantity of the item in the order.
+ *       500:
+ *         description: Server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ */
 router.get('/ordersheet', adminAccess, orderSheet)
 
 export default router;
