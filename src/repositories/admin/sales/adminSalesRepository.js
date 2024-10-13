@@ -1,5 +1,5 @@
 import knex from "../../../config/knex.js";
-import { getTierPrices } from "./helper/tierPrice.js";
+import { getTierPrices, getSubcategories } from "./helper/helpers.js";
 
 export async function CurrentCartsTotalItems(page, size) {
     try {
@@ -66,98 +66,81 @@ export async function SpecificCart(customerId) {
     }
 }
 
-export async function OrderSheet(categoryId, tierRole, page = 1, size = 2, user, minPrice = 0, maxPrice = Number.MAX_SAFE_INTEGER, sortBy = 'recent') {
+export async function OrderSheet(categoryId, tierRole, page = 1, size = 1000, user, minPrice = 0, maxPrice = Number.MAX_SAFE_INTEGER, sortBy = 'recent') {
     try {
         const offset = (page - 1) * size;
-        let orderByClause;
-        switch (sortBy) {
-            case 'price_asc':
-                orderByClause = 'p.Price ASC';
-                break;
-            case 'price_desc':
-                orderByClause = 'p.Price DESC';
-                break;
-            case 'name_asc':
-                orderByClause = 'p.Name ASC';
-                break;
-            case 'name_desc':
-                orderByClause = 'p.Name DESC';
-                break;
-            case 'recent':
-            default:
-                orderByClause = 'p.CreatedOnUTC DESC';
-                break;
-        }
 
-        // Use conditional join and WHERE clause for categoryId check
-        const query = knex.raw(
-            `
-            WITH ProductData AS (
-                SELECT
-                    p.CreatedOnUTC, p.Id, p.Name, p.HasTierPrices, p.Price,
-                    p.FullDescription, p.ShortDescription, p.OrderMinimumQuantity,
-                    p.OrderMaximumQuantity, p.AllowedQuantities, p.StockQuantity,
-                    CASE WHEN ? = -1 THEN 'All Products' ELSE c.Name END AS CategoryName,
-                    COUNT(*) OVER () AS total_count,
-                    STRING_AGG(CONCAT(ppm.PictureId, ':', pic.MimeType, ':', pic.SeoFilename), '|') AS ImageData,
-                    ROW_NUMBER() OVER (ORDER BY ${orderByClause}) AS RowNum
+        // Fetch subcategory IDs
+        const subCategoryIds = await getSubcategories(categoryId);
+
+        const query = knex.raw(`
+            WITH RankedProducts AS (
+                SELECT 
+                    p.Id, p.Name, p.HasTierPrices, p.Price, p.FullDescription, p.ShortDescription,
+                    p.OrderMinimumQuantity, p.OrderMaximumQuantity, p.StockQuantity, p.CreatedOnUTC,
+                    COALESCE(c.Name, 'Uncategorized') AS CategoryName,
+                    ppm.PictureId, pic.MimeType, pic.SeoFilename,
+                    ROW_NUMBER() OVER (PARTITION BY p.Id ORDER BY ppm.DisplayOrder) AS RowNum
                 FROM Product p
-                LEFT JOIN Product_Category_Mapping pcm ON p.Id = pcm.ProductId AND ? <> -1
+                JOIN Product_Category_Mapping pcm ON p.Id = pcm.ProductId
                 LEFT JOIN Category c ON pcm.CategoryId = c.Id
                 LEFT JOIN Product_Picture_Mapping ppm ON p.Id = ppm.ProductId
                 LEFT JOIN Picture pic ON ppm.PictureId = pic.Id
-                WHERE p.Published = 1 AND p.Deleted = 0
-                AND (pcm.CategoryId = ? OR ? = -1)
-                AND p.Price BETWEEN ? AND ?
-                GROUP BY p.CreatedOnUTC, p.Id, p.Name, p.HasTierPrices, p.Price,
-                         p.FullDescription, p.ShortDescription, p.OrderMinimumQuantity,
-                         p.OrderMaximumQuantity, p.AllowedQuantities, p.StockQuantity, c.Name
+                WHERE pcm.CategoryId IN (${subCategoryIds.join(',')})
+                    AND p.Published = 1 AND p.Deleted = 0
+            ),
+            TotalCount AS (
+                SELECT COUNT(DISTINCT Id) AS total_count
+                FROM RankedProducts
             )
-            SELECT * FROM ProductData
-            WHERE RowNum > ? AND RowNum <= ?
+            SELECT 
+                rp.Id, rp.Name, rp.HasTierPrices, rp.Price, rp.FullDescription, rp.ShortDescription,
+                rp.OrderMinimumQuantity, rp.OrderMaximumQuantity, rp.StockQuantity, rp.CreatedOnUTC,
+                rp.CategoryName, rp.PictureId, rp.MimeType, rp.SeoFilename,
+                tc.total_count
+            FROM RankedProducts rp
+            CROSS JOIN TotalCount tc
+            WHERE rp.RowNum = 1
+            ORDER BY rp.Name
+            OFFSET ? ROWS
+            FETCH NEXT ? ROWS ONLY
             `,
-            [categoryId, categoryId, categoryId, categoryId, minPrice, maxPrice, offset, offset + size]
+            [offset, size]
         );
 
         const products = await query;
 
-        // Fetch tier prices for all products at once
         const productIds = products.filter(p => p.HasTierPrices).map(p => p.Id);
         const tierPrices = await getTierPrices(productIds, tierRole);
 
-        // Process products for response
         const processedProducts = products.map(product => ({
-            Id: product.Id,
-            Name: product.Name,
-            Price: product.HasTierPrices ? (tierPrices[product.Id] || product.Price) : product.Price,
-            FullDescription: product.FullDescription,
-            ShortDescription: product.ShortDescription,
-            OrderMinimumQuantity: product.OrderMinimumQuantity,
-            OrderMaximumQuantity: product.OrderMaximumQuantity,
-            AllowedQuantities: product.AllowedQuantities,
-            Stock: product.StockQuantity,
-            total_count: product.total_count,
-            CreatedOnUTC: product.CreatedOnUTC
+            ...product,
+            TierPrices: tierPrices[product.Id] || []
         }));
 
         const totalProducts = products.length > 0 ? products[0].total_count : 0;
-        const categoryName = products.length > 0 ? products[0].CategoryName : (categoryId === -1 ? "All Products" : "Category");
         
-        const response = {
-            categoryName,
-            totalProducts,
-            totalPages: Math.ceil(totalProducts / size),
-            pageNumber: page,
-            pageSize: size,
-            sortBy,
-            data: processedProducts
-        };
+        // Group products by category
+        const groupedProducts = processedProducts.reduce((acc, product) => {
+            if (!acc[product.CategoryName]) {
+                acc[product.CategoryName] = [];
+            }
+            acc[product.CategoryName].push(product);
+            return acc;
+        }, {});
 
-        return response;
+        // Format the response
+        const formattedData = Object.entries(groupedProducts).map(([category, data]) => ({
+            category,
+            data
+        }));
+
+        return {
+            totalProducts,
+            data: formattedData
+        };
     } catch (error) {
-        console.error('Error in OrderSheet: ', error);
-        error.statusCode = 500;
-        error.message = 'Error in OrderSheet.';
+        console.error('Error fetching specific cart:', error);
         throw error;
     }
 }

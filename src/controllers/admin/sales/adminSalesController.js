@@ -32,7 +32,7 @@ export async function orderSheet(req, res) {
 
         res.status(200).send(await OrderSheet(categoryId, tierRole))
     } catch (error) {
-        console.error("Error fetching specific cart: ", error);
+        console.error("Error fetching ordersheet: ", error);
         res.status(error.statusCode || 500).send({
             success: false,
             message: error.message || 'Server error'
