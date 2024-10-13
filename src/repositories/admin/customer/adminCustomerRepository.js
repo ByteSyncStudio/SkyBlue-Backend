@@ -1,3 +1,4 @@
+import moment from 'moment';
 import knex from "../../../config/knex.js";
 
 export async function GetAllCustomersWithRoles(page = 1, pageSize = 25, email = '', firstName = '', lastName = '', phoneNumber = '') {
@@ -47,7 +48,8 @@ export async function GetAllCustomersWithRoles(page = 1, pageSize = 25, email = 
                 'Address.FirstName',
                 'Address.LastName',
                 'Address.Company',
-                'Address.PhoneNumber'
+                'Address.PhoneNumber',
+                'Address.ZipPostalCode'
             )
             .orderBy('Customer.CreatedOnUTC', 'desc')
             .offset(offset)
@@ -68,11 +70,12 @@ export async function GetAllCustomersWithRoles(page = 1, pageSize = 25, email = 
         const customersWithRoles = customers.map(customer => ({
             id: customer.Id,
             email: customer.Email,
-            createdOnUTC: customer.CreatedOnUTC,
+            createdOnUTC: moment(customer.CreatedOnUTC).format('DD-MMM-YYY'),
             firstName: customer.FirstName,
             lastName: customer.LastName,
             company: customer.Company,
             phone: customer.PhoneNumber,
+            zip: customer.ZipPostalCode,
             active: customer.Active,
             roles: roles
                 .filter(role => role.Customer_Id === customer.Id)
@@ -96,16 +99,135 @@ export async function GetAllCustomersWithRoles(page = 1, pageSize = 25, email = 
     }
 }
 
-export async function UpdateCustomerRolesAndStatus(customerId, rolesToAdd, rolesToRemove, active) {
+export async function GetCustomerRoles() {
+    try {
+        return await knex('CustomerRole')
+            .select([
+                'Id',
+                'Name'
+            ])
+    } catch (error) {
+        console.error(error);
+        error.statusCode = 500;
+        error.message = 'Error getting roles.';
+        throw error;
+    }
+}
+
+export async function GetCustomerByOrderTotal(sortBy, startDate, endDate, page, size) {
+    try {
+        const offset = (page - 1) * size;
+
+        let orderClause;
+
+        switch (sortBy) {
+            case 'order_total':
+                orderClause = 'OrderTotal desc'
+                break;
+
+            case 'order_count':
+                orderClause = 'TotalOrders desc'
+                break;
+
+            default:
+                orderClause = 'OrderTotal desc'
+                break;
+        }
+
+        let query = knex('Order as o')
+            .leftJoin('Customer as c', 'o.CustomerId', 'c.Id')
+            .select([
+                'o.CustomerId',
+                'c.Email',
+                knex.raw('COUNT(*) OVER() AS total_count')
+            ])
+            .sum('o.OrderSubtotalInclTax as OrderTotal')
+            .count('o.Id as TotalOrders')
+            .max('o.CreatedOnUTC as LastOrderDate')
+            .groupBy('o.CustomerId', 'c.Email')
+
+        if (startDate || endDate) {
+            if (startDate) {
+                query.where('o.CreatedOnUTC', '>=', startDate.toISOString())
+            }
+            if (endDate) {
+                query = query.where('o.CreatedOnUTC', '<=', endDate.toISOString());
+            }
+        }
+
+        query = query.orderByRaw(orderClause).offset(offset).limit(size);
+
+        query = await query;
+
+        const totalItems = query.length > 0 ? query[0].total_count : 0;
+        const totalPages = Math.ceil(totalItems / size);
+
+        const orders = query.map(({ total_count, ...order }) => order)
+
+        return {
+            totalItems,
+            totalPages,
+            currentPage: page,
+            data: orders
+        }
+
+    } catch (error) {
+        console.error(error);
+        error.statusCode = 500;
+        error.message = 'Error getting roles.';
+        throw error;
+    }
+}
+
+export async function GetSingleCustomer(customerId) {
+    try {
+        // Fetch customer details without roles
+        const customerDetails = await knex('Customer')
+            .join('Address', 'Customer.BillingAddress_Id', 'Address.Id')
+            .select(
+                'Customer.Id',
+                'Customer.Username',
+                'Customer.Email',
+                'Customer.CreatedOnUtc',
+                'Address.FirstName',
+                'Address.LastName',
+                'Address.Company',
+                'Address.CountryId',
+                'Address.StateProvinceId',
+                'Address.City',
+                'Address.Address1',
+                'Address.Address2',
+                'Address.ZipPostalCode',
+                'Address.PhoneNumber',
+            )
+            .where('Customer.Id', customerId)
+            .first();
+
+        // Fetch customer roles separately
+        const roles = await knex('Customer_CustomerRole_Mapping as ccrm')
+            .join('CustomerRole as cr', 'ccrm.CustomerRole_Id', 'cr.Id')
+            .select('cr.Id', 'cr.Name')
+            .where('ccrm.Customer_Id', customerId);
+
+        // Combine customer details and roles
+        const result = {
+            ...customerDetails,
+            Roles: roles.map(role => ({ Id: role.Id, Name: role.Name }))
+        };
+
+        return result;
+    } catch (error) {
+        console.error(error);
+        error.statusCode = 500;
+        error.message = 'Error getting customer data.';
+        throw error;
+    }
+}
+
+export async function UpdateCustomerRoles(customerId, rolesToAdd, rolesToRemove) {
     const trx = await knex.transaction();
 
     try {
-        // Update customer's active status if provided
-        if (active !== undefined) {
-            await trx('Customer')
-                .where('Id', customerId)
-                .update({ Active: active });
-        }
 
         // Add new roles
         if (rolesToAdd && rolesToAdd.length > 0) {
@@ -151,82 +273,52 @@ export async function UpdateCustomerRolesAndStatus(customerId, rolesToAdd, roles
     }
 }
 
-export async function GetCustomerRoles() {
+export async function EditCustomerDetails(customerId, updateFields) {
+    const trx = await knex.transaction();
     try {
-        return await knex('CustomerRole')
-            .select([
-                'Id',
-                'Name'
-            ])
+        console.log(updateFields)
+        const data = await trx('Customer')
+            .select('Email').where('Id', customerId).first();
+
+        await trx('Address')
+            .where('Email', data.Email)
+            .update(updateFields);
+
+        await trx.commit();
+
+        return {
+            success: true,
+            message: "Customer updated successfully"
+        };
     } catch (error) {
-        console.error(error);
-        error.statusCode = 500;
-        error.message = 'Error getting roles.';
-        throw error;
+        await trx.rollback();
+        console.error('Error in EditCustomerDetails:', error);
+        throw {
+            statusCode: 500,
+            message: 'Error updating customer details.'
+        };
     }
 }
 
-export async function GetCustomerByOrderTotal(sortBy, startDate, endDate, page, size) {
+export async function EditCustomerActive(customerId, active) {
+    const trx = await knex.transaction();
     try {
-        const offset = (page - 1) * size;
+        await trx('Customer')
+            .where('Id', customerId)
+            .update({ Active: active });
 
-        let orderClause;
-
-        switch (sortBy) {
-            case 'order_total':
-                orderClause = 'OrderTotal desc'
-                break;
-                
-            case 'order_count':
-                orderClause = 'TotalOrders desc'
-                break;
-
-            default:
-                orderClause = 'OrderTotal desc'
-                break;
-        }
-
-        let query = knex('Order as o')
-            .leftJoin('Customer as c', 'o.CustomerId', 'c.Id')
-            .select([
-                'o.CustomerId',
-                'c.Email',
-                knex.raw('COUNT(*) OVER() AS total_count')
-            ])
-            .sum('o.OrderSubtotalInclTax as OrderTotal')
-            .count('o.Id as TotalOrders')
-            .max('o.CreatedOnUTC as LastOrderDate')
-            .groupBy('o.CustomerId', 'c.Email')
-
-        if (startDate || endDate) {
-            if (startDate) {
-                query.where('o.CreatedOnUTC', '>=', startDate.toISOString())
-            }
-            if (endDate) {
-                query = query.where('o.CreatedOnUTC', '<=', endDate.toISOString());
-            }
-        }
-
-        query = query.orderByRaw(orderClause).offset(offset).limit(size);
-
-        query = await query;
-
-        const totalItems = query.length > 0 ? query[0].total_count : 0;
-        const totalPages = Math.ceil(totalItems / size);
-        
-        const orders = query.map(({total_count, ...order}) => order)
+        await trx.commit();
 
         return {
-            totalItems,
-            totalPages,
-            currentPage: page,
-            data: orders
-        }
-
+            success: true,
+            message: "Customer active status updated successfully"
+        };
     } catch (error) {
-        console.error(error);
-        error.statusCode = 500;
-        error.message = 'Error getting roles.';
-        throw error;
+        await trx.rollback();
+        console.error('Error in EditCustomerActive:', error);
+        throw {
+            statusCode: 500,
+            message: 'Error updating customer active status.'
+        };
     }
 }

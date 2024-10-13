@@ -22,10 +22,11 @@ import {
   listInventory,
 } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
+  editCustomer,
   getAllCustomersWithRoles,
   getCustomerByOrderTotal,
   getCustomerRoles,
-  updateCustomerRolesAndStatus,
+  getSingleCustomer,
 } from "../../controllers/admin/customer/adminCustomerController.js";
 import { getBestSellers } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
@@ -921,7 +922,7 @@ router.get("/customer/all", adminAccess, getAllCustomersWithRoles);
  *       500:
  *         description: Internal server error
  */
-router.patch("/customer/:id", adminAccess, updateCustomerRolesAndStatus);
+// router.patch("/customer/:id", adminAccess, updateCustomerRolesAndStatus);
 
 router.get("/customer/roles", adminAccess, getCustomerRoles);
 
@@ -2273,5 +2274,9 @@ router.patch('/roles/:id', adminAccess, editRole);
  *                   type: string
  */
 router.delete('/roles/:id', adminAccess, deleteRole);
+
+router.get('/customer-details/:id', adminAccess, getSingleCustomer);
+
+router.patch('/customer-details/:id', adminAccess, editCustomer);
 
 export default router;
