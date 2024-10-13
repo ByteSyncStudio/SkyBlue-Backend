@@ -1,4 +1,4 @@
-import { CurrentCartsTotalItems, SpecificCart } from "../../../repositories/admin/sales/adminSalesRepository.js";
+import { CurrentCartsTotalItems, OrderSheet, SpecificCart } from "../../../repositories/admin/sales/adminSalesRepository.js";
 
 export async function currentCartsTotalItems(req, res) {
     try {
@@ -24,4 +24,19 @@ export async function specificCart(req, res) {
             message: error.message || 'Server error'
         });
     }
+}
+
+export async function orderSheet(req, res) {
+    try {
+        const { categoryId, tierRole } = req.query;
+
+        res.status(200).send(await OrderSheet(categoryId, tierRole))
+    } catch (error) {
+        console.error("Error fetching specific cart: ", error);
+        res.status(error.statusCode || 500).send({
+            success: false,
+            message: error.message || 'Server error'
+        });
+    }
+
 }

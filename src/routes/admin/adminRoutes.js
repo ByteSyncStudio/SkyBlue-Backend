@@ -59,7 +59,7 @@ import {
 import { adminLogin } from "../../controllers/admin/auth/adminLoginController.js";
 import { authenticateToken, authorizeRoles } from '../../middleware/authMiddleware.js';
 import { addManufacturer, deleteManufacturer, editManufacturer, getAllManufacturers, getManufacturersProducts } from "../../controllers/admin/manufacturer/adminManufacturerController.js";
-import { currentCartsTotalItems, specificCart } from "../../controllers/admin/sales/adminSalesController.js";
+import { currentCartsTotalItems, orderSheet, specificCart } from "../../controllers/admin/sales/adminSalesController.js";
 import { addRole, deleteRole, editRole, getRoles } from "../../controllers/admin/roles/adminRolesController.js";
 
 const router = express.Router();
@@ -2273,5 +2273,7 @@ router.patch('/roles/:id', adminAccess, editRole);
  *                   type: string
  */
 router.delete('/roles/:id', adminAccess, deleteRole);
+
+router.get('/ordersheet', adminAccess, orderSheet)
 
 export default router;
