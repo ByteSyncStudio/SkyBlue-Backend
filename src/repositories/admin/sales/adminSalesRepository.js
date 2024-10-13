@@ -66,7 +66,7 @@ export async function SpecificCart(customerId) {
     }
 }
 
-export async function OrderSheet(categoryId, tierRole, page = 1, size = 1000, user, minPrice = 0, maxPrice = Number.MAX_SAFE_INTEGER, sortBy = 'recent') {
+export async function OrderSheet(categoryId, tierRole, page = 1, size = Number.MAX_SAFE_INTEGER) {
     try {
         const offset = (page - 1) * size;
 
@@ -111,11 +111,11 @@ export async function OrderSheet(categoryId, tierRole, page = 1, size = 1000, us
         const products = await query;
 
         const productIds = products.filter(p => p.HasTierPrices).map(p => p.Id);
-        const tierPrices = await getTierPrices(productIds, tierRole);
+        const tierPrices = tierRole ? await getTierPrices(productIds, tierRole) : {};
 
         const processedProducts = products.map(product => ({
             ...product,
-            TierPrices: tierPrices[product.Id] || []
+            Price: tierRole && tierPrices[product.Id] ? tierPrices[product.Id] : product.Price
         }));
 
         const totalProducts = products.length > 0 ? products[0].total_count : 0;

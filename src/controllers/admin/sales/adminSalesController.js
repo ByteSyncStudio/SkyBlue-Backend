@@ -28,9 +28,9 @@ export async function specificCart(req, res) {
 
 export async function orderSheet(req, res) {
     try {
-        const { categoryId, tierRole } = req.query;
+        const { categoryId, tierRole, page, size } = req.query;
 
-        res.status(200).send(await OrderSheet(categoryId, tierRole))
+        res.status(200).send(await OrderSheet(categoryId, tierRole, page, size))
     } catch (error) {
         console.error("Error fetching ordersheet: ", error);
         res.status(error.statusCode || 500).send({
