@@ -188,6 +188,7 @@ export async function GetSingleCustomer(customerId) {
                 'Customer.Id',
                 'Customer.Username',
                 'Customer.Email',
+                'Customer.Active',
                 'Customer.CreatedOnUtc',
                 'Address.FirstName',
                 'Address.LastName',
