@@ -2,7 +2,9 @@ import { createAddress, createUser, createCustomerPassword, assignDefaultRole, s
 import knex from '../../config/knex.js';
 import multer from 'multer';
 import { queueFileUpload } from '../../config/ftpsClient.js';
-import fs from 'fs/promises';
+import { SendEmail } from '../../config/emailService.js';
+import { getAckEmailTemplate } from '../../utils/emailTemplates.js';
+
 
 const upload = multer({ dest: 'uploads/' })
 
@@ -68,6 +70,11 @@ export const signUp = [
                     queueFileUpload(file.path, remotePath);
                 }
             }
+
+            // Send welcome email
+            const emailTemplate = await getAckEmailTemplate();
+            await SendEmail(email, 'Awaiting admin approval', emailTemplate);
+
         } catch (error) {
             console.error('Error during signup:', error);
             if (error.message === 'Email already exists') {

@@ -57,3 +57,17 @@ export async function ApproveUser(customerId) {
         throw error;
     }
 }
+
+export async function GetCustomerEmail(customerId) {
+    try {
+        return await knex('Customer')
+            .select('Email')
+            .where('Id', customerId)
+            .first()
+    } catch (error) {
+        console.error(error);
+        error.statusCode = 500;
+        error.message = 'Error getting email.'
+        throw error;
+    }
+}

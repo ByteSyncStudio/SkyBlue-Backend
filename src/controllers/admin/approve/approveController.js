@@ -1,4 +1,6 @@
-import { listUnapprovedUsers, ApproveUser } from "../../../repositories/admin/approve/approveRepository.js";
+import { SendEmail } from "../../../config/emailService.js";
+import { listUnapprovedUsers, ApproveUser, GetCustomerEmail } from "../../../repositories/admin/approve/approveRepository.js";
+import { getWelcomeEmailTemplate } from "../../../utils/emailTemplates.js";
 
 export const getUnapprovedUsers = async (req, res) => {
     try {
@@ -19,6 +21,11 @@ export const approveUser = async (req, res) => {
     try {
         const customerId = req.params.id
         await ApproveUser(customerId);
+
+        const customerEmail = await GetCustomerEmail(customerId);
+        const emailTemplate = await getWelcomeEmailTemplate();
+        await SendEmail(customerEmail.Email, 'Welcome to Skyblue Wholesale', emailTemplate);
+        
         res.status(201).send({ message: 'User Approved' });
     } catch (error) {
         console.error(error);
