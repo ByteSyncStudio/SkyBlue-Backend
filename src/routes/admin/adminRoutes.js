@@ -9,8 +9,14 @@ import {
   patchVendor,
 } from "../../controllers/admin/vendors/adminVendorsController.js";
 import {
+  addOrderNote,
+  deleteOrderNote,
   getallOrders,
   getSingleOrder,
+  UpdateBillingInfoController,
+  UpdateOrderController,
+  UpdateOrderItemController,
+  UpdateShippingMethodController,
 } from "../../controllers/admin/Orders/adminOrdersController.js";
 import {
   addProduct,
@@ -61,6 +67,7 @@ import { authenticateToken, authorizeRoles } from '../../middleware/authMiddlewa
 import { addManufacturer, deleteManufacturer, editManufacturer, getAllManufacturers, getManufacturersProducts } from "../../controllers/admin/manufacturer/adminManufacturerController.js";
 import { currentCartsTotalItems, specificCart } from "../../controllers/admin/sales/adminSalesController.js";
 import { addRole, deleteRole, editRole, getRoles } from "../../controllers/admin/roles/adminRolesController.js";
+import { getCountriesAndStates } from "../../repositories/admin/Orders/adminOrders.js";
 
 const router = express.Router();
 
@@ -2273,5 +2280,278 @@ router.patch('/roles/:id', adminAccess, editRole);
  *                   type: string
  */
 router.delete('/roles/:id', adminAccess, deleteRole);
+
+
+
+
+/**
+ * @swagger
+ * /admin/editOrder/{id}:
+ *   patch:
+ *     summary: Update an order by ID
+ *     tags: [Admin]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The order ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 example: "Shipped"
+ *               trackingNumber:
+ *                 type: string
+ *                 example: "123456789"
+ *     responses:
+ *       200:
+ *         description: Order updated successfully
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: Order not found
+ *       500:
+ *         description: Internal server error
+ */
+router.patch("/editOrder/:id", UpdateOrderController);
+
+/**
+ * @swagger
+ * /admin/orders/{orderId}/billing-info:
+ *   patch:
+ *     summary: Update billing information for an order
+ *     tags: [Admin]
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The order ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               billingAddress:
+ *                 type: object
+ *                 properties:
+ *                   street:
+ *                     type: string
+ *                     example: "123 Main St"
+ *                   city:
+ *                     type: string
+ *                     example: "Anytown"
+ *                   state:
+ *                     type: string
+ *                     example: "CA"
+ *                   zip:
+ *                     type: string
+ *                     example: "12345"
+ *     responses:
+ *       200:
+ *         description: Billing information updated successfully
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: Order not found
+ *       500:
+ *         description: Internal server error
+ */
+router.patch("/orders/:orderId/billing-info", UpdateBillingInfoController);
+
+/**
+ * @swagger
+ * /admin/orders/{orderId}/shipping-info:
+ *   patch:
+ *     summary: Update shipping information for an order
+ *     tags: [Admin]
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The order ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               shippingMethod:
+ *                 type: string
+ *                 example: "UPS"
+ *               trackingNumber:
+ *                 type: string
+ *                 example: "1Z9999999999999999"
+ *     responses:
+ *       200:
+ *         description: Shipping information updated successfully
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: Order not found
+ *       500:
+ *         description: Internal server error
+ */
+router.patch('/orders/:orderId/shipping-info', UpdateShippingMethodController);
+
+/**
+ * @swagger
+ * /admin/orders/{orderId}/order-items/{orderItemId}:
+ *   patch:
+ *     summary: Update an order item
+ *     tags: [Admin]
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The order ID
+ *       - in: path
+ *         name: orderItemId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The order item ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               quantity:
+ *                 type: integer
+ *                 example: 2
+ *               price:
+ *                 type: number
+ *                 example: 19.99
+ *     responses:
+ *       200:
+ *         description: Order item updated successfully
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: Order item not found
+ *       500:
+ *         description: Internal server error
+ */
+router.patch('/orders/:orderId/order-items/:orderItemId', UpdateOrderItemController);
+
+/**
+ * @swagger
+ * /admin/orders/{orderId}/notes:
+ *   post:
+ *     summary: Add a note to an order
+ *     tags: [Admin]
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The order ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               note:
+ *                 type: string
+ *                 example: "Customer requested expedited shipping."
+ *     responses:
+ *       200:
+ *         description: Note added successfully
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: Order not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post('/orders/:orderId/notes', addOrderNote);
+
+/**
+ * @swagger
+ * /admin/orders/notes-delete/{id}:
+ *   delete:
+ *     summary: Delete an order note
+ *     tags: [Admin]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The note ID
+ *     responses:
+ *       200:
+ *         description: Note deleted successfully
+ *       404:
+ *         description: Note not found
+ *       500:
+ *         description: Internal server error
+ */
+router.delete('/orders/notes-delete/:id', deleteOrderNote);
+
+/**
+ * @swagger
+ * /admin/orders/countries-states:
+ *   get:
+ *     summary: Retrieve a list of countries and states
+ *     tags: [Admin]
+ *     responses:
+ *       200:
+ *         description: A list of countries and states
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 countries:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                         example: 1
+ *                       name:
+ *                         type: string
+ *                         example: "United States"
+ *                 states:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                         example: 1
+ *                       name:
+ *                         type: string
+ *                         example: "California"
+ *                       countryId:
+ *                         type: integer
+ *                         example: 1
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/orders/countries-states', getCountriesAndStates);
+
 
 export default router;
