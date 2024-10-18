@@ -56,7 +56,7 @@ export async function getTierPrices(productIds, userRoles) {
  * @returns {Promise<Array>} A promise that resolves to an array of category objects.
  */
 async function listCategory() {
-    const specificCategories = getSpecificCategories();
+    // const specificCategories = getSpecificCategories();
     const miscCategory = getMiscellaneousName();
     try {
         const cacheKey = 'categories';
@@ -66,14 +66,35 @@ async function listCategory() {
             return cachedCategories;
         }
 
-        const categories = await knex('Category')
-            .select(['Id', 'Name'])
-            .whereIn('Id', Array.from(specificCategories.keys()))
-            .orderBy('Id');
+        // const categories = await knex('Category')
+        //     .select(['Id', 'Name'])
+        //     .whereIn('Id', Array.from(specificCategories.keys()))
+        //     .orderBy('Id');
+
+        let categories = [];
+
+        const data = await knex('Category as c')
+            .leftJoin('Picture as p', 'c.PictureId', 'p.Id')
+            .select(['c.Id', 'c.Name', 'c.PictureId', 'p.MimeType', 'p.SeoFilename'])
+            .where('ShowOnHomePage', true)
 
 
-        // Add 'All Items' where we dont want to specifically categorize
-        categories.push({ Id: -1, Name: miscCategory.get(-1) });
+        // // Add 'All Items' where we dont want to specifically categorize
+        // categories.push({ Id: -1, Name: miscCategory.get(-1) });
+
+        // Add image URLs to categories
+        const categoriesWithImages = data.map(category => {
+            const imageUrl = category.PictureId
+                ? generateImageUrl2(category.PictureId, category.MimeType, category.SeoFilename)
+                : null;
+            return {
+                Id: category.Id,
+                Name: category.Name,
+                Image: imageUrl
+            };
+        });
+
+        categories = categories.concat(categoriesWithImages);
 
         cache.set(cacheKey, categories);
         return categories;
@@ -233,7 +254,7 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user, m
 
         const totalProducts = products.length > 0 ? products[0].total_count : 0;
         const categoryName = products.length > 0 ? products[0].CategoryName : (categoryId === -1 ? "All Products" : "Category");
-        
+
         const response = {
             categoryName,
             totalProducts,
@@ -601,9 +622,9 @@ export async function GetImmediateChildCategories(categoryId) {
 
 export async function getProductsFromCategories() {
     //? Fetches products from categoryId and all of it's children
-        const subCategoryIds = await getSubcategories(categoryId);
+    const subCategoryIds = await getSubcategories(categoryId);
 
-        const query = knex.raw(`
+    const query = knex.raw(`
             WITH RankedProducts AS (
                 SELECT 
                     p.Id, p.Name, p.HasTierPrices, p.Price, p.FullDescription, p.ShortDescription,

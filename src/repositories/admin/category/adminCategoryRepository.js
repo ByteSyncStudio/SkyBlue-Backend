@@ -1,4 +1,5 @@
 import knex from "../../../config/knex.js"
+import { generateImageUrl2 } from "../../../utils/imageUtils.js";
 
 
 function organizeCategories(categories, searchTerm = '') {
@@ -8,7 +9,10 @@ function organizeCategories(categories, searchTerm = '') {
     // First, map all valid categories by their Id
     categories.forEach(category => {
         if (!category.Deleted) {
-            categoryMap.set(category.Id, { ...category, children: [] });
+            const imageUrl = category.PictureId
+                ? generateImageUrl2(category.PictureId, category.MimeType, category.SeoFilename)
+                : null;
+            categoryMap.set(category.Id, { ...category, children: [], Image: imageUrl });
         }
     });
 
@@ -52,7 +56,18 @@ function filterCategories(categories, searchTerm) {
 }
 
 export async function GetAllCategories(searchTerm = '') {
-    const result = await knex('Category');
+    const result = await knex('Category')
+        .leftJoin('Picture', 'Category.PictureId', 'Picture.Id')
+        .select(
+            'Category.Id',
+            'Category.Name',
+            'Category.ParentCategoryId',
+            'Category.Deleted',
+            'Category.PictureId',
+            'Category.Published',
+            'Picture.MimeType',
+            'Picture.SeoFilename'
+        );
     const organizedCategories = organizeCategories(result, searchTerm);
     return JSON.stringify(organizedCategories, null, 2); // Pretty print JSON
 }
