@@ -338,14 +338,14 @@ export async function updateShippingMethod(orderId, shippingMethod) {
   }
 }
 
-export async function updateOrderItem(orderItemId, updatedFields) {
+export async function updateOrderItem(orderItemId, updatedFields,orderId) {
   try {
     // Ensure orderItemId is an integer
     const id = parseInt(orderItemId, 10); // Convert to integer if needed
 
     // Update the order item in the database
     await knex("OrderItem")
-      .where({ Id: id }) // Make sure Id is used correctly
+    .where({OrderId:orderId}).andWhere({ ProductId: orderItemId })// Make sure Id is used correctly
       .update(updatedFields);
   } catch (error) {
     console.error("Error updating order item in the database:", error);

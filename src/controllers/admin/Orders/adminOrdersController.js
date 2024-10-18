@@ -1,9 +1,17 @@
-import { getOrderById, listOrders, updateBillingInfo, updateOrderItem, updateOrderStatus, updateOrderTotal, updateShippingMethod } from "../../../repositories/admin/Orders/adminOrders.js";
+import {
+  getOrderById,
+  listOrders,
+  updateBillingInfo,
+  updateOrderItem,
+  updateOrderStatus,
+  updateOrderTotal,
+  updateShippingMethod,
+} from "../../../repositories/admin/Orders/adminOrders.js";
 
 import knex from "../../../config/knex.js";
 
 export const getallOrders = async (req, res) => {
-  const size = req.query.size
+  const size = req.query.size;
   try {
     const orders = await listOrders(size ? parseInt(size) : 20);
     res.status(200).json({
@@ -35,18 +43,31 @@ export const getSingleOrder = async (req, res) => {
   }
 };
 
-
 // Update order status by ID
 export async function UpdateOrderController(req, res) {
   const { id } = req.params;
-  const { status, subtotalInclTax, subtotalExclTax, subTotalDiscountInclTax, subTotalDiscountExclTax, shippingInclTax, shippingExclTax, taxRates, tax, discount, total } = req.body;
+  const {
+    status,
+    subtotalInclTax,
+    subtotalExclTax,
+    subTotalDiscountInclTax,
+    subTotalDiscountExclTax,
+    shippingInclTax,
+    shippingExclTax,
+    taxRates,
+    tax,
+    discount,
+    total,
+  } = req.body;
 
   try {
     // Parse id as integer
     const orderId = parseInt(id, 10);
-    
+
     if (isNaN(orderId)) {
-      return res.status(400).json({ success: false, message: "Invalid Order ID" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid Order ID" });
     }
 
     // Check if status is provided and update accordingly
@@ -55,29 +76,41 @@ export async function UpdateOrderController(req, res) {
     }
 
     // Check if any other fields to update (like totals) are provided
-    if (subtotalInclTax !== undefined || subtotalExclTax !== undefined || subTotalDiscountInclTax !== undefined ||
-        subTotalDiscountExclTax !== undefined || shippingInclTax !== undefined || shippingExclTax !== undefined ||
-        taxRates !== undefined || tax !== undefined || discount !== undefined || total !== undefined) {
-      
+    if (
+      subtotalInclTax !== undefined ||
+      subtotalExclTax !== undefined ||
+      subTotalDiscountInclTax !== undefined ||
+      subTotalDiscountExclTax !== undefined ||
+      shippingInclTax !== undefined ||
+      shippingExclTax !== undefined ||
+      taxRates !== undefined ||
+      tax !== undefined ||
+      discount !== undefined ||
+      total !== undefined
+    ) {
       await updateOrderTotal(
-        orderId, 
-        subtotalInclTax, 
-        subtotalExclTax, 
-        subTotalDiscountInclTax, 
-        subTotalDiscountExclTax, 
-        shippingInclTax, 
-        shippingExclTax, 
-        taxRates, 
-        tax, 
-        discount, 
+        orderId,
+        subtotalInclTax,
+        subtotalExclTax,
+        subTotalDiscountInclTax,
+        subTotalDiscountExclTax,
+        shippingInclTax,
+        shippingExclTax,
+        taxRates,
+        tax,
+        discount,
         total
       );
     }
 
-    res.status(200).json({ success: true, message: "Order updated successfully" });
+    res
+      .status(200)
+      .json({ success: true, message: "Order updated successfully" });
   } catch (error) {
     console.error("Error updating order:", error);
-    res.status(500).json({ success: false, message: "Failed to update order." });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to update order." });
   }
 }
 
@@ -86,38 +119,56 @@ export async function UpdateBillingInfoController(req, res) {
   console.log("Request Body:", req.body);
 
   const { orderId } = req.params;
-  const { firstName, lastName, email, phone,countryId, stateProvinceId, address1, address2, zipPostalCode, faxNumber, company } = req.body;
+  const {
+    firstName,
+    lastName,
+    email,
+    phone,
+    countryId,
+    stateProvinceId,
+    address1,
+    address2,
+    zipPostalCode,
+    faxNumber,
+    company,
+  } = req.body;
 
   try {
     // Get the CustomerId using the OrderId
     const order = await knex("Order").where({ Id: orderId }).first();
 
     if (!order) {
-      return res.status(400).json({ success: false, message: "Invalid Order ID" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid Order ID" });
     }
 
     const customerId = order.CustomerId;
 
     // Update the billing information
     await updateBillingInfo(
-      customerId, 
-      firstName, 
-      lastName, 
-      email, 
+      customerId,
+      firstName,
+      lastName,
+      email,
       phone,
-      countryId, 
-      stateProvinceId, 
-      address1, 
-      address2, 
-      zipPostalCode, 
-      faxNumber, 
+      countryId,
+      stateProvinceId,
+      address1,
+      address2,
+      zipPostalCode,
+      faxNumber,
       company
     );
 
-    res.status(200).json({ success: true, message: "Billing info updated successfully" });
+    res
+      .status(200)
+      .json({ success: true, message: "Billing info updated successfully" });
   } catch (error) {
     console.error("Error updating billing info:", error);
-    res.status(500).json({ success: false, message: "Failed to update billing info." });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to update billing info." });
   }
 }
 
@@ -129,15 +180,20 @@ export async function UpdateShippingMethodController(req, res) {
     // Update the shipping method
     await updateShippingMethod(orderId, shippingMethod);
 
-    res.status(200).json({ success: true, message: "Shipping method updated successfully" });
+    res
+      .status(200)
+      .json({ success: true, message: "Shipping method updated successfully" });
   } catch (error) {
     console.error("Error updating shipping method:", error);
-    res.status(500).json({ success: false, message: "Failed to update shipping method." });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to update shipping method." });
   }
 }
 
 export async function UpdateOrderItemController(req, res) {
-  const { orderId, orderItemId } = req.params; 
+  const { orderId, orderItemId } = req.params;
+  console.log("objectId", orderId, orderItemId);
   const {
     quantity,
     unitPriceInclTax,
@@ -147,22 +203,28 @@ export async function UpdateOrderItemController(req, res) {
     discountAmountInclTax,
     discountAmountExclTax,
     originalProductCost,
-  } = req.body; 
+  } = req.body;
 
   // Convert IDs to integers
   const parsedOrderId = parseInt(orderId, 10);
   const parsedOrderItemId = parseInt(orderItemId, 10);
+  console.log("objectId", parsedOrderId, parsedOrderItemId);
 
   const updatedFields = {};
 
   if (quantity !== undefined) updatedFields.Quantity = quantity;
-  if (unitPriceInclTax !== undefined) updatedFields.UnitPriceInclTax = unitPriceInclTax;
-  if (unitPriceExclTax !== undefined) updatedFields.UnitPriceExclTax = unitPriceExclTax;
+  if (unitPriceInclTax !== undefined)
+    updatedFields.UnitPriceInclTax = unitPriceInclTax;
+  if (unitPriceExclTax !== undefined)
+    updatedFields.UnitPriceExclTax = unitPriceExclTax;
   if (priceInclTax !== undefined) updatedFields.PriceInclTax = priceInclTax;
   if (priceExclTax !== undefined) updatedFields.PriceExclTax = priceExclTax;
-  if (discountAmountInclTax !== undefined) updatedFields.DiscountAmountInclTax = discountAmountInclTax;
-  if (discountAmountExclTax !== undefined) updatedFields.DiscountAmountExclTax = discountAmountExclTax;
-  if (originalProductCost !== undefined) updatedFields.OriginalProductCost = originalProductCost;
+  if (discountAmountInclTax !== undefined)
+    updatedFields.DiscountAmountInclTax = discountAmountInclTax;
+  if (discountAmountExclTax !== undefined)
+    updatedFields.DiscountAmountExclTax = discountAmountExclTax;
+  if (originalProductCost !== undefined)
+    updatedFields.OriginalProductCost = originalProductCost;
 
   try {
     // Log IDs for debugging
@@ -170,26 +232,44 @@ export async function UpdateOrderItemController(req, res) {
     //console.log("Parsed Order Item ID:", parsedOrderItemId);
 
     // Check if the order item exists
-    const orderItem = await knex("OrderItem").where({ Id: parsedOrderItemId }).first();
+    const orderItem = await knex("OrderItem")
+      .where({ OrderId: parsedOrderId })
+      .andWhere({ ProductId: parsedOrderItemId })
+      .first();
     if (!orderItem) {
-      return res.status(404).json({ success: false, message: `Order item with ID ${orderItemId} not found` });
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: `Order item with ID ${orderItemId} not found`,
+        });
     }
+
+    console.log("orderItem", orderItem);
 
     // Validate that the OrderId matches
     if (orderItem.OrderId !== parsedOrderId) {
-      return res.status(400).json({ success: false, message: "Order ID does not match the order item." });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Order ID does not match the order item.",
+        });
     }
 
     // Update the order item
-    await updateOrderItem(parsedOrderItemId, updatedFields);
+    await updateOrderItem(parsedOrderItemId, updatedFields, parsedOrderId);
 
-    res.status(200).json({ success: true, message: "Order item updated successfully" });
+    res
+      .status(200)
+      .json({ success: true, message: "Order item updated successfully" });
   } catch (error) {
     console.error("Error updating order item:", error);
-    res.status(500).json({ success: false, message: "Failed to update order item." });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to update order item." });
   }
 }
-
 
 export async function addOrderNote(req, res) {
   const { orderId } = req.params;
@@ -198,11 +278,13 @@ export async function addOrderNote(req, res) {
   try {
     // Validate input
     if (!note) {
-      return res.status(400).json({ success: false, message: "Note is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Note is required" });
     }
 
     // Insert the new order note
-    await knex('OrderNote').insert({
+    await knex("OrderNote").insert({
       OrderId: orderId,
       Note: note,
       DisplayToCustomer: displayToCustomer || false, // Default to false if not provided
@@ -210,10 +292,14 @@ export async function addOrderNote(req, res) {
       DownloadId: 0, // Provide a value for DownloadId
     });
 
-    res.status(201).json({ success: true, message: "Order note added successfully" });
+    res
+      .status(201)
+      .json({ success: true, message: "Order note added successfully" });
   } catch (error) {
     console.error("Error adding order note:", error);
-    res.status(500).json({ success: false, message: "Failed to add order note." });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to add order note." });
   }
 }
 
@@ -223,19 +309,27 @@ export async function deleteOrderNote(req, res) {
   try {
     // Validate the input
     if (!id) {
-      return res.status(400).json({ success: false, message: "Order note ID is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Order note ID is required" });
     }
 
     // Delete the order note
-    const result = await knex('OrderNote').where({ Id: id }).del();
+    const result = await knex("OrderNote").where({ Id: id }).del();
 
     if (result === 0) {
-      return res.status(404).json({ success: false, message: "Order note not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Order note not found" });
     }
 
-    res.status(200).json({ success: true, message: "Order note deleted successfully" });
+    res
+      .status(200)
+      .json({ success: true, message: "Order note deleted successfully" });
   } catch (error) {
     console.error("Error deleting order note:", error);
-    res.status(500).json({ success: false, message: "Failed to delete order note." });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to delete order note." });
   }
 }
