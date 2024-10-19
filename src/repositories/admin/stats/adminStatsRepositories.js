@@ -385,6 +385,60 @@ export async function TotalOrdersByPeriod(period) {
   }
 }
 
+export async function TotalCustomersByPeriod(period) {
+  try {
+    const currentDate = new Date();
+    let startDate, endDate, dateIncrement, formatDate, groupByFormat;
+
+    if (period === 'year') {
+      startDate = new Date(Date.UTC(currentDate.getUTCFullYear() - 1, currentDate.getUTCMonth(), 1));
+      endDate = new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate() + 1));
+      dateIncrement = (date) => new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1));
+      formatDate = (date) => `${date.toLocaleString('default', { month: 'short' })} ${date.getUTCFullYear()}`;
+      groupByFormat = 'yyyy-MM';
+    } else if (period === 'month') {
+      startDate = new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate() - 29));
+      endDate = new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate() + 1));
+      dateIncrement = (date) => new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + 1));
+      formatDate = (date) => `${date.toLocaleString('default', { month: 'short' })} ${date.getUTCDate()}`;
+      groupByFormat = 'yyyy-MM-dd';
+    } else if (period === 'week') {
+      startDate = new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate() - 6));
+      endDate = new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate() + 1));
+      dateIncrement = (date) => new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + 1));
+      formatDate = (date) => `${date.toLocaleString('default', { month: 'short' })} ${date.getUTCDate()}`;
+      groupByFormat = 'yyyy-MM-dd';
+    } else {
+      throw new Error('Invalid period');
+    }
+
+    const orders = await knex('Customer')
+      .select(knex.raw(`FORMAT(CreatedOnUtc, '${groupByFormat}') as date`))
+      .count('* as total')
+      .where('CreatedOnUtc', '>=', startDate.toISOString())
+      .andWhere('Deleted', 0)
+      .groupByRaw(`FORMAT(CreatedOnUtc, '${groupByFormat}')`)
+      .orderBy('date');
+
+    const dateMap = new Map(orders.map(order => [order.date, parseInt(order.total)]));
+
+    const result = [];
+    for (let date = startDate; date < endDate; date = dateIncrement(date)) {
+      const formattedDate = formatDate(date);
+      const dateKey = date.toISOString().split('T')[0].slice(0, groupByFormat === 'yyyy-MM' ? 7 : 10);
+      result.push({
+        date: formattedDate,
+        orders: dateMap.get(dateKey) || 0
+      });
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Error fetching total orders:', error);
+    throw error;
+  }
+}
+
 export async function NewCustomersInPastMonths() {
   try {
     const currentDate = new Date();
