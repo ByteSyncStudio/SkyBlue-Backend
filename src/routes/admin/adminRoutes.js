@@ -60,8 +60,8 @@ import {
   getOrderStats,
   getStats,
   getValueOrders,
-  totalOrdersInPastMonths,
-  newCustomersInPastMonths
+  newCustomersInPastMonths,
+  totalOrdersByPeriod
 } from "../../controllers/admin/stats/adminStatsController.js";
 import { adminLogin } from "../../controllers/admin/auth/adminLoginController.js";
 import { authenticateToken, authorizeRoles } from '../../middleware/authMiddleware.js';
@@ -1615,7 +1615,7 @@ router.get("/bestSellerByAmount", adminAccess, getBestSellerByAmount);
  */
 router.get("/bestSellerByQuantity", adminAccess, getBestSellerByQunatity);
 
-router.get('/monthly-orders', adminAccess, totalOrdersInPastMonths)
+router.get('/past-orders', adminAccess, totalOrdersByPeriod)
 
 router.get('/monthly-customers', adminAccess, newCustomersInPastMonths)
 

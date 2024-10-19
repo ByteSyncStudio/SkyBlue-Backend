@@ -331,32 +331,47 @@ export const GetBestSellerByAmount = async (req, res) => {
   }
 };
 
-export async function TotalOrdersInPastMonths() {
+export async function TotalOrdersByPeriod(period) {
   try {
     const currentDate = new Date();
     const result = [];
+    let startDate, endDate, dateIncrement, formatDate;
 
-    for (let i = 0; i < 6; i++) {
-      const targetDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
-      const year = targetDate.getFullYear();
-      const month = targetDate.getMonth() + 1; // JavaScript months are 0-indexed
+    if (period === 'year') {
+      startDate = new Date(Date.UTC(currentDate.getUTCFullYear() - 1, currentDate.getUTCMonth(), 1));
+      endDate = new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth() + 1, 1));
+      dateIncrement = (date) => new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1));
+      formatDate = (date) => `${date.toLocaleString('default', { month: 'long' })} ${date.getUTCFullYear()}`;
+    } else if (period === 'month') {
+      startDate = new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate() - 29));
+      endDate = new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate() + 1));
+      dateIncrement = (date) => new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + 1));
+      formatDate = (date) => `${date.toLocaleString('default', { month: 'long' })} ${date.getUTCDate()}`;
+    } else if (period === 'week') {
+      startDate = new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate() - 6));
+      endDate = new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate() + 1));
+      dateIncrement = (date) => new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + 1));
+      formatDate = (date) => `${date.toLocaleString('default', { month: 'long' })} ${date.getUTCDate()}`;
+    } else {
+      throw new Error('Invalid period');
+    }
 
+    let targetDate = startDate;
+    while (targetDate < endDate) {
+      const nextDate = dateIncrement(new Date(targetDate));
       const orders = await knex('Order')
         .count('* as total')
-        .where('CreatedOnUtc', '>=', `${year}-${month.toString().padStart(2, '0')}-01`)
-        .andWhere('CreatedOnUtc', '<', `${year}-${(month + 1).toString().padStart(2, '0')}-01`)
+        .where('CreatedOnUtc', '>=', targetDate.toISOString())
+        .andWhere('CreatedOnUtc', '<', nextDate.toISOString())
         .andWhere('Deleted', 0)
         .first();
 
-      const monthNames = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-      ];
-
       result.push({
-        month: monthNames[month - 1],
+        date: formatDate(targetDate),
         orders: parseInt(orders.total)
       });
+
+      targetDate = nextDate;
     }
 
     return result;

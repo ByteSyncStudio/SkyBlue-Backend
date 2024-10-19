@@ -1,4 +1,4 @@
-import {  GetActiveCustomers, GetBestSellerByAmount, GetBestSellersByQuantity, GetNewCustomers, GetOrderTotals, GetStats, GetValueOrders, NewCustomersInPastMonths, TotalOrdersInPastMonths } from "../../../repositories/admin/stats/adminStatsRepositories.js";
+import {  GetActiveCustomers, GetBestSellerByAmount, GetBestSellersByQuantity, GetNewCustomers, GetOrderTotals, GetStats, GetValueOrders, NewCustomersInPastMonths, TotalOrdersByPeriod } from "../../../repositories/admin/stats/adminStatsRepositories.js";
 
 
 //getting stats for heaader
@@ -77,9 +77,10 @@ export const getBestSellerByAmount = async (req, res) => {
   }
 }
 
-export async function totalOrdersInPastMonths(req, res) {
+export async function totalOrdersByPeriod(req, res) {
   try {
-    const data = await TotalOrdersInPastMonths()
+    const period = req.query.period;
+    const data = await TotalOrdersByPeriod(period);
     res.status(200).send(data);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch orders' });
