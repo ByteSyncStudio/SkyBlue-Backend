@@ -1,6 +1,8 @@
 import { calculateTotalPriceWithTax } from "../utils/taxUtils.js";
 import knex from "../config/knex.js";
 import { v4 as uuidv4 } from "uuid";
+import { SendEmail } from "../config/emailService.js";
+import { getOrderPlacedEmailTemplate } from "../utils/emailTemplates.js";
 import {
   fetchCartItems,
   getCategoryMappings,
@@ -256,7 +258,10 @@ async function createCheckoutOrder(
           })
           .returning("*");
 
-        return orderItem;
+        return {
+          ...orderItem,
+          ProductName: product.Name,
+        };
       })
     );
 
@@ -267,6 +272,14 @@ async function createCheckoutOrder(
       .where({ CustomerId: customerId })
       .del();
 
+    // Send order placed email
+    const orderData = {
+      order,
+      orderItems,
+      customerEmail,
+    };
+    const emailTemplate = await getOrderPlacedEmailTemplate(orderData);
+    await SendEmail(customerEmail, 'Order Placed', emailTemplate);
 
     return {
       order,
