@@ -340,19 +340,19 @@ export async function TotalOrdersByPeriod(period) {
       startDate = new Date(Date.UTC(currentDate.getUTCFullYear() - 1, currentDate.getUTCMonth(), 1));
       endDate = new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate() + 1));
       dateIncrement = (date) => new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1));
-      formatDate = (date) => `${date.toLocaleString('default', { month: 'long' })} ${date.getUTCFullYear()}`;
+      formatDate = (date) => `${date.toLocaleString('default', { month: 'short' })} ${date.getUTCFullYear()}`;
       groupByFormat = 'yyyy-MM';
     } else if (period === 'month') {
       startDate = new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate() - 29));
       endDate = new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate() + 1));
       dateIncrement = (date) => new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + 1));
-      formatDate = (date) => `${date.toLocaleString('default', { month: 'long' })} ${date.getUTCDate()}`;
+      formatDate = (date) => `${date.toLocaleString('default', { month: 'short' })} ${date.getUTCDate()}`;
       groupByFormat = 'yyyy-MM-dd';
     } else if (period === 'week') {
       startDate = new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate() - 6));
       endDate = new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate() + 1));
       dateIncrement = (date) => new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + 1));
-      formatDate = (date) => `${date.toLocaleString('default', { month: 'long' })} ${date.getUTCDate()}`;
+      formatDate = (date) => `${date.toLocaleString('default', { month: 'short' })} ${date.getUTCDate()}`;
       groupByFormat = 'yyyy-MM-dd';
     } else {
       throw new Error('Invalid period');
