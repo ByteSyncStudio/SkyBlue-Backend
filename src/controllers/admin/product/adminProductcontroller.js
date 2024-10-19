@@ -261,8 +261,9 @@ export async function getBestSellers(req, res) {
     try {
         const sortBy = req.query.sortBy || 'quantity';
         const size = req.query.size || 5;
-        const products = await listBestsellers(sortBy, size, req.user);
-        res.status(200).send(products)
+        const searchTerm = req.query.term || '';
+        const products = await listBestsellers(sortBy, size, req.user, searchTerm);
+        res.status(200).send(products);
     } catch (error) {
         console.error(error);
         res.status(error.statusCode || 500).send(error.message || 'Server error');

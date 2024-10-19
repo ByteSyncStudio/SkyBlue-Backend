@@ -402,10 +402,10 @@ export async function DeleteManufacturerMapping(productId, trx) {
 * * @param {number} size - The number of items to retrieve.*
 * * @returns {Promise<Array>} A promise that resolves to an array of best-selling product objects.*
 **/
-export async function listBestsellers(sortBy, size, user) {
+export async function listBestsellers(sortBy, size, user, searchTerm = '') {
     try {
         const orderColumn = sortBy === 'quantity' ? 'TotalQuantity' : 'TotalAmount';
-        
+
         const query = knex.raw(`
             WITH TopProducts AS (
                 SELECT 
@@ -416,6 +416,7 @@ export async function listBestsellers(sortBy, size, user) {
                 FROM OrderItem oi
                 JOIN Product p ON oi.ProductId = p.Id
                 WHERE p.Published = 1 AND p.Deleted = 0
+                AND p.Name LIKE ?
                 GROUP BY oi.ProductId
             )
             SELECT 
@@ -439,7 +440,7 @@ export async function listBestsellers(sortBy, size, user) {
             LEFT JOIN Picture pic ON ppm.PictureId = pic.Id
             WHERE tp.RowNum <= ?
             ORDER BY tp.RowNum
-        `, [sortBy, size]);
+        `, [sortBy, `%${searchTerm}%`, size]);
 
         const products = await query;
         const productIds = products.filter(p => p.HasTierPrices).map(p => p.Id);
@@ -448,16 +449,15 @@ export async function listBestsellers(sortBy, size, user) {
             const imageUrl = product.PictureId
                 ? generateImageUrl2(product.PictureId, product.MimeType, product.SeoFilename)
                 : null;
-            const price = product.Price;
             return {
                 Id: product.Id,
                 Name: product.Name,
-                Price: price,
+                Price: product.Price,
                 FullDescription: product.FullDescription,
                 ShortDescription: product.ShortDescription,
                 OrderMinimumQuantity: product.OrderMinimumQuantity,
                 OrderMaximumQuantity: product.OrderMaximumQuantity,
-                Stock: product.StockQuantity,
+                StockQuantity: product.StockQuantity,
                 Images: [imageUrl],
                 Quantity: product.TotalQuantity,
                 Amount: product.TotalAmount
