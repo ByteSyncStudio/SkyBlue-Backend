@@ -16,6 +16,7 @@ import {
   UpdateBillingInfoController,
   UpdateOrderController,
   UpdateOrderItemController,
+  UpdatePriceController,
   UpdateShippingMethodController,
 } from "../../controllers/admin/Orders/adminOrdersController.js";
 import {
@@ -46,8 +47,19 @@ import {
   removeDiscountFromCategory,
   removeDiscountFromProducts,
 } from "../../controllers/admin/discount/adminDiscountController.js";
-import { getAllCategories as getAllCategories_Category, addCategory, updateCategory, deleteCategory, getSingleCategory } from "../../controllers/admin/category/adminCategoryController.js";
-import { addSlider, deleteSlider, updateSlider, getSliderByType } from "../../controllers/admin/slider/adminSliderController.js";
+import {
+  getAllCategories as getAllCategories_Category,
+  addCategory,
+  updateCategory,
+  deleteCategory,
+  getSingleCategory,
+} from "../../controllers/admin/category/adminCategoryController.js";
+import {
+  addSlider,
+  deleteSlider,
+  updateSlider,
+  getSliderByType,
+} from "../../controllers/admin/slider/adminSliderController.js";
 import {
   getAllCategories,
   getAllProducts,
@@ -61,13 +73,31 @@ import {
   getStats,
   getValueOrders,
   totalOrdersInPastMonths,
-  newCustomersInPastMonths
+  newCustomersInPastMonths,
 } from "../../controllers/admin/stats/adminStatsController.js";
 import { adminLogin } from "../../controllers/admin/auth/adminLoginController.js";
-import { authenticateToken, authorizeRoles } from '../../middleware/authMiddleware.js';
-import { addManufacturer, deleteManufacturer, editManufacturer, getAllManufacturers, getManufacturersProducts } from "../../controllers/admin/manufacturer/adminManufacturerController.js";
-import { currentCartsTotalItems, orderSheet, specificCart } from "../../controllers/admin/sales/adminSalesController.js";
-import { addRole, deleteRole, editRole, getRoles } from "../../controllers/admin/roles/adminRolesController.js";
+import {
+  authenticateToken,
+  authorizeRoles,
+} from "../../middleware/authMiddleware.js";
+import {
+  addManufacturer,
+  deleteManufacturer,
+  editManufacturer,
+  getAllManufacturers,
+  getManufacturersProducts,
+} from "../../controllers/admin/manufacturer/adminManufacturerController.js";
+import {
+  currentCartsTotalItems,
+  orderSheet,
+  specificCart,
+} from "../../controllers/admin/sales/adminSalesController.js";
+import {
+  addRole,
+  deleteRole,
+  editRole,
+  getRoles,
+} from "../../controllers/admin/roles/adminRolesController.js";
 import { sendEmail } from "../../controllers/admin/email/adminEmailController.js";
 import { getCountriesAndStates } from "../../repositories/admin/Orders/adminOrders.js";
 
@@ -100,11 +130,11 @@ const router = express.Router();
  *       500:
  *         description: Internal server error
  */
-router.post('/login', adminLogin);
+router.post("/login", adminLogin);
 
 router.use(authenticateToken);
 
-const adminAccess = authorizeRoles(['Registered', 'Administrators'])
+const adminAccess = authorizeRoles(["Registered", "Administrators"]);
 
 /**
  * @swagger
@@ -289,7 +319,6 @@ router.delete("/product/tier-price", adminAccess, deleteTierPrice);
  *         description: Internal server error
  */
 router.delete("/product/:id", adminAccess, deleteProduct);
-
 
 /**
  * @swagger
@@ -1071,7 +1100,7 @@ router.patch("/category/edit/:id", adminAccess, updateCategory);
 
 router.delete("/category/delete/:id", adminAccess, deleteCategory);
 
-router.get('/category/single/:id', getSingleCategory);
+router.get("/category/single/:id", getSingleCategory);
 
 router.get("/product/search", adminAccess, getProducts);
 
@@ -1276,7 +1305,11 @@ router.get("/allCategoryForDiscount", adminAccess, getAllCategories);
  *       500:
  *         description: Internal server error
  */
-router.post("/applyDiscountToProduct/:discountId", adminAccess, applyDiscountToProducts);
+router.post(
+  "/applyDiscountToProduct/:discountId",
+  adminAccess,
+  applyDiscountToProducts
+);
 
 /**
  * @swagger
@@ -1313,7 +1346,11 @@ router.post("/applyDiscountToProduct/:discountId", adminAccess, applyDiscountToP
  *       500:
  *         description: Internal server error
  */
-router.post("/applyDiscountToCategory/:discountId", adminAccess, applyDiscountToCategory);
+router.post(
+  "/applyDiscountToCategory/:discountId",
+  adminAccess,
+  applyDiscountToCategory
+);
 
 /**
  * @swagger
@@ -1350,7 +1387,11 @@ router.post("/applyDiscountToCategory/:discountId", adminAccess, applyDiscountTo
  *       500:
  *         description: Internal server error
  */
-router.post("/removeDiscountFromProduct/:discountId", adminAccess, removeDiscountFromProducts);
+router.post(
+  "/removeDiscountFromProduct/:discountId",
+  adminAccess,
+  removeDiscountFromProducts
+);
 
 /**
  * @swagger
@@ -1387,7 +1428,10 @@ router.post("/removeDiscountFromProduct/:discountId", adminAccess, removeDiscoun
  *       500:
  *         description: Internal server error
  */
-router.post("/removeDiscountFromCategory/:discountId", adminAccess, removeDiscountFromCategory
+router.post(
+  "/removeDiscountFromCategory/:discountId",
+  adminAccess,
+  removeDiscountFromCategory
 );
 
 /**
@@ -1615,9 +1659,9 @@ router.get("/bestSellerByAmount", adminAccess, getBestSellerByAmount);
  */
 router.get("/bestSellerByQuantity", adminAccess, getBestSellerByQunatity);
 
-router.get('/monthly-orders', adminAccess, totalOrdersInPastMonths)
+router.get("/monthly-orders", adminAccess, totalOrdersInPastMonths);
 
-router.get('/monthly-customers', adminAccess, newCustomersInPastMonths)
+router.get("/monthly-customers", adminAccess, newCustomersInPastMonths);
 
 /**
  * @swagger
@@ -1655,7 +1699,7 @@ router.get('/monthly-customers', adminAccess, newCustomersInPastMonths)
  *       500:
  *         description: Internal server error
  */
-router.get('/manufacturer', adminAccess, getAllManufacturers);
+router.get("/manufacturer", adminAccess, getAllManufacturers);
 
 /**
  * @swagger
@@ -1695,7 +1739,7 @@ router.get('/manufacturer', adminAccess, getAllManufacturers);
  *       500:
  *         description: Internal server error
  */
-router.get('/manufacturer/products/:id', getManufacturersProducts)
+router.get("/manufacturer/products/:id", getManufacturersProducts);
 
 /**
  * @swagger
@@ -1724,7 +1768,7 @@ router.get('/manufacturer/products/:id', getManufacturersProducts)
  *       500:
  *         description: Internal server error
  */
-router.post('/manufacturer', adminAccess, addManufacturer);
+router.post("/manufacturer", adminAccess, addManufacturer);
 
 /**
  * @swagger
@@ -1762,7 +1806,7 @@ router.post('/manufacturer', adminAccess, addManufacturer);
  *       500:
  *         description: Internal server error
  */
-router.patch('/manufacturer/:id', adminAccess, editManufacturer);
+router.patch("/manufacturer/:id", adminAccess, editManufacturer);
 
 /**
  * @swagger
@@ -1785,7 +1829,7 @@ router.patch('/manufacturer/:id', adminAccess, editManufacturer);
  *       500:
  *         description: Internal server error
  */
-router.delete('/manufacturer/:id', adminAccess, deleteManufacturer);
+router.delete("/manufacturer/:id", adminAccess, deleteManufacturer);
 
 /**
  * @swagger
@@ -1859,14 +1903,14 @@ router.delete('/manufacturer/:id', adminAccess, deleteManufacturer);
  *       500:
  *         description: Server error
  */
-router.get('/inventory', adminAccess, listInventory);
+router.get("/inventory", adminAccess, listInventory);
 
 /**
  * @swagger
  * /admin/current-carts:
  *   get:
  *     summary: Get current carts with total items and quantities
- *     tags: 
+ *     tags:
  *       [Admin]
  *     parameters:
  *       - in: query
@@ -1920,14 +1964,14 @@ router.get('/inventory', adminAccess, listInventory);
  *                   type: string
  *                   description: Error message
  */
-router.get('/current-carts', adminAccess, currentCartsTotalItems);
+router.get("/current-carts", adminAccess, currentCartsTotalItems);
 
 /**
  * @swagger
  * /admin/specific-cart/{id}:
  *   get:
  *     summary: Get details of a specific cart by ID
- *     tags: 
+ *     tags:
  *       [Admin]
  *     parameters:
  *       - in: path
@@ -1980,14 +2024,14 @@ router.get('/current-carts', adminAccess, currentCartsTotalItems);
  *                   type: string
  *                   description: Error message
  */
-router.get('/specific-cart/:id', adminAccess, specificCart);
+router.get("/specific-cart/:id", adminAccess, specificCart);
 
 /**
  * @swagger
  * /admin/customer-report:
  *   get:
  *     summary: Retrieve customers and their order totals within a specified date range
- *     tags: 
+ *     tags:
  *       - Admin
  *     parameters:
  *       - in: query
@@ -2093,14 +2137,14 @@ router.get('/specific-cart/:id', adminAccess, specificCart);
  *                   type: string
  *                   description: Error message.
  */
-router.get('/customer-report', adminAccess, getCustomerByOrderTotal);
+router.get("/customer-report", adminAccess, getCustomerByOrderTotal);
 
 /**
  * @swagger
  * /admin/roles:
  *   get:
  *     summary: Retrieve all roles
- *     tags: 
+ *     tags:
  *       - Admin
  *     responses:
  *       200:
@@ -2133,7 +2177,7 @@ router.get('/customer-report', adminAccess, getCustomerByOrderTotal);
  *                 message:
  *                   type: string
  */
-router.get('/roles', adminAccess, getRoles);
+router.get("/roles", adminAccess, getRoles);
 
 /**
  * @swagger
@@ -2184,7 +2228,7 @@ router.get('/roles', adminAccess, getRoles);
  *                 message:
  *                   type: string
  */
-router.post('/roles', adminAccess, addRole);
+router.post("/roles", adminAccess, addRole);
 
 /**
  * @swagger
@@ -2242,7 +2286,7 @@ router.post('/roles', adminAccess, addRole);
  *                 message:
  *                   type: string
  */
-router.patch('/roles/:id', adminAccess, editRole);
+router.patch("/roles/:id", adminAccess, editRole);
 
 /**
  * @swagger
@@ -2281,7 +2325,7 @@ router.patch('/roles/:id', adminAccess, editRole);
  *                 message:
  *                   type: string
  */
-router.delete('/roles/:id', adminAccess, deleteRole);
+router.delete("/roles/:id", adminAccess, deleteRole);
 
 /**
  * @swagger
@@ -2356,11 +2400,11 @@ router.delete('/roles/:id', adminAccess, deleteRole);
  *                 message:
  *                   type: string
  */
-router.get('/ordersheet', adminAccess, orderSheet)
+router.get("/ordersheet", adminAccess, orderSheet);
 
-router.get('/customer-details/:id', adminAccess, getSingleCustomer);
+router.get("/customer-details/:id", adminAccess, getSingleCustomer);
 
-router.patch('/customer-details/:id', adminAccess, editCustomer);
+router.patch("/customer-details/:id", adminAccess, editCustomer);
 
 /**
  * @swagger
@@ -2398,10 +2442,7 @@ router.patch('/customer-details/:id', adminAccess, editCustomer);
  *                 message:
  *                   type: string
  */
-router.post('/send-email', adminAccess, sendEmail);
-
-
-
+router.post("/send-email", adminAccess, sendEmail);
 
 /**
  * @swagger
@@ -2439,7 +2480,42 @@ router.post('/send-email', adminAccess, sendEmail);
  *       500:
  *         description: Internal server error
  */
-router.patch("/editOrder/:id", UpdateOrderController);
+router.patch("/editOrder/:id", adminAccess, UpdateOrderController);
+
+/**
+ * @swagger
+ * /admin/editprice/{id}:
+ *   patch:
+ *     summary: Update the price of a product by ID
+ *     tags: [Admin]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The product ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               price:
+ *                 type: number
+ *                 example: 19.99
+ *     responses:
+ *       200:
+ *         description: Price updated successfully
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: Product not found
+ *       500:
+ *         description: Internal server error
+ */
+router.patch("/editprice/:id", adminAccess, UpdatePriceController);
 
 /**
  * @swagger
@@ -2486,7 +2562,11 @@ router.patch("/editOrder/:id", UpdateOrderController);
  *       500:
  *         description: Internal server error
  */
-router.patch("/orders/:orderId/billing-info", UpdateBillingInfoController);
+router.patch(
+  "/orders/:orderId/billing-info",
+  adminAccess,
+  UpdateBillingInfoController
+);
 
 /**
  * @swagger
@@ -2524,7 +2604,11 @@ router.patch("/orders/:orderId/billing-info", UpdateBillingInfoController);
  *       500:
  *         description: Internal server error
  */
-router.patch('/orders/:orderId/shipping-info', UpdateShippingMethodController);
+router.patch(
+  "/orders/:orderId/shipping-info",
+  adminAccess,
+  UpdateShippingMethodController
+);
 
 /**
  * @swagger
@@ -2568,7 +2652,11 @@ router.patch('/orders/:orderId/shipping-info', UpdateShippingMethodController);
  *       500:
  *         description: Internal server error
  */
-router.patch('/orders/:orderId/order-items/:orderItemId', UpdateOrderItemController);
+router.patch(
+  "/orders/:orderId/order-items/:orderItemId",
+  adminAccess,
+  UpdateOrderItemController
+);
 
 /**
  * @swagger
@@ -2603,7 +2691,7 @@ router.patch('/orders/:orderId/order-items/:orderItemId', UpdateOrderItemControl
  *       500:
  *         description: Internal server error
  */
-router.post('/orders/:orderId/notes', addOrderNote);
+router.post("/orders/:orderId/notes", adminAccess, addOrderNote);
 
 /**
  * @swagger
@@ -2626,7 +2714,7 @@ router.post('/orders/:orderId/notes', addOrderNote);
  *       500:
  *         description: Internal server error
  */
-router.delete('/orders/notes-delete/:id', deleteOrderNote);
+router.delete("/orders/notes-delete/:id", adminAccess, deleteOrderNote);
 
 /**
  * @swagger
@@ -2670,7 +2758,6 @@ router.delete('/orders/notes-delete/:id', deleteOrderNote);
  *       500:
  *         description: Internal server error
  */
-router.get('/orders/countries-states', getCountriesAndStates);
-
+router.get("/orders/countries-states", adminAccess, getCountriesAndStates);
 
 export default router;
