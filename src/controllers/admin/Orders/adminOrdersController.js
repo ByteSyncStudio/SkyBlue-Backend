@@ -4,7 +4,7 @@ import {
   updateBillingInfo,
   updateOrderItem,
   updateOrderStatus,
-  updateOrderTotal,
+  updatePriceTotal,
   updateShippingMethod,
 } from "../../../repositories/admin/Orders/adminOrders.js";
 
@@ -46,19 +46,7 @@ export const getSingleOrder = async (req, res) => {
 // Update order status by ID
 export async function UpdateOrderController(req, res) {
   const { id } = req.params;
-  const {
-    status,
-    subtotalInclTax,
-    subtotalExclTax,
-    subTotalDiscountInclTax,
-    subTotalDiscountExclTax,
-    shippingInclTax,
-    shippingExclTax,
-    taxRates,
-    tax,
-    discount,
-    total,
-  } = req.body;
+  const { status } = req.body;
 
   try {
     // Parse id as integer
@@ -75,33 +63,33 @@ export async function UpdateOrderController(req, res) {
       await updateOrderStatus(orderId, status);
     }
 
-    // Check if any other fields to update (like totals) are provided
-    if (
-      subtotalInclTax !== undefined ||
-      subtotalExclTax !== undefined ||
-      subTotalDiscountInclTax !== undefined ||
-      subTotalDiscountExclTax !== undefined ||
-      shippingInclTax !== undefined ||
-      shippingExclTax !== undefined ||
-      taxRates !== undefined ||
-      tax !== undefined ||
-      discount !== undefined ||
-      total !== undefined
-    ) {
-      await updateOrderTotal(
-        orderId,
-        subtotalInclTax,
-        subtotalExclTax,
-        subTotalDiscountInclTax,
-        subTotalDiscountExclTax,
-        shippingInclTax,
-        shippingExclTax,
-        taxRates,
-        tax,
-        discount,
-        total
-      );
+    res
+      .status(200)
+      .json({ success: true, message: "Order updated successfully" });
+  } catch (error) {
+    console.error("Error updating order:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to update order." });
+  }
+}
+
+export async function UpdatePriceController(req, res) {
+  const { id } = req.params; // Extract order ID from the request URL
+  const updateData = req.body; // Extract the data sent from the frontend
+
+  try {
+    // Parse id as integer
+    const orderId = parseInt(id, 10);
+
+    if (isNaN(orderId)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid Order ID" });
     }
+
+    // Update only the provided fields (dynamically) based on the body data
+    await updatePriceTotal(orderId, updateData);
 
     res
       .status(200)
@@ -193,7 +181,7 @@ export async function UpdateShippingMethodController(req, res) {
 
 export async function UpdateOrderItemController(req, res) {
   const { orderId, orderItemId } = req.params;
-  console.log("objectId", orderId, orderItemId);
+  //console.log("orderId", orderId, orderItemId);
   const {
     quantity,
     unitPriceInclTax,
@@ -227,34 +215,27 @@ export async function UpdateOrderItemController(req, res) {
     updatedFields.OriginalProductCost = originalProductCost;
 
   try {
-    // Log IDs for debugging
-    //console.log("Parsed Order ID:", parsedOrderId);
-    //console.log("Parsed Order Item ID:", parsedOrderItemId);
-
+  
     // Check if the order item exists
     const orderItem = await knex("OrderItem")
       .where({ OrderId: parsedOrderId })
       .andWhere({ ProductId: parsedOrderItemId })
       .first();
     if (!orderItem) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: `Order item with ID ${orderItemId} not found`,
-        });
+      return res.status(404).json({
+        success: false,
+        message: `Order item with ID ${orderItemId} not found`,
+      });
     }
 
     console.log("orderItem", orderItem);
 
     // Validate that the OrderId matches
     if (orderItem.OrderId !== parsedOrderId) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Order ID does not match the order item.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Order ID does not match the order item.",
+      });
     }
 
     // Update the order item

@@ -213,40 +213,23 @@ export async function updateOrderStatus(orderId, status) {
   }
 }
 
-export async function updateOrderTotal(
-  orderId,
-  subtotalInclTax,
-  subtotalExclTax,
-  subTotalDiscountInclTax,
-  subTotalDiscountExclTax,
-  shippingInclTax,
-  shippingExclTax,
-  taxRates,
-  tax,
-  discount,
-  total
-) {
-  try {
-    // Prepare the update data
-    const updateData = {};
-    if (subtotalInclTax !== undefined)
-      updateData.OrderSubtotalInclTax = subtotalInclTax;
-    if (subtotalExclTax !== undefined)
-      updateData.OrderSubtotalExclTax = subtotalExclTax;
-    if (subTotalDiscountInclTax !== undefined)
-      updateData.OrderSubTotalDiscountInclTax = subTotalDiscountInclTax;
-    if (subTotalDiscountExclTax !== undefined)
-      updateData.OrderSubTotalDiscountExclTax = subTotalDiscountExclTax;
-    if (shippingInclTax !== undefined)
-      updateData.OrderShippingInclTax = shippingInclTax;
-    if (shippingExclTax !== undefined)
-      updateData.OrderShippingExclTax = shippingExclTax;
-    if (taxRates !== undefined) updateData.TaxRates = taxRates;
-    if (tax !== undefined) updateData.OrderTax = tax;
-    if (discount !== undefined) updateData.OrderDiscount = discount;
-    if (total !== undefined) updateData.OrderTotal = total;
 
-    await knex("Order").where({ Id: orderId }).update(updateData);
+export async function updatePriceTotal(orderId, updateData) {
+  try {
+    // Map frontend fields to database fields dynamically
+    const mappedData = {};
+
+    if (updateData.orderSubtotal !== undefined)
+      mappedData.OrderSubtotalExclTax = updateData.orderSubtotal; // Assuming excl. tax is passed here
+    if (updateData.orderTax !== undefined)
+      mappedData.OrderTax = updateData.orderTax;
+    if (updateData.orderDiscount !== undefined)
+      mappedData.OrderDiscount = updateData.orderDiscount;
+    if (updateData.orderTotal !== undefined)
+      mappedData.OrderTotal = updateData.orderTotal;
+
+    // Update the order in the database
+    await knex("Order").where({ Id: orderId }).update(mappedData);
 
     console.log(`Order updated for Order ID ${orderId}`);
   } catch (error) {
@@ -289,7 +272,8 @@ export async function updateBillingInfo(
     if (email !== undefined) updateData.Email = email;
     if (phone != null) updateData.PhoneNumber = phone; // Allow null or empty string
     if (countryId !== undefined) updateData.CountryId = countryId;
-    if (stateProvinceId !== undefined) updateData.StateProvinceId = stateProvinceId;
+    if (stateProvinceId !== undefined)
+      updateData.StateProvinceId = stateProvinceId;
     if (address1 !== undefined) updateData.Address1 = address1;
     updateData.Address2 = address2 !== undefined ? address2 : null; // Set to null if undefined
     if (zipPostalCode !== undefined) updateData.ZipPostalCode = zipPostalCode;
@@ -338,23 +322,21 @@ export async function updateShippingMethod(orderId, shippingMethod) {
   }
 }
 
-export async function updateOrderItem(orderItemId, updatedFields,orderId) {
+export async function updateOrderItem(orderItemId, updatedFields, orderId) {
   try {
     // Ensure orderItemId is an integer
     const id = parseInt(orderItemId, 10); // Convert to integer if needed
 
     // Update the order item in the database
     await knex("OrderItem")
-    .where({OrderId:orderId}).andWhere({ ProductId: orderItemId })// Make sure Id is used correctly
+      .where({ OrderId: orderId })
+      .andWhere({ ProductId: orderItemId }) // Make sure Id is used correctly
       .update(updatedFields);
   } catch (error) {
     console.error("Error updating order item in the database:", error);
-    throw error; 
+    throw error;
   }
 }
-
-
-
 
 export async function getCountriesAndStates(req, res) {
   try {

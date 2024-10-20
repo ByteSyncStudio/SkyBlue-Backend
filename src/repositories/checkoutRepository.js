@@ -176,7 +176,7 @@ async function createCheckoutOrder(
         BillingAddressId: billingAddressId,
         ShippingAddressId: shippingAddressId,
         PickUpInStore: 0,
-        OrderStatusId: 20,
+        OrderStatusId: 10,
         ShippingStatusId: 20,
         PaymentStatusId: 10,
         PaymentMethodSystemName: "Payments.CheckMoneyOrder",
