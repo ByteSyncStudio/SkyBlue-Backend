@@ -1,4 +1,5 @@
 import {
+  AddProductOrder,
   getOrderById,
   listOrders,
   updateBillingInfo,
@@ -262,6 +263,49 @@ export async function UpdateOrderItemController(req, res) {
       .json({ success: false, message: "Failed to update order item." });
   }
 }
+
+export async function AddProductToOrderController(req, res) {
+  const { orderId, productId } = req.params;
+  const { customerId, quantity } = req.body;
+
+  try {
+    // Validate the input
+    if (!customerId) {
+      return res.status(400).json({ success: false, message: "Customer ID is required" });
+    }
+    if (!quantity || quantity <= 0) {
+      return res.status(400).json({ success: false, message: "Invalid quantity provided" });
+    }
+
+    // Call the function to add the product to the order
+    await AddProductOrder(orderId, productId, customerId, quantity);
+    return res.status(200).json({ success: true, message: "Product added successfully" });
+  } catch (error) {
+    console.error("Error adding product to order:", error);
+    return res.status(500).json({ success: false, message: "Failed to add product to order" });
+  }
+}
+
+export async function getOrderNotes(req, res) {
+  const { orderId } = req.params;
+
+  try {
+    // Fetch the order notes
+    const notes = await knex("OrderNote")
+      .where({ OrderId: orderId })
+      .orderBy("CreatedOnUtc", "desc");
+
+    res.status(200).json({ success: true, data: notes });
+  } catch (error) {
+    console.error("Error fetching order notes:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch order notes" });
+  }
+}
+export async function addNewOrderNote(req, res) {
+  
+}
+
+
 
 export async function addOrderNote(req, res) {
   const { orderId } = req.params;

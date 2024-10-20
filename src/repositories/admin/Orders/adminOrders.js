@@ -1,6 +1,6 @@
 import knex from "../../../config/knex.js";
 import { generateImageUrl2 } from "../../../utils/imageUtils.js";
-
+import { v4 as uuidv4 } from 'uuid'; 
 export async function listOrders(size) {
   try {
     // Fetch orders and order by CreatedonUtc in descending order
@@ -190,7 +190,6 @@ export async function getOrderById(orderId) {
   }
 }
 
-
 export async function updateOrderStatus(orderId, status) {
   try {
     const statusMapping = {
@@ -212,6 +211,17 @@ export async function updateOrderStatus(orderId, status) {
     console.log(
       `Order status updated to ${statusMapping[status]} for Order ID ${orderId}`
     );
+
+    // Insert a new note into the OrderNote table
+    const noteMessage = `Order status updated to ${statusMapping[status]}`;
+    await knex('OrderNote').insert({
+      OrderId: orderId,
+      Note: noteMessage,
+      DownloadId:0, 
+      DisplayToCustomer:0,
+      CreatedOnUtc: new Date(), // Current date/time
+    });
+
   } catch (error) {
     console.error("Error updating order status:", error);
     throw error;
@@ -220,14 +230,11 @@ export async function updateOrderStatus(orderId, status) {
 
 export async function updatePriceTotal(orderId, updateData) {
   try {
-    await knex('Order')
-      .where({ id: orderId })
-      .update(updateData); // Directly pass the dynamic object to update query
+    await knex("Order").where({ id: orderId }).update(updateData); // Directly pass the dynamic object to update query
   } catch (error) {
-    throw new Error('Failed to update order total: ' + error.message);
+    throw new Error("Failed to update order total: " + error.message);
   }
 }
-
 
 export async function updateBillingInfo(
   customerId,
@@ -301,12 +308,32 @@ export async function updateShippingMethod(orderId, shippingMethod) {
       throw new Error(`Order with ID ${orderId} not found`);
     }
 
-    // Update the shipping method
-    await knex("Order")
-      .where({ Id: orderId })
-      .update({ ShippingMethod: shippingMethod });
+    // Fetch the current shipping method for comparison
+    const currentShippingMethod = order.ShippingMethod;
 
-    console.log(`Shipping method updated for Order ID ${orderId}`);
+    // Update the shipping method if it's different
+    if (currentShippingMethod !== shippingMethod) {
+      await knex("Order")
+        .where({ Id: orderId })
+        .update({ ShippingMethod: shippingMethod });
+
+      console.log(`Shipping method updated to ${shippingMethod} for Order ID ${orderId}`);
+
+      // Insert a new note into the OrderNote table
+      const noteMessage = `Shipping method updated from ${currentShippingMethod} to ${shippingMethod}`;
+      await knex('OrderNote').insert({
+        OrderId: orderId,
+        Note: noteMessage,
+        DownloadId: 0, // No downloadable content associated
+        DisplayToCustomer: 0, // Not visible to customers
+        CreatedOnUtc: new Date(), // Current date/time for the note
+      });
+
+      console.log(`Order note created: ${noteMessage}`);
+    } else {
+      console.log(`Shipping method for Order ID ${orderId} remains unchanged.`);
+    }
+
   } catch (error) {
     console.error("Error updating shipping method:", error);
     throw error;
@@ -353,3 +380,132 @@ export async function getCountriesAndStates(req, res) {
     });
   }
 }
+
+
+export async function AddProductOrder(orderId, productId, customerId, quantity) {
+  try {
+    // Sanitize productId and orderId to remove any unexpected characters
+    const sanitizedProductId = Number(productId.toString().replace(":", ""));
+    const sanitizedOrderId = Number(orderId.toString().replace(":", ""));
+
+    if (isNaN(sanitizedProductId) || isNaN(sanitizedOrderId)) {
+      throw new Error("Invalid productId or orderId provided.");
+    }
+
+    console.log("orderId:", sanitizedOrderId, "productId:", sanitizedProductId, "customerId:", customerId, "quantity:", quantity);
+
+    // Fetch all customer roles for the given customer ID
+    const customerRolesQuery = await knex("Customer_CustomerRole_Mapping")
+      .select("CustomerRole_Id")
+      .where("Customer_Id", customerId);
+
+    let unitPrice;
+
+    if (customerRolesQuery.length) {
+      const customerRoleIds = customerRolesQuery.map(role => role.CustomerRole_Id);
+      console.log("customerRoleIds:", customerRoleIds);
+
+      // Fetch the tier prices for the given product and customer roles
+      const tierPrices = await knex("TierPrice")
+        .select("*")
+        .where("ProductId", sanitizedProductId)
+        .whereIn("CustomerRoleId", customerRoleIds);
+
+      if (tierPrices.length) {
+        // If tier prices exist, use the first valid tier price
+        unitPrice = tierPrices[0].Price;
+        console.log("Tier price found:", unitPrice);
+      }
+    }
+
+    // If no customer roles or no tier prices found, fallback to product price
+    if (!unitPrice) {
+      const productQuery = await knex("Product")
+        .select("Price")
+        .where("Id", sanitizedProductId)
+        .first();
+
+      if (!productQuery) {
+        throw new Error("Product not found");
+      }
+
+      unitPrice = productQuery.Price;
+      console.log("Product price:", unitPrice);
+    }
+
+    // Fetch the country and state/province for tax calculation
+    const country = await knex("Country")
+      .select("Id", "Name", "SubjectToVat")
+      .where("Id", 2) // ID 2 corresponds to Canada
+      .first();
+
+    if (!country) {
+      throw new Error("Country not found");
+    }
+    console.log("Country found:", country.Name);
+
+    const stateProvince = await knex("StateProvince")
+      .select("Id", "Name")
+      .where("CountryId", country.Id)
+      .andWhere("Name", "Ontario")
+      .first();
+
+    if (!stateProvince) {
+      throw new Error("State/Province not found");
+    }
+    console.log("State/Province found:", stateProvince.Name);
+
+    const taxRate = await knex("TaxRate")
+      .select("Percentage")
+      .where("CountryId", country.Id)
+      .andWhere("StateProvinceId", stateProvince.Id)
+      .first();
+
+    if (!taxRate) {
+      throw new Error("Tax rate not found");
+    }
+    console.log("Tax rate found:", taxRate.Percentage);
+
+    // Calculate the total price with tax
+    const taxAmount = (unitPrice * taxRate.Percentage) / 100;
+    const priceInclTax = unitPrice + taxAmount;
+
+    // Multiply price and tax by quantity
+    const totalUnitPrice = unitPrice * quantity;
+    const totalPriceInclTax = priceInclTax * quantity;
+
+    console.log("Unit Price:", unitPrice);
+    console.log("Tax Amount:", taxAmount);
+    console.log("Price Incl. Tax:", priceInclTax);
+    console.log("totalUnitPrice:", totalUnitPrice);
+
+    // Generate a GUID for OrderItemGuid
+    const orderItemGuid = uuidv4(); // Generates a unique GUID
+
+    // Insert the product into OrderItem with tax applied
+    await knex("OrderItem").insert({
+      OrderItemGuid: orderItemGuid, // Include the generated GUID
+      OrderId: sanitizedOrderId,
+      ProductId: sanitizedProductId,
+      Quantity: quantity, // Use the passed quantity
+      UnitPriceInclTax: priceInclTax,
+      UnitPriceExclTax: unitPrice,
+      PriceInclTax: totalPriceInclTax,
+      PriceExclTax: totalUnitPrice,
+      DiscountAmountInclTax: 0,
+      DiscountAmountExclTax: 0,
+      OriginalProductCost: 0,
+      DownloadCount:0,
+      IsDownloadActivated:0,
+      LicenseDownloadId: 0,
+      ItemWeight:0, 
+
+    });
+
+    console.log("Product added to order successfully with tax");
+
+  } catch (error) {
+    console.log("Something went wrong while adding product to order:", error);
+  }
+}
+
