@@ -75,32 +75,44 @@ export async function UpdateOrderController(req, res) {
 }
 
 export async function UpdatePriceController(req, res) {
-  const { id } = req.params; // Extract order ID from the request URL
-  const updateData = req.body; // Extract the data sent from the frontend
+  const { id } = req.params; // Order ID from URL
+  const updateData = req.body; // Extract data sent from frontend
+
+  console.log("updateData", updateData);
 
   try {
-    // Parse id as integer
     const orderId = parseInt(id, 10);
-
     if (isNaN(orderId)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid Order ID" });
+      return res.status(400).json({ success: false, message: "Invalid Order ID" });
     }
 
-    // Update only the provided fields (dynamically) based on the body data
-    await updatePriceTotal(orderId, updateData);
+    // Dynamically map the frontend fields to backend columns
+    const mappedData = {};
+    if (updateData.orderSubtotalExclTax !== undefined) mappedData.OrderSubtotalExclTax = updateData.orderSubtotalExclTax;
+    if (updateData.orderSubtotalInclTax !== undefined) mappedData.OrderSubtotalInclTax = updateData.orderSubtotalInclTax;
+    if (updateData.orderTax !== undefined) mappedData.OrderTax = updateData.orderTax;
+    if (updateData.orderDiscount !== undefined) mappedData.OrderDiscount = updateData.orderDiscount;
+    if (updateData.orderTotal !== undefined) mappedData.OrderTotal = updateData.orderTotal;
 
-    res
-      .status(200)
-      .json({ success: true, message: "Order updated successfully" });
+    // Check if mappedData contains any values
+    if (Object.keys(mappedData).length === 0) {
+      return res.status(400).json({ success: false, message: "No fields to update" });
+    }
+
+    console.log("mappedData", mappedData);
+
+    // Now, pass this dynamically created object for updating
+    await updatePriceTotal(orderId, mappedData);
+
+    res.status(200).json({ success: true, message: "Order updated successfully" });
   } catch (error) {
     console.error("Error updating order:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to update order." });
+    res.status(500).json({ success: false, message: "Failed to update order." });
   }
 }
+
+
+
 
 export async function UpdateBillingInfoController(req, res) {
   console.log("orderid", req.params);
@@ -215,7 +227,6 @@ export async function UpdateOrderItemController(req, res) {
     updatedFields.OriginalProductCost = originalProductCost;
 
   try {
-  
     // Check if the order item exists
     const orderItem = await knex("OrderItem")
       .where({ OrderId: parsedOrderId })

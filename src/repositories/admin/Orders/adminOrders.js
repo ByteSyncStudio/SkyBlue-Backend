@@ -65,6 +65,8 @@ export async function getOrderById(orderId) {
         "o.CreatedonUtc",
         "o.OrderTax",
         "o.OrderDiscount",
+        "o.OrderSubtotalInclTax", // Include OrderSubtotalInclTax
+        "o.OrderSubtotalExclTax", // Include OrderSubtotalExclTax
         "o.ShippingMethod",
         "oi.OrderItemGuid",
         "oi.ProductId",
@@ -162,6 +164,8 @@ export async function getOrderById(orderId) {
         OrderDiscount: order[0].OrderDiscount,
         ShippingMethod: order[0].ShippingMethod,
         CreatedonUtc: order[0].CreatedonUtc,
+        OrderSubtotalInclTax: order[0].OrderSubtotalInclTax, // Include in response
+        OrderSubtotalExclTax: order[0].OrderSubtotalExclTax, // Include in response
         items: orderItemsWithProductDetails,
         customerEmail: customer.Email,
         customerFirstName: customer.FirstName,
@@ -185,6 +189,7 @@ export async function getOrderById(orderId) {
     return { success: false, message: "Failed to retrieve order." };
   }
 }
+
 
 export async function updateOrderStatus(orderId, status) {
   try {
@@ -213,30 +218,16 @@ export async function updateOrderStatus(orderId, status) {
   }
 }
 
-
 export async function updatePriceTotal(orderId, updateData) {
   try {
-    // Map frontend fields to database fields dynamically
-    const mappedData = {};
-
-    if (updateData.orderSubtotal !== undefined)
-      mappedData.OrderSubtotalExclTax = updateData.orderSubtotal; // Assuming excl. tax is passed here
-    if (updateData.orderTax !== undefined)
-      mappedData.OrderTax = updateData.orderTax;
-    if (updateData.orderDiscount !== undefined)
-      mappedData.OrderDiscount = updateData.orderDiscount;
-    if (updateData.orderTotal !== undefined)
-      mappedData.OrderTotal = updateData.orderTotal;
-
-    // Update the order in the database
-    await knex("Order").where({ Id: orderId }).update(mappedData);
-
-    console.log(`Order updated for Order ID ${orderId}`);
+    await knex('Order')
+      .where({ id: orderId })
+      .update(updateData); // Directly pass the dynamic object to update query
   } catch (error) {
-    console.error("Error updating order totals:", error);
-    throw error;
+    throw new Error('Failed to update order total: ' + error.message);
   }
 }
+
 
 export async function updateBillingInfo(
   customerId,
