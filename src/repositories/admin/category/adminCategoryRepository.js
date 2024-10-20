@@ -180,10 +180,33 @@ export async function DeleteDiscountMapping(categoryId, trx) {
 }
 
 export async function GetSingleCategory(categoryId) {
-    const categoryWithDiscount = await knex('Category')
-        .leftJoin('Discount_AppliedToCategories', 'Category.Id', 'Discount_AppliedToCategories.Category_Id')
-        .select('Category.*', 'Discount_AppliedToCategories.*')
-        .where('Category.Id', categoryId);
+    const categoryWithDiscount = await knex('Category as c')
+        .leftJoin('Discount_AppliedToCategories as datc', 'c.Id', 'datc.Category_Id')
+        .leftJoin('Discount as d', 'datc.Discount_Id', 'd.Id')
+        .leftJoin('Picture as p', 'c.PictureId', 'p.Id')
+        .select([
+            'c.Id',
+            'c.Name',
+            'c.Published',
+            'c.Deleted',
+            'd.Name as DiscountName',
+            'd.Id as DiscountId',
+            'p.Id as PictureId',
+            'p.MimeType',
+            'p.SeoFilename'
+        ])
+        .where('c.Id', categoryId)
+        .first();
+
+    if (categoryWithDiscount && categoryWithDiscount.PictureId) {
+        categoryWithDiscount.Image = generateImageUrl2(
+            categoryWithDiscount.PictureId,
+            categoryWithDiscount.MimeType,
+            categoryWithDiscount.SeoFilename
+        );
+    } else {
+        categoryWithDiscount.Image = null;
+    }
 
     return categoryWithDiscount;
 }
