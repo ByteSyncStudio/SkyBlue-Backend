@@ -1660,7 +1660,9 @@ router.get("/bestSellerByAmount", adminAccess, getBestSellerByAmount);
  */
 router.get("/bestSellerByQuantity", adminAccess, getBestSellerByQunatity);
 
-router.get('/monthly-orders', adminAccess, totalOrdersInPastMonths)
+router.get('/past-orders', adminAccess, totalOrdersByPeriod);
+
+router.get('/past-customers', adminAccess, totalCustomersByPeriod);
 
 router.get("/monthly-customers", adminAccess, newCustomersInPastMonths);
 
