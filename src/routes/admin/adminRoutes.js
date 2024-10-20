@@ -9,9 +9,12 @@ import {
   patchVendor,
 } from "../../controllers/admin/vendors/adminVendorsController.js";
 import {
+  addNewOrderNote,
   addOrderNote,
+  AddProductToOrderController,
   deleteOrderNote,
   getallOrders,
+  getOrderNotes,
   getSingleOrder,
   UpdateBillingInfoController,
   UpdateOrderController,
@@ -2485,6 +2488,9 @@ router.post("/send-email", adminAccess, sendEmail);
  */
 router.patch("/editOrder/:id", adminAccess, UpdateOrderController);
 
+router.post("/orders/:orderId/add-product/:productId", adminAccess, AddProductToOrderController);
+
+
 /**
  * @swagger
  * /admin/editprice/{id}:
@@ -2695,6 +2701,10 @@ router.patch(
  *         description: Internal server error
  */
 router.post("/orders/:orderId/notes", adminAccess, addOrderNote);
+
+router.get("/orders/notes/:orderId", adminAccess, getOrderNotes);
+
+router.post("/orders/newnotes/:orderId", adminAccess, addNewOrderNote);
 
 /**
  * @swagger
