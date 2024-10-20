@@ -1,5 +1,8 @@
 import fs from 'fs/promises';
 import path from 'path';
+import dotenv from 'dotenv'
+
+dotenv.config();
 
 /**
  * Reads the Ack HTML template.
@@ -25,7 +28,7 @@ export async function getResetPasswordEmailTemplate(token) {
     const templatePath = path.resolve('src/templates/html/resetPassword.html');
     let template = await fs.readFile(templatePath, 'utf-8');
     template = template.replace('{{token}}', token);
-    template = template.replace('{{domain}}', 'http://localhost:5173')
+    template = template.replace('{{domain}}', process.env.DOMAIN)
     return template;
 }
 
