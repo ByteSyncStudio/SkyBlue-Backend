@@ -21,7 +21,7 @@ export async function getAllCategories(req, res) {
 export async function addCategory(req, res) {
     try {
         await uploadMiddleware(req, res);
-        
+
         let { Name, ParentCategoryId, Published, DiscountId } = req.body;
         const file = req.file;
 
@@ -57,9 +57,9 @@ export async function addCategory(req, res) {
 export async function updateCategory(req, res) {
     try {
         await uploadMiddleware(req, res);
-        
+
         const categoryId = req.params.id;
-        const { Name, ParentCategoryId, Published, DiscountId } = req.body;
+        const { Name, ParentCategoryId, Published, DiscountId, removedImage } = req.body;
         const file = req.file;
 
         let pictureId;
@@ -79,6 +79,8 @@ export async function updateCategory(req, res) {
             console.log(fileExtension, formattedId)
             const remotePath = `/acc1845619052/SkyblueWholesale/content/images/thumbs/${formattedId}_${seoFilename}.${fileExtension}`;
             queueFileUpload(file.path, remotePath);
+        } else if (removedImage) {
+            pictureId = 0;
         }
 
         const updatedCategory = {
