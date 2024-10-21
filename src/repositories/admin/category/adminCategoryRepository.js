@@ -67,12 +67,13 @@ export async function GetAllCategories(searchTerm = '') {
             'Category.Published',
             'Picture.MimeType',
             'Picture.SeoFilename'
-        );
+        )
+        .orderBy('Category.Id', 'desc');
     const organizedCategories = organizeCategories(result, searchTerm);
     return JSON.stringify(organizedCategories, null, 2); // Pretty print JSON
 }
 
-export async function AddCategory(Name, ParentCategoryId, Published, DiscountId) {
+export async function AddCategory(Name, ParentCategoryId, Published, DiscountId, PictureId) {
     try {
         const [newCategoryId] = await knex.transaction(async (trx) => {
             const [categoryId] = await trx('Category')
@@ -80,16 +81,16 @@ export async function AddCategory(Name, ParentCategoryId, Published, DiscountId)
                     Name,
                     ParentCategoryId,
                     Published,
-                    CategoryTemplateId: 1, // Default value
-                    PictureId: 0, // Default value (no images)
-                    PageSize: 18, // Default value
-                    AllowCustomersToSelectPageSize: 1, // Default
-                    ShowOnHomePage: 0, // Default value
-                    IncludeInTopMenu: 1, // Default value
-                    SubjectToAcl: 1, // Default value
-                    LimitedToStores: 1, // Default value
-                    Deleted: 0, // Initially 0
-                    DisplayOrder: 0, // Default value
+                    CategoryTemplateId: 1,
+                    PictureId,
+                    PageSize: 18,
+                    AllowCustomersToSelectPageSize: 1,
+                    ShowOnHomePage: 0,
+                    IncludeInTopMenu: 1,
+                    SubjectToAcl: 1,
+                    LimitedToStores: 1,
+                    Deleted: 0,
+                    DisplayOrder: 0,
                     CreatedOnUtc: new Date().toISOString(),
                     UpdatedOnUtc: new Date().toISOString(),
                 })
@@ -110,25 +111,17 @@ export async function AddCategory(Name, ParentCategoryId, Published, DiscountId)
 
 export async function UpdateCategory(categoryId, updatedCategory) {
     try {
-        const updateFields = {};
-        const { DiscountId, ...categoryData } = updatedCategory;
-
-        // Dynamically add fields to updateFields if they are present in updateData
-        for (const key in categoryData) {
-            if (categoryData.hasOwnProperty(key)) {
-                updateFields[key] = categoryData[key];
-            }
-        }
-
         await knex.transaction(async (trx) => {
+            const { DiscountId, ...categoryData } = updatedCategory;
+
             await trx('Category')
                 .where({ Id: categoryId })
                 .update({
-                    ...updateFields,
+                    ...categoryData,
                     UpdatedOnUtc: new Date().toISOString()
                 });
 
-            if (DiscountId === "0") {
+            if (DiscountId === null) {
                 await DeleteDiscountMapping(categoryId, trx);
             } else if (DiscountId) {
                 await DeleteDiscountMapping(categoryId, trx);
@@ -141,6 +134,23 @@ export async function UpdateCategory(categoryId, updatedCategory) {
         throw error;
     }
 }
+
+export async function AddPicture(pictureData) {
+    try {
+        const [pictureId] = await knex('Picture').insert({
+            MimeType: pictureData.mimeType,
+            SeoFilename: pictureData.seoFilename,
+            AltAttribute: pictureData.altAttribute,
+            TitleAttribute: pictureData.titleAttribute,
+            IsNew: true,
+        }).returning('Id');
+        return pictureId.Id;
+    } catch (error) {
+        console.error("Error creating picture:\n", error);
+        throw error;
+    }
+}
+
 
 export async function DeleteCategory(categoryId) {
     try {
