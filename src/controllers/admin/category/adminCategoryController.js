@@ -1,4 +1,9 @@
 import { GetAllCategories, AddCategory, UpdateCategory, DeleteCategory, GetSingleCategory } from "../../../repositories/admin/category/adminCategoryRepository.js";
+import multer from "multer";
+import { promisify } from 'util';
+
+const upload = multer().none();
+const uploadMiddleware = promisify(upload);
 
 export async function getAllCategories(req, res) {
     try {
@@ -29,15 +34,21 @@ export async function addCategory(req, res) {
 
 export async function updateCategory(req, res) {
     try {
-        const categoryId = req.params.id;
-        const updatedCategory = req.body;
-        await UpdateCategory(categoryId, updatedCategory);
-        res.status(200).send({ Id: categoryId });
+      await uploadMiddleware(req, res);
+      const categoryId = req.params.id;
+      const updatedCategory = {
+        Name: req.body.Name,
+        ParentCategoryId: req.body.ParentCategoryId === 'undefined' ? 0 : parseInt(req.body.ParentCategoryId),
+        Published: req.body.Published === 'true',
+        DiscountId: req.body.DiscountId === 'null' ? null : parseInt(req.body.DiscountId)
+      };
+      await UpdateCategory(categoryId, updatedCategory);
+      res.status(200).send({ Id: categoryId });
     } catch (error) {
-        console.error(error);
-        res.status(error.statusCode || 500).send(error.message || 'Server error');
+      console.error(error);
+      res.status(error.statusCode || 500).send(error.message || 'Server error');
     }
-}
+  }
 
 export async function deleteCategory(req, res) {
     try {
