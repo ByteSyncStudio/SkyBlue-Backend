@@ -104,6 +104,12 @@ import {
 } from "../../controllers/admin/roles/adminRolesController.js";
 import { sendEmail } from "../../controllers/admin/email/adminEmailController.js";
 import { getCountriesAndStates } from "../../repositories/admin/Orders/adminOrders.js";
+import {
+  addProductToFlyerController,
+  deleteProductFlyerController,
+  editProductFlyerController,
+  getAllFlyerController,
+} from "../../controllers/admin/flyer/adminFlyerController.js";
 
 const router = express.Router();
 
@@ -1663,9 +1669,9 @@ router.get("/bestSellerByAmount", adminAccess, getBestSellerByAmount);
  */
 router.get("/bestSellerByQuantity", adminAccess, getBestSellerByQunatity);
 
-router.get('/past-orders', adminAccess, totalOrdersByPeriod);
+router.get("/past-orders", adminAccess, totalOrdersByPeriod);
 
-router.get('/past-customers', adminAccess, totalCustomersByPeriod);
+router.get("/past-customers", adminAccess, totalCustomersByPeriod);
 
 router.get("/monthly-customers", adminAccess, newCustomersInPastMonths);
 
@@ -2488,8 +2494,11 @@ router.post("/send-email", adminAccess, sendEmail);
  */
 router.patch("/editOrder/:id", adminAccess, UpdateOrderController);
 
-router.post("/orders/:orderId/add-product/:productId", adminAccess, AddProductToOrderController);
-
+router.post(
+  "/orders/:orderId/add-product/:productId",
+  adminAccess,
+  AddProductToOrderController
+);
 
 /**
  * @swagger
@@ -2772,5 +2781,21 @@ router.delete("/orders/notes-delete/:id", adminAccess, deleteOrderNote);
  *         description: Internal server error
  */
 router.get("/orders/countries-states", adminAccess, getCountriesAndStates);
+
+router.get("/flyers/all-flyers", adminAccess, getAllFlyerController);
+
+router.post("/flyers/add-flyer", adminAccess, addProductToFlyerController);
+
+router.patch(
+  "/flyers/edit-flyer/:flyerid",
+  adminAccess,
+  editProductFlyerController
+);
+
+router.delete(
+  "/flyers/delete-flyer/:flyerid",
+  adminAccess,
+  deleteProductFlyerController
+);
 
 export default router;
