@@ -37,7 +37,7 @@ export async function addProductToFlyerController(req, res) {
     // Extract product details from the request body
     const productDetails = req.body;
 
-console.log("productDetails", productDetails);
+    console.log("productDetails", productDetails);
 
     // Call repository function to add product to flyer
     const result = await AddProductToFlyer(productDetails);
