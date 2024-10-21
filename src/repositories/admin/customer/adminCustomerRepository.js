@@ -70,7 +70,7 @@ export async function GetAllCustomersWithRoles(page = 1, pageSize = 25, email = 
         const customersWithRoles = customers.map(customer => ({
             id: customer.Id,
             email: customer.Email,
-            createdOnUTC: moment(customer.CreatedOnUTC).format('DD-MMM-YYY'),
+            createdOnUTC: moment(customer.CreatedOnUTC).format('DD-MMM-YYYY'),
             firstName: customer.FirstName,
             lastName: customer.LastName,
             company: customer.Company,
