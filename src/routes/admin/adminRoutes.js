@@ -111,6 +111,12 @@ import {
   getAllFlyerController,
   getFlyerPreviewController,
 } from "../../controllers/admin/flyer/adminFlyerController.js";
+import {
+  editCampaignController,
+  getAllCampaignController,
+  getWithIdCampaignController,
+  postCampaignController,
+} from "../../controllers/admin/Campaign/adminCampaignController.js";
 
 const router = express.Router();
 
@@ -2800,5 +2806,20 @@ router.delete(
   adminAccess,
   deleteProductFlyerController
 );
+
+//CAmpign
+router.get("/campaigns/all-campaigns", adminAccess, getAllCampaignController);
+
+router.get(
+  "/campaigns/edit-campaigns/:id",
+  adminAccess,
+  editCampaignController
+);
+
+router.post("/campaigns/create-campaign", adminAccess, postCampaignController);
+
+router.get("/campaigns/:id", adminAccess, getWithIdCampaignController);
+
+router.put("/campaigns/:id", adminAccess, editCampaignController);
 
 export default router;
