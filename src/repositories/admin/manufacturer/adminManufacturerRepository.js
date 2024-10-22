@@ -1,9 +1,15 @@
 import { now } from "sequelize/lib/utils";
 import knex from "../../../config/knex.js";
 
-export async function GetAllManufacturers() {
+export async function GetAllManufacturers(name) {
     try {
-        return await knex('Manufacturer').select('*').where('Deleted', false)
+        const query = knex('Manufacturer').select('*').where('Deleted', false);
+
+        if (name) {
+            query.andWhere('Name', 'like', `${name}%`);
+        }
+
+        return await query;
     } catch (error) {
         console.error('Error in fetching manufacturers', error);
         error.statusCode = 500;
@@ -15,14 +21,14 @@ export async function GetAllManufacturers() {
 export async function GetManufacturersProducts(id) {
     try {
         return await knex('Manufacturer as m')
-        .leftJoin('Product_Manufacturer_Mapping as pmm', 'm.Id', 'pmm.ManufacturerId')
-        .leftJoin('Product as p', 'pmm.ProductId', 'p.Id')
-        .select([
-            'p.Id',
-            'p.Name',
-            'pmm.IsFeaturedProduct'
-        ])
-        .where('m.Id', id)
+            .leftJoin('Product_Manufacturer_Mapping as pmm', 'm.Id', 'pmm.ManufacturerId')
+            .leftJoin('Product as p', 'pmm.ProductId', 'p.Id')
+            .select([
+                'p.Id',
+                'p.Name',
+                'pmm.IsFeaturedProduct'
+            ])
+            .where('m.Id', id)
     } catch (error) {
         console.error('Error in fetching manufacturers', error);
         error.statusCode = 500;
@@ -111,7 +117,7 @@ export async function DeleteManufacturer(id) {
             success: true,
             message: "Manufacturer deleted successfully"
         }
-        
+
     } catch (error) {
         await trx.rollback();
         console.error('Error in editing manufacturer', error);

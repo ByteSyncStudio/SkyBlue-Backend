@@ -1,9 +1,9 @@
 import knex from "../../../config/knex.js";
 
 // List all vendors excluding deleted ones
-export async function listVendors() {
+export async function listVendors(name) {
   try {
-    return await knex("Vendor")
+    const query = knex("Vendor")
       .select(
         "Id",
         "Name",
@@ -22,6 +22,13 @@ export async function listVendors() {
         "PageSizeOptions"
       )
       .where("Deleted", 0);
+
+    if (name) {
+      query.andWhere('Name', 'like', `${name}%`)
+    }
+
+    return await query;
+
   } catch (error) {
     console.error("Error in listVendors repository function:", error);
     throw new Error("Error fetching vendors.");

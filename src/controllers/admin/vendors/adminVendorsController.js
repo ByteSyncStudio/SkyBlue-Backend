@@ -15,7 +15,8 @@ const getPageSizeOptions = (pageSize) => {
 // Get all vendors
 export const getAllVendors = async (req, res) => {
   try {
-    const vendors = await listVendors();
+    const { name } = req.query;
+    const vendors = await listVendors(name);
     res.status(200).json({
       success: true,
       data: vendors,

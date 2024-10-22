@@ -2,7 +2,9 @@ import { AddManufacturer, DeleteManufacturer, EditManufacturer, GetAllManufactur
 
 export async function getAllManufacturers(req, res) {
     try {
-        res.status(200).send(await GetAllManufacturers())
+        const { name } = req.query;
+        const data = await GetAllManufacturers(name);
+        res.status(200).send(data)
     } catch (error) {
         console.error("Error fetching customer orders:", error);
         res.status(error.statusCode || 500).send({

@@ -473,7 +473,7 @@ export async function listBestsellers(sortBy, size, user, searchTerm = '') {
     }
 }
 
-export async function ListSearchProducts(categoryName, productName, manufacturerId, published, page, size) {
+export async function ListSearchProducts(categoryName, productName, manufacturerId, vendorId, published, page, size) {
     try {
         const offset = (page - 1) * size;
         let query = knex('Product')
@@ -535,6 +535,18 @@ export async function ListSearchProducts(categoryName, productName, manufacturer
                 .join('Product_Manufacturer_Mapping as pmm', 'Product.Id', 'pmm.ProductId')
                 .join('Manufacturer', 'pmm.ManufacturerId', 'Manufacturer.Id')
                 .where('Manufacturer.Id', manufacturerId)
+        }
+
+        if (vendorId) {
+            query = query
+                .join('tblProducts', 'Product.Name', 'tblProducts.Name')
+                .join('tblVendors', 'tblProducts.Vendor', 'tblVendors.code')
+                .join(
+                    knex.raw(
+                        `Vendor ON tblVendors.vendorname = REPLACE(REPLACE(Vendor.Description, '<p>', ''), '</p>', '')`
+                    )
+                )
+                .where('Vendor.Id', vendorId);
         }
 
         if (published === 0 || published === 1) {
