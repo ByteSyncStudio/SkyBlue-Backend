@@ -109,6 +109,7 @@ import {
   deleteProductFlyerController,
   editProductFlyerController,
   getAllFlyerController,
+  getFlyerPreviewController,
 } from "../../controllers/admin/flyer/adminFlyerController.js";
 
 const router = express.Router();
@@ -2785,6 +2786,8 @@ router.get("/orders/countries-states", adminAccess, getCountriesAndStates);
 router.get("/flyers/all-flyers", adminAccess, getAllFlyerController);
 
 router.post("/flyers/add-flyer", adminAccess, addProductToFlyerController);
+
+router.get("/flyers/flyer-preview", adminAccess, getFlyerPreviewController);
 
 router.patch(
   "/flyers/edit-flyer/:flyerid",

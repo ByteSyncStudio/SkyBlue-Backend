@@ -4,6 +4,7 @@ import {
   DeleteProductFlyer,
   EditProductFlyer,
   GetAllFlyers,
+  GetFlyerPreview,
 } from "../../../repositories/admin/flyer/adminFlyerRepository.js";
 
 export async function getFlyerProducts(req, res) {
@@ -100,3 +101,30 @@ export async function deleteProductFlyerController(req, res) {
     });
   }
 }
+
+
+// Updated Controller to handle one role at a time
+export async function getFlyerPreviewController(req, res) {
+  try {
+    // Get customerRole from query parameters
+    const customerRole = req.query.role ? JSON.parse(req.query.role) : undefined; // Parse the role from the query string
+    console.log("customerRole", customerRole);
+    
+    // Call GetFlyerPreview with customerRole (can be undefined)
+    const flyerPreviewData = await GetFlyerPreview(customerRole);
+    
+    return res.status(200).json({
+      success: true,
+      data: flyerPreviewData
+    });
+  } catch (error) {
+    console.error("Error fetching flyer preview:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching flyer preview"
+    });
+  }
+}
+
+
+

@@ -1,4 +1,5 @@
 import knex from "../../../config/knex.js";
+import { generateImageUrl2 } from "../../../utils/imageUtils.js";
 
 
 export async function GetFlyerProducts() {
@@ -116,3 +117,62 @@ export async function DeleteProductFlyer(flyerId) {
         };
     }
 }
+
+// Updated GetFlyerPreview to handle a single role
+export async function GetFlyerPreview(customerRole) {
+    try {
+      // Step 1: Fetch all necessary data using joins
+      const flyerData = await knex('Flyer')
+        .leftJoin('Product', 'Flyer.ProductId', 'Product.Id')
+        .leftJoin('Product_Picture_Mapping', 'Flyer.ProductId', 'Product_Picture_Mapping.ProductId')
+        .leftJoin('Picture', 'Product_Picture_Mapping.PictureId', 'Picture.Id')
+        .leftJoin('TierPrice', function() {
+          this.on('Flyer.ProductId', '=', 'TierPrice.ProductId')
+            .andOn('TierPrice.CustomerRoleId', '=', knex.raw('?', [customerRole ? customerRole.id : null]));
+        })
+        .select(
+          'Flyer.Id as FlyerId',
+          'Flyer.ProductId',
+          'Flyer.Price',
+          'Flyer.DisplayOrder',
+          'Flyer.StoreId',
+          'Product.Name as ProductName',
+          'Picture.MimeType',
+          'Picture.SeoFilename',
+          'Product_Picture_Mapping.PictureId',
+          'TierPrice.Price as TierPrice'
+        );
+  
+      // Step 2: Group the data by FlyerId
+      const groupedFlyerData = flyerData.reduce((acc, flyer) => {
+        if (!acc[flyer.FlyerId]) {
+          acc[flyer.FlyerId] = {
+            Id: flyer.FlyerId,
+            ProductId: flyer.ProductId,
+            ProductName: flyer.ProductName,
+            Price: flyer.Price,
+            TierPrice: flyer.TierPrice || null,
+            DisplayOrder: flyer.DisplayOrder,
+            StoreId: flyer.StoreId,
+            ImageUrls: []
+          };
+        }
+  
+        if (flyer.PictureId && flyer.MimeType && flyer.SeoFilename) {
+          const imageUrl = generateImageUrl2(flyer.PictureId, flyer.MimeType, flyer.SeoFilename);
+          acc[flyer.FlyerId].ImageUrls.push(imageUrl);
+        }
+  
+        return acc;
+      }, {});
+  
+      // Step 3: Convert the grouped data to an array
+      const flyerPreviewList = Object.values(groupedFlyerData);
+  
+      // Return the complete flyer preview list
+      return flyerPreviewList;
+    } catch (error) {
+      console.error("Error in GetFlyerPreview:", error);
+      throw new Error("Error fetching flyer preview");
+    }
+  }
