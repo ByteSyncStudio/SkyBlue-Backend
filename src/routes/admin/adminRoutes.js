@@ -30,6 +30,7 @@ import {
   getProduct,
   deleteTierPrice,
   listInventory,
+  tester,
 } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
   editCustomer,
@@ -2821,5 +2822,7 @@ router.post("/campaigns/create-campaign", adminAccess, postCampaignController);
 router.get("/campaigns/:id", adminAccess, getWithIdCampaignController);
 
 router.put("/campaigns/:id", adminAccess, editCampaignController);
+
+router.get('/test', adminAccess, tester)
 
 export default router;

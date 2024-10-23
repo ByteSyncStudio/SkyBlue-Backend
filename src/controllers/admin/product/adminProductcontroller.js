@@ -4,6 +4,8 @@ import multer from 'multer';
 import { queueFileUpload } from '../../../config/ftpsClient.js';
 import { ListSearchProducts } from "../../../repositories/admin/product/adminProductRepository.js";
 import { DeleteManufacturer } from "../../../repositories/admin/manufacturer/adminManufacturerRepository.js";
+import { getAllEmailsByRole } from "../../../utils/massEmail/getEmails.js";
+import { SendBulkEmails } from "../../../config/emailService.js";
 
 const upload = multer({ dest: 'uploads/' });
 
@@ -313,3 +315,16 @@ export async function listInventory(req, res) {
         res.status(500).send('Server error');
     }
 }
+
+export async function tester(req, res) {
+    try {
+        const result = await getAllEmailsByRole(1);
+        // const result = ['shahryar2k3@gmail.com', 'kshahryar21@gmail.com']
+        const emails = await SendBulkEmails(result, 'Mass email', 'Test')
+        res.status(200).send(emails)
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Server error');
+    }
+}
+

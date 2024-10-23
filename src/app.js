@@ -8,6 +8,7 @@ import productRoutes from "./routes/productRoutes.js";
 import cartRoute from "./routes/cartRoutes.js";
 import checkoutRoute from "./routes/checkoutRoute.js";
 import adminRoutes from "./routes/admin/adminRoutes.js"
+import './utils/massEmail/scheduler.js'
 
 const app = express();
 

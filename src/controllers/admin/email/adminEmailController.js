@@ -1,5 +1,7 @@
 import { SendEmail } from "../../../config/emailService.js";
 
+
+//! Unused
 export async function sendEmail(req, res) {
     const { to, subject, text } = req.body;
 
