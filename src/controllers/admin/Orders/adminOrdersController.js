@@ -12,9 +12,24 @@ import {
 import knex from "../../../config/knex.js";
 
 export const getallOrders = async (req, res) => {
-  const size = req.query.size;
   try {
-    const orders = await listOrders(size ? parseInt(size) : 20);
+    const page = req.query.page;
+    const size = req.query.size;
+
+    //? Order status search
+    const orderStatusId = req.query.orderStatusId;
+    if (orderStatusId && ![10, 20, 30, 40].includes(parseInt(orderStatusId))) {
+      return res.status(400).json({ error: "Invalid orderStatusId" });
+    }
+
+    //? Time
+    const startDate = req.query.start ? new Date(req.query.start) : null;
+    const endDate = req.query.end ? new Date(req.query.end) : null;
+    if (startDate && isNaN(startDate) || endDate && isNaN(endDate)) {
+      return res.status(400).json({ message: 'Invalid date format.' });
+    }
+
+    const orders = await listOrders(startDate, endDate, orderStatusId, parseInt(page) || 1, parseInt(size) || 25);
     res.status(200).json({
       success: true,
       data: orders,
@@ -302,7 +317,7 @@ export async function getOrderNotes(req, res) {
   }
 }
 export async function addNewOrderNote(req, res) {
-  
+
 }
 
 

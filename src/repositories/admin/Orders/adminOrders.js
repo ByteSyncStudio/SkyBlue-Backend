@@ -1,9 +1,11 @@
 import knex from "../../../config/knex.js";
 import { generateImageUrl2 } from "../../../utils/imageUtils.js";
-import { v4 as uuidv4 } from 'uuid'; 
-export async function listOrders(size) {
+import { v4 as uuidv4 } from 'uuid';
+
+export async function listOrders(startDate, endDate, orderStatusId, page = 1, size = 20) {
   try {
-    // Fetch orders and order by CreatedonUtc in descending order
+    const offset = (page - 1) * size;
+
     let query = knex("dbo.Order")
       .select(
         "Id",
@@ -13,11 +15,22 @@ export async function listOrders(size) {
         "OrderTotal",
         "CreatedonUtc"
       )
-      .orderBy("CreatedonUtc", "desc");
+      .orderBy("CreatedonUtc", "desc")
 
-    if (size) {
-      query = query.limit(size);
+    if (startDate || endDate) {
+      if (startDate) {
+        query.where('CreatedOnUTC', '>=', startDate.toISOString())
+      }
+      if (endDate) {
+        query.where('CreatedOnUTC', '<=', endDate.toISOString());
+      }
     }
+
+    if (orderStatusId) {
+      query.where('OrderStatusId', orderStatusId)
+    }
+
+    query.offset(offset).limit(size);
 
     const orders = await query;
 
@@ -175,8 +188,8 @@ export async function getOrderById(orderId) {
           customer.CountryId === 1
             ? "United States"
             : customer.CountryId === 2
-            ? "Canada"
-            : customer.CountryId,
+              ? "Canada"
+              : customer.CountryId,
         customerState: customer.Name,
         customerCity: customer.City,
         customerZip: customer.ZipPostalCode,
@@ -217,8 +230,8 @@ export async function updateOrderStatus(orderId, status) {
     await knex('OrderNote').insert({
       OrderId: orderId,
       Note: noteMessage,
-      DownloadId:0, 
-      DisplayToCustomer:0,
+      DownloadId: 0,
+      DisplayToCustomer: 0,
       CreatedOnUtc: new Date(), // Current date/time
     });
 
@@ -495,10 +508,10 @@ export async function AddProductOrder(orderId, productId, customerId, quantity) 
       DiscountAmountInclTax: 0,
       DiscountAmountExclTax: 0,
       OriginalProductCost: 0,
-      DownloadCount:0,
-      IsDownloadActivated:0,
+      DownloadCount: 0,
+      IsDownloadActivated: 0,
       LicenseDownloadId: 0,
-      ItemWeight:0, 
+      ItemWeight: 0,
 
     });
 
