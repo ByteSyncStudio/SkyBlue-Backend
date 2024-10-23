@@ -19,9 +19,9 @@ async function sendScheduledCampaigns() {
         console.log(campaigns)
 
         for (const campaign of campaigns) {
-            const emails = await getAllEmailsByRole(campaign.CustomerRoleId)
-            console.log(emails);
-            const testEmails = ['shahryar2k3@gmail.com', 'kshahryar21@gmail.com']
+            // const emails = await getAllEmailsByRole(campaign.CustomerRoleId)
+            // console.log(emails);
+            const testEmails = ['shahryar2k3@gmail.com', 'kshahryar21@gmail.com', 'arsalnaeem1@gmail.com']
             await SendBulkEmails(testEmails, campaign.Subject, campaign.Body)
             console.log(`Campaign ${campaign.Id} emails sent successfully.`);
 
