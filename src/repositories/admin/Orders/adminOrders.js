@@ -13,7 +13,8 @@ export async function listOrders(startDate, endDate, orderStatusId, page = 1, si
         "CustomerId",
         "OrderStatusId",
         "OrderTotal",
-        "CreatedonUtc"
+        "CreatedonUtc",
+        knex.raw('COUNT(*) OVER() as total_count')
       )
       .orderBy("CreatedonUtc", "desc")
 
@@ -32,7 +33,19 @@ export async function listOrders(startDate, endDate, orderStatusId, page = 1, si
 
     query.offset(offset).limit(size);
 
-    const orders = await query;
+    query = await query;
+
+    const totalItems = query.length > 0 ? query[0].total_count : 0;
+    const totalPages = Math.ceil(totalItems / size);
+
+    const orders = query.map(({ total_count, ...order }) => order)
+
+    // return {
+    //   totalItems,
+    //   totalPages,
+    //   currentPage: page,
+    //   data: orders
+    // }
 
     // Extract CustomerIds from orders and flatten the array
     const customerIds = orders.map((order) => order.CustomerId).flat();
@@ -57,7 +70,13 @@ export async function listOrders(startDate, endDate, orderStatusId, page = 1, si
       };
     });
 
-    return ordersWithDetails;
+    return {
+      totalItems,
+      totalPages,
+      currentPage: page,
+      data: ordersWithDetails
+    };
+    
   } catch (error) {
     console.error("Error fetching orders from database:", error);
     throw error;

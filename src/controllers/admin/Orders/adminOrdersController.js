@@ -30,11 +30,7 @@ export const getallOrders = async (req, res) => {
     }
 
     const orders = await listOrders(startDate, endDate, orderStatusId, parseInt(page) || 1, parseInt(size) || 25);
-    res.status(200).json({
-      success: true,
-      data: orders,
-      message: "Successfully fetched all orders",
-    });
+    res.status(200).json(orders);
   } catch (error) {
     console.error("Error in getallOrders API:", error);
     res.status(error.statusCode || 500).json({
