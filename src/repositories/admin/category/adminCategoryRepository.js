@@ -58,6 +58,8 @@ function filterCategories(categories, searchTerm) {
 export async function GetAllCategories(searchTerm = '') {
     const result = await knex('Category')
         .leftJoin('Picture', 'Category.PictureId', 'Picture.Id')
+        .leftJoin('Discount_AppliedToCategories as datc', 'Category.Id', 'datc.Category_Id')
+        .leftJoin('Discount', 'datc.Discount_Id', 'Discount.Id')
         .select(
             'Category.Id',
             'Category.Name',
@@ -66,7 +68,8 @@ export async function GetAllCategories(searchTerm = '') {
             'Category.PictureId',
             'Category.Published',
             'Picture.MimeType',
-            'Picture.SeoFilename'
+            'Picture.SeoFilename',
+            'Discount.Name as DiscountName'
         )
         .orderBy('Category.Id', 'desc');
     const organizedCategories = organizeCategories(result, searchTerm);
