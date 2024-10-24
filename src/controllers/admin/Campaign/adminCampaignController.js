@@ -1,8 +1,15 @@
+import multer from "multer";
 import knex from "../../../config/knex.js";
 import {
   GetAllCampaign,
+  getPictureFromDatabase,
   PostCampaign,
 } from "../../../repositories/campaign/adminCampaignRepository.js";
+import { queueFileUpload } from "../../../config/ftpsClient.js";
+import { generateImageUrl2 } from "../../../utils/imageUtils.js";
+
+const upload = multer({ dest: "uploads/" }); // Destination folder for uploads
+
 
 export async function getAllCampaignController(req, res) {
   try {
@@ -104,3 +111,97 @@ export async function getWithIdCampaignController(req, res) {
       .json({ success: false, message: "Failed to fetch campaign" });
   }
 }
+
+
+// Upload image function
+export const uploadImage = [
+  upload.single("image"),
+  async (req, res) => {
+    try {
+      const file = req.file; // Using single file upload
+      console.log("File:", file);
+
+      // Check if the file was uploaded
+      if (!file) {
+        return res
+          .status(400)
+          .json({ success: false, message: "No file uploaded." });
+      }
+
+      // Define the URL for the uploaded image
+      const imageUrl = `/uploads/${file.filename}`; // URL of the uploaded image
+      console.log("Uploaded Image URL:", imageUrl);
+
+      // Insert picture details into the database
+      const pictureId = await addPictureToDatabase(file); // Handle database insertion
+      console.log("Picture added with ID:", pictureId);
+
+      // Prepare additional information for processing
+      const seoFilename = file.filename; // Customize this as necessary
+      const fileExtension = file.mimetype.split("/")[1]; // Extract the file extension
+      const formattedId = pictureId.toString().padStart(7, "0"); // Format the ID
+      const remotePath = `/acc1845619052/SkyblueWholesale/Content/images/thumbs/${formattedId}_${seoFilename}.${fileExtension}`;
+
+      console.log("Queueing file upload:", file.path, "to", remotePath);
+      queueFileUpload(file.path, remotePath); // Add to upload queue
+
+      // Send the response back to the client
+
+      res.json({ success: true, url: imageUrl, pictureId: pictureId });
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      res
+        .status(500)
+        .json({ success: false, message: "Error uploading image." });
+    }
+  },
+];
+// Function to insert picture details into the database
+async function addPictureToDatabase(file) {
+  try {
+    console.log("File", file.mimetype);
+    const result = await knex("Picture")
+      .insert({
+        // Ensure table name matches your schema
+        MimeType: file.mimetype,
+        SeoFilename: file.filename,
+        AltAttribute: "",
+        TitleAttribute: "",
+        IsNew: true,
+      })
+      .returning("Id"); // Adjust according to your DB structure
+
+    return result[0].Id; // Assuming the ID is returned in this format
+  } catch (error) {
+    console.error("Error inserting picture into database:", error);
+    throw error; // Throw the error to be handled in the uploadImage function
+  }
+}
+
+export const getPictureById = async (req, res) => {
+  const { id } = req.params;
+  console.log(id,"This is the id asdsad");
+
+  try {
+    const pictureData = await getPictureFromDatabase(id);
+
+    console.log("pictureData",pictureData);
+
+    if (!pictureData) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Picture not found." });
+    }
+
+    const { Id, MimeType, SeoFilename } = pictureData;
+    const imageUrl = generateImageUrl2(Id, MimeType, SeoFilename);
+    console.log(imageUrl, "This is the image url");
+
+    res.json({ success: true, url: imageUrl });
+  } catch (error) {
+    console.error("Error retrieving picture:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Error retrieving picture." });
+  }
+};

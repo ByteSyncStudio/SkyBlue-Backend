@@ -114,9 +114,12 @@ import {
 import {
   editCampaignController,
   getAllCampaignController,
+  getPictureById,
   getWithIdCampaignController,
   postCampaignController,
+  uploadImage,
 } from "../../controllers/admin/Campaign/adminCampaignController.js";
+import multer from "multer";
 
 const router = express.Router();
 
@@ -2821,5 +2824,9 @@ router.post("/campaigns/create-campaign", adminAccess, postCampaignController);
 router.get("/campaigns/:id", adminAccess, getWithIdCampaignController);
 
 router.put("/campaigns/:id", adminAccess, editCampaignController);
+
+router.post("/upload-image", adminAccess, uploadImage);
+
+router.get("/picture/:id", adminAccess, getPictureById);
 
 export default router;
