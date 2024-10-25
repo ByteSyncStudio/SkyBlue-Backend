@@ -31,6 +31,7 @@ import {
   deleteTierPrice,
   listInventory,
   tester,
+  updateProductStock,
 } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
   editCustomer,
@@ -2837,6 +2838,9 @@ router.delete(
   adminAccess,
   deleteManufacturerProductController
 );
+
+
+router.patch("/product-stock/:productId", adminAccess, updateProductStock);
 
 router.get("/test", adminAccess, tester);
 

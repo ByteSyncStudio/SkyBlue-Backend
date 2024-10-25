@@ -1,5 +1,5 @@
 import knex from "../../../config/knex.js";
-import { AddProduct, MapToCategory, AddTierPrices, AddPicture, MapProductToPicture, UpdateProduct, UpdateCategoryMapping, UpdateProductPictures, UpdateTierPrices, DeleteProduct, DeleteProductPictures, listBestsellers, GetProduct, MapDiscountToProduct, UpdateDiscountMapping, DeleteDiscountMapping, DeleteTierPrice, ListInventory, MapToManufacturer, DeleteManufacturerMapping, UpdateManufacturerMapping } from "../../../repositories/admin/product/adminProductRepository.js";
+import { AddProduct, MapToCategory, AddTierPrices, AddPicture, MapProductToPicture, UpdateProduct, UpdateCategoryMapping, UpdateProductPictures, UpdateTierPrices, DeleteProduct, DeleteProductPictures, listBestsellers, GetProduct, MapDiscountToProduct, UpdateDiscountMapping, DeleteDiscountMapping, DeleteTierPrice, ListInventory, MapToManufacturer, DeleteManufacturerMapping, UpdateManufacturerMapping, UpdateProductStock } from "../../../repositories/admin/product/adminProductRepository.js";
 import multer from 'multer';
 import { queueFileUpload } from '../../../config/ftpsClient.js';
 import { ListSearchProducts } from "../../../repositories/admin/product/adminProductRepository.js";
@@ -316,6 +316,20 @@ export async function listInventory(req, res) {
     }
 }
 
+export async function updateProductStock(req,res) {
+    try {
+        const {productId} = req.params
+        const {stockQuantity } = req.body;
+        await UpdateProductStock(productId, stockQuantity);
+        res.status(200).send({ success: true, message: 'Product stock updated.' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Server error');
+    }
+    
+}
+
+
 export async function tester(req, res) {
     try {
         const result = await getAllEmailsByRole(1);
@@ -327,4 +341,6 @@ export async function tester(req, res) {
         res.status(500).send('Server error');
     }
 }
+
+
 
