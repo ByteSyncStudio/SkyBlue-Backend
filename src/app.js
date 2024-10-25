@@ -1,7 +1,6 @@
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
-import axios from "axios";
 import swaggerSetup from "./config/swagger.js";
 import customerRoutes from "./routes/customerRoutes.js";
 import authRoutes from "./routes/authRoutes.js";

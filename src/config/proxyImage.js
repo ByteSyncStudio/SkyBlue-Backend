@@ -1,3 +1,5 @@
+import axios from "axios";
+
 export async function proxyImage(req, res) {
     try {
         const imageUrl = req.query.url;
