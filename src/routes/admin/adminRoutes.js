@@ -87,7 +87,9 @@ import {
 } from "../../middleware/authMiddleware.js";
 import {
   addManufacturer,
+  addProductManufacturerController,
   deleteManufacturer,
+  deleteManufacturerProductController,
   editManufacturer,
   getAllManufacturers,
   getManufacturersProducts,
@@ -2823,6 +2825,19 @@ router.get("/campaigns/:id", adminAccess, getWithIdCampaignController);
 
 router.put("/campaigns/:id", adminAccess, editCampaignController);
 
-router.get('/test', adminAccess, tester)
+// Route for adding product manufacturer mapping
+router.post(
+  "/add-manufacturer-product/:manufacturerId",
+  adminAccess,
+  addProductManufacturerController
+);
+
+router.delete(
+  "/manufacturer/product/:productId/:manufacturerId",
+  adminAccess,
+  deleteManufacturerProductController
+);
+
+router.get("/test", adminAccess, tester);
 
 export default router;
