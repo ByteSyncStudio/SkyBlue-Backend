@@ -1,6 +1,7 @@
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
+import axios from "axios";
 import swaggerSetup from "./config/swagger.js";
 import customerRoutes from "./routes/customerRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
@@ -8,7 +9,7 @@ import productRoutes from "./routes/productRoutes.js";
 import cartRoute from "./routes/cartRoutes.js";
 import checkoutRoute from "./routes/checkoutRoute.js";
 import adminRoutes from "./routes/admin/adminRoutes.js"
-import './utils/massEmail/scheduler.js'
+import { proxyImage } from "./config/proxyImage.js";
 
 const app = express();
 
@@ -22,6 +23,8 @@ app.use(express.json());
 
 // Setup Swagger for API documentation; See endpoint: /api-docs
 swaggerSetup(app);
+
+app.get('/proxy-image', proxyImage);
 
 // Endpoints
 app.use("/customer", customerRoutes);
