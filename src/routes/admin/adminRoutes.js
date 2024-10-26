@@ -116,6 +116,7 @@ import {
   getFlyerPreviewController,
 } from "../../controllers/admin/flyer/adminFlyerController.js";
 import {
+  deleteCampaignController,
   editCampaignController,
   getAllCampaignController,
   getPictureById,
@@ -2828,6 +2829,7 @@ router.post("/campaigns/create-campaign", adminAccess, postCampaignController);
 router.get("/campaigns/:id", adminAccess, getWithIdCampaignController);
 
 router.put("/campaigns/:id", adminAccess, editCampaignController);
+router.delete("/delete-campaigns/:id", adminAccess, deleteCampaignController);
 
 // Route for adding product manufacturer mapping
 router.post(

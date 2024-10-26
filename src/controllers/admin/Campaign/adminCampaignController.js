@@ -10,7 +10,6 @@ import { generateImageUrl2 } from "../../../utils/imageUtils.js";
 
 const upload = multer({ dest: "uploads/" }); // Destination folder for uploads
 
-
 export async function getAllCampaignController(req, res) {
   try {
     const { storeId } = req.query; // Retrieve StoreId from query params if present
@@ -112,6 +111,23 @@ export async function getWithIdCampaignController(req, res) {
   }
 }
 
+export async function deleteCampaignController(req, res) {
+  const { id } = req.params;
+  try {
+    const deletecampaign = await knex("Campaign").where({ Id: id }).del();
+    if (!deletecampaign) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Error deleting campaign" });
+    }
+    return res.status(200).json(deletecampaign);
+  } catch (error) {
+    console.error("Error deleteing campaign:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch campaign" });
+  }
+}
 
 // Upload image function
 export const uploadImage = [
@@ -180,12 +196,12 @@ async function addPictureToDatabase(file) {
 
 export const getPictureById = async (req, res) => {
   const { id } = req.params;
-  console.log(id,"This is the id asdsad");
+  console.log(id, "This is the id asdsad");
 
   try {
     const pictureData = await getPictureFromDatabase(id);
 
-    console.log("pictureData",pictureData);
+    console.log("pictureData", pictureData);
 
     if (!pictureData) {
       return res
