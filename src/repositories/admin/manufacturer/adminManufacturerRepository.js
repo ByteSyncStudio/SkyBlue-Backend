@@ -2,127 +2,148 @@ import { now } from "sequelize/lib/utils";
 import knex from "../../../config/knex.js";
 
 export async function GetAllManufacturers(name) {
-    try {
-        const query = knex('Manufacturer').select('*').where('Deleted', false);
+  try {
+    const query = knex("Manufacturer").select("*").where("Deleted", false);
 
-        if (name) {
-            query.andWhere('Name', 'like', `${name}%`);
-        }
-
-        return await query;
-    } catch (error) {
-        console.error('Error in fetching manufacturers', error);
-        error.statusCode = 500;
-        error.message = 'Error getting users.';
-        throw error;
+    if (name) {
+      query.andWhere("Name", "like", `${name}%`);
     }
+
+    return await query;
+  } catch (error) {
+    console.error("Error in fetching manufacturers", error);
+    error.statusCode = 500;
+    error.message = "Error getting users.";
+    throw error;
+  }
 }
 
 export async function GetManufacturersProducts(id) {
-    try {
-        return await knex('Manufacturer as m')
-            .leftJoin('Product_Manufacturer_Mapping as pmm', 'm.Id', 'pmm.ManufacturerId')
-            .leftJoin('Product as p', 'pmm.ProductId', 'p.Id')
-            .select([
-                'p.Id',
-                'p.Name',
-                'pmm.IsFeaturedProduct'
-            ])
-            .where('m.Id', id)
-    } catch (error) {
-        console.error('Error in fetching manufacturers', error);
-        error.statusCode = 500;
-        error.message = 'Error getting users.';
-        throw error;
-    }
+  try {
+    return await knex("Manufacturer as m")
+      .leftJoin(
+        "Product_Manufacturer_Mapping as pmm",
+        "m.Id",
+        "pmm.ManufacturerId"
+      )
+      .leftJoin("Product as p", "pmm.ProductId", "p.Id")
+      .select(["p.Id", "p.Name", "pmm.IsFeaturedProduct"])
+      .where("m.Id", id);
+  } catch (error) {
+    console.error("Error in fetching manufacturers", error);
+    error.statusCode = 500;
+    error.message = "Error getting users.";
+    throw error;
+  }
 }
 
 export async function AddManufacturer(name, description) {
-    const trx = await knex.transaction();
+  const trx = await knex.transaction();
 
-    try {
-        await trx('Manufacturer').insert({
-            Name: name,
-            Description: description,
-            ManufacturerTemplateId: 1,
-            PictureId: 0,
-            PageSize: 6,
-            AllowCustomersToSelectPageSize: 1,
-            PageSizeOptions: '6, 3, 9',
-            SubjectToAcl: 0,
-            LimitedToStores: 0,
-            Published: 1,
-            Deleted: 0,
-            DisplayOrder: 0,
-            CreatedOnUTC: new Date().toISOString(),
-            UpdatedOnUTC: new Date().toISOString()
-        });
+  try {
+    await trx("Manufacturer").insert({
+      Name: name,
+      Description: description,
+      ManufacturerTemplateId: 1,
+      PictureId: 0,
+      PageSize: 6,
+      AllowCustomersToSelectPageSize: 1,
+      PageSizeOptions: "6, 3, 9",
+      SubjectToAcl: 0,
+      LimitedToStores: 0,
+      Published: 1,
+      Deleted: 0,
+      DisplayOrder: 0,
+      CreatedOnUTC: new Date().toISOString(),
+      UpdatedOnUTC: new Date().toISOString(),
+    });
 
-        await trx.commit();
+    await trx.commit();
 
-        return {
-            success: true,
-            message: "Manufacturer added successfully"
-        };
-
-    } catch (error) {
-        await trx.rollback();
-        console.error('Error in adding manufacturers', error);
-        error.statusCode = 500;
-        error.message = 'Error adding manufacturer.';
-        throw error;
-    }
+    return {
+      success: true,
+      message: "Manufacturer added successfully",
+    };
+  } catch (error) {
+    await trx.rollback();
+    console.error("Error in adding manufacturers", error);
+    error.statusCode = 500;
+    error.message = "Error adding manufacturer.";
+    throw error;
+  }
 }
 
 export async function EditManufacturer(id, updates) {
-    const trx = await knex.transaction();
+  const trx = await knex.transaction();
 
-    try {
-        const updateData = {
-            ...updates,
-            UpdatedOnUTC: new Date().toISOString()
-        };
+  try {
+    const updateData = {
+      ...updates,
+      UpdatedOnUTC: new Date().toISOString(),
+    };
 
-        await trx('Manufacturer')
-            .where({ id })
-            .update(updateData);
+    await trx("Manufacturer").where({ id }).update(updateData);
 
-        await trx.commit();
+    await trx.commit();
 
-        return {
-            success: true,
-            message: "Manufacturer updated successfully"
-        };
-
-    } catch (error) {
-        await trx.rollback();
-        console.error('Error in editing manufacturer', error);
-        error.statusCode = 500;
-        error.message = 'Error editing manufacturer.';
-        throw error;
-    }
+    return {
+      success: true,
+      message: "Manufacturer updated successfully",
+    };
+  } catch (error) {
+    await trx.rollback();
+    console.error("Error in editing manufacturer", error);
+    error.statusCode = 500;
+    error.message = "Error editing manufacturer.";
+    throw error;
+  }
 }
 
 export async function DeleteManufacturer(id) {
-    const trx = await knex.transaction();
+  const trx = await knex.transaction();
 
-    try {
-        await trx('Manufacturer')
-            .where({ id })
-            .update('Deleted', true)
+  try {
+    await trx("Manufacturer").where({ id }).update("Deleted", true);
 
-        await trx.commit();
+    await trx.commit();
 
-        return {
-            success: true,
-            message: "Manufacturer deleted successfully"
-        }
-
-    } catch (error) {
-        await trx.rollback();
-        console.error('Error in editing manufacturer', error);
-        error.statusCode = 500;
-        error.message = 'Error editing manufacturer.';
-        throw error;
-    }
+    return {
+      success: true,
+      message: "Manufacturer deleted successfully",
+    };
+  } catch (error) {
+    await trx.rollback();
+    console.error("Error in editing manufacturer", error);
+    error.statusCode = 500;
+    error.message = "Error editing manufacturer.";
+    throw error;
+  }
 }
+
+export async function AddProductManufacturer({
+  productId,
+  manufacturerId,
+  isFeaturedProduct,
+  displayOrder,
+}) {
+  return knex("Product_Manufacturer_Mapping").insert({
+    ProductId: productId,
+    ManufacturerId: manufacturerId,
+    IsFeaturedProduct: isFeaturedProduct,
+    DisplayOrder: displayOrder,
+  });
+}
+
+export async function DeleteManufacturerProduct(productId, manufacturerId) {
+    // Perform the delete operation
+    const result = await knex("Product_Manufacturer_Mapping")
+      .where({ ProductId: productId, ManufacturerId: manufacturerId })
+      .del();
+  
+    // Check if any rows were affected
+    if (result) {
+      return { success: true, message: "Product deleted successfully." };
+    } else {
+      return { success: false, message: "Product not found." };
+    }
+  }
