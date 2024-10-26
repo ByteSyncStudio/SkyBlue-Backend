@@ -42,3 +42,22 @@ export async function PostCampaign(Name, Subject, Body, StoreId, CustomerRoleId,
     throw error; // Rethrow the error to be caught by the controller
   }
 }
+
+export async function PostImageComapign() {
+  
+}
+
+
+export const getPictureFromDatabase = async (pictureId) => {
+  try {
+    const result = await knex('Picture')
+      .select('Id', 'MimeType', 'SeoFilename')
+      .where('Id', pictureId)
+      .first(); // Get the first record
+
+    return result;
+  } catch (error) {
+    console.error('Error querying database:', error);
+    throw error; // Throw the error to be handled in the controller
+  }
+};
