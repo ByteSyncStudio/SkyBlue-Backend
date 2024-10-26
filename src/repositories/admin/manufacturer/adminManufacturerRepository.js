@@ -21,12 +21,12 @@ export async function GetAllManufacturers(name) {
 export async function GetManufacturersProducts(id) {
   try {
     return await knex("Manufacturer as m")
-      .leftJoin(
+      .join(
         "Product_Manufacturer_Mapping as pmm",
         "m.Id",
         "pmm.ManufacturerId"
       )
-      .leftJoin("Product as p", "pmm.ProductId", "p.Id")
+      .join("Product as p", "pmm.ProductId", "p.Id")
       .select(["p.Id", "p.Name", "pmm.IsFeaturedProduct"])
       .where("m.Id", id);
   } catch (error) {
