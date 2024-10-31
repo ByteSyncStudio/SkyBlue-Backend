@@ -33,6 +33,10 @@ app.use("/cart", cartRoute);
 app.use("/checkout", checkoutRoute);
 app.use("/admin", adminRoutes);
 
+app.get("/", (req, res) => {
+  res.json({ message: "Welcome to Skyblue server" });
+});
+
 // (Loose) Error Catcher
 app.use((err, req, res, next) => {
   console.error("Error stack:", err.stack);
