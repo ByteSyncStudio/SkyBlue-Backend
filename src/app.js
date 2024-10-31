@@ -34,7 +34,7 @@ app.use("/checkout", checkoutRoute);
 app.use("/admin", adminRoutes);
 
 app.get("/", (req, res) => {
-  res.json({ message: "Welcome to Skyblue server" });
+  res.send("Welcome to Skyblue server");
 });
 
 // (Loose) Error Catcher
