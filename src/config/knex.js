@@ -3,6 +3,8 @@ import knexConfig from '../config/db.js';
 
 const knex = Knex(knexConfig);
 
+console.log(knexConfig)
+
 // Test the connection
 knex.raw('SELECT 1')
   .then(() => {
