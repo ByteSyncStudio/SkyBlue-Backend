@@ -565,7 +565,7 @@ async function listSearchProducts(categoryId, searchTerm, page = 1, size = 10, u
     } catch (error) {
         console.error(error);
         error.statusCode = 500;
-        error.message = "Error in searchProducts";
+        error.message = error;
         throw error;
     }
 }
