@@ -2,33 +2,39 @@ import knex from "../../../config/knex.js";
 import { generateImageUrl2 } from "../../../utils/imageUtils.js";
 import { v4 as uuidv4 } from 'uuid';
 
-export async function listOrders(startDate, endDate, orderStatusId, page = 1, size = 20) {
+export async function listOrders(startDate, endDate, orderStatusId, productId, page = 1, size = 20) {
   try {
     const offset = (page - 1) * size;
 
     let query = knex("dbo.Order")
       .select(
-        "Id",
-        "OrderGuid",
-        "CustomerId",
-        "OrderStatusId",
-        "OrderTotal",
-        "CreatedonUtc",
+        "Order.Id",
+        "Order.OrderGuid",
+        "Order.CustomerId",
+        "Order.OrderStatusId",
+        "Order.OrderTotal",
+        "Order.CreatedonUtc",
         knex.raw('COUNT(*) OVER() as total_count')
       )
-      .orderBy("CreatedonUtc", "desc")
+      .orderBy("Order.CreatedonUtc", "desc")
 
     if (startDate || endDate) {
       if (startDate) {
-        query.where('CreatedOnUTC', '>=', startDate.toISOString())
+        query.where('Order.CreatedOnUTC', '>=', startDate.toISOString())
       }
       if (endDate) {
-        query.where('CreatedOnUTC', '<=', endDate.toISOString());
+        query.where('Order.CreatedOnUTC', '<=', endDate.toISOString());
       }
     }
 
     if (orderStatusId) {
-      query.where('OrderStatusId', orderStatusId)
+      query.where('Order.OrderStatusId', orderStatusId)
+    }
+
+    if (productId) {
+      query.join('OrderItem', 'Order.Id', 'OrderItem.OrderId')
+      query.join('Product', 'OrderItem.ProductId', 'Product.Id')
+      query.where('Product.Id', productId)
     }
 
     query.offset(offset).limit(size);

@@ -940,3 +940,9 @@ export async function UpdateProductStock(productId, stockQuantity) {
     .where("Id", productId)
     .update({ StockQuantity: stockQuantity });
 }
+
+export async function GetProductNames(searchTerm) {
+  return knex("Product")
+    .where('Product.Name', 'like', `%${searchTerm}%`)
+    .select('Id', 'Name')
+}

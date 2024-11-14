@@ -22,6 +22,9 @@ export const getallOrders = async (req, res) => {
       return res.status(400).json({ error: "Invalid orderStatusId" });
     }
 
+    //? Search with product ID
+    const productId = req.query.productId;
+
     //? Time
     const startDate = req.query.start ? new Date(req.query.start) : null;
     const endDate = req.query.end ? new Date(req.query.end) : null;
@@ -29,7 +32,7 @@ export const getallOrders = async (req, res) => {
       return res.status(400).json({ message: 'Invalid date format.' });
     }
 
-    const orders = await listOrders(startDate, endDate, orderStatusId, parseInt(page) || 1, parseInt(size) || 25);
+    const orders = await listOrders(startDate, endDate, orderStatusId, productId, parseInt(page) || 1, parseInt(size) || 25);
     res.status(200).json(orders);
   } catch (error) {
     console.error("Error in getallOrders API:", error);

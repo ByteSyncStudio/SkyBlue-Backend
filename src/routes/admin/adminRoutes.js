@@ -32,6 +32,7 @@ import {
   listInventory,
   tester,
   updateProductStock,
+  getProductNames,
 } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
   editCustomer,
@@ -745,6 +746,10 @@ router.patch("/editvendor/:id", adminAccess, patchVendor);
  *                     type: integer
  *                     description: The order status ID.
  *                     example: 1
+ *                   productId:
+ *                     type: integer
+ *                     description: The product Id (find in /admim/product/names).
+ *                     example: 141
  *                   OrderTotal:
  *                     type: number
  *                     description: The total amount of the order.
@@ -1119,8 +1124,120 @@ router.delete("/delete-discount/:id", adminAccess, deleteDiscounts);
 
 router.get("/category/all", adminAccess, getAllCategories_Category);
 
+/**
+ * @swagger
+ * /category/add:
+ *   post:
+ *     summary: Add a new category
+ *     tags: [Admin]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               Name:
+ *                 type: string
+ *                 example: "New Category"
+ *               ParentCategoryId:
+ *                 type: integer
+ *                 example: 0
+ *               Published:
+ *                 type: boolean
+ *                 example: true
+ *               DiscountId:
+ *                 type: integer
+ *                 example: 1
+ *               Description:
+ *                 type: string
+ *                 example: "Category description"
+ *               ShowOnHomePage:
+ *                 type: boolean
+ *                 example: true
+ *               Image:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       201:
+ *         description: Category created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 newCategoryId:
+ *                   type: integer
+ *                   example: 1
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
 router.post("/category/add", adminAccess, addCategory);
 
+/**
+ * @swagger
+ * /category/edit/{id}:
+ *   patch:
+ *     summary: Update an existing category
+ *     tags: [Admin]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The category ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               Name:
+ *                 type: string
+ *                 example: "Updated Category"
+ *               ParentCategoryId:
+ *                 type: integer
+ *                 example: 0
+ *               Published:
+ *                 type: boolean
+ *                 example: true
+ *               DiscountId:
+ *                 type: integer
+ *                 example: 1
+ *               Description:
+ *                 type: string
+ *                 example: "Updated category description"
+ *               ShowOnHomePage:
+ *                 type: boolean
+ *                 example: true
+ *               Image:
+ *                 type: string
+ *                 format: binary
+ *               removedImage:
+ *                 type: boolean
+ *                 example: true
+ *     responses:
+ *       200:
+ *         description: Category updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 Id:
+ *                   type: integer
+ *                   example: 1
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: Category not found
+ *       500:
+ *         description: Internal server error
+ */
 router.patch("/category/edit/:id", adminAccess, updateCategory);
 
 router.delete("/category/delete/:id", adminAccess, deleteCategory);
@@ -1129,7 +1246,36 @@ router.get("/category/single/:id", getSingleCategory);
 
 router.get("/product/search", adminAccess, getProducts);
 
+
+/**
+ * @swagger
+ * /product/names:
+ *   get:
+ *     summary: Retrieve product names based on a search term
+ *     tags: [Admin]
+ *     parameters:
+ *       - in: query
+ *         name: searchTerm
+ *         schema:
+ *           type: string
+ *         description: The term to search for product names
+ *     responses:
+ *       200:
+ *         description: A list of product names
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: string
+ *                 example: "Product Name"
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/product/names', adminAccess, getProductNames);
+
 router.get("/product/:id", adminAccess, getProduct);
+
 
 /**
  * @swagger
