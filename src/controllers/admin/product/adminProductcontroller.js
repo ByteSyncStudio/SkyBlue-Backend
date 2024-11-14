@@ -274,8 +274,8 @@ export async function getBestSellers(req, res) {
 
 export async function getProducts(req, res) {
     try {
-        const { category, product, manufacturer, vendor, published, size, page } = req.query
-        const result = await ListSearchProducts(category, product, manufacturer, vendor, parseInt(published), parseInt(page) || 1, parseInt(size) || 10)
+        const { categoryId, categoryName, product, manufacturer, vendor, published, size, page } = req.query
+        const result = await ListSearchProducts(parseInt(categoryId), categoryName, product, manufacturer, vendor, parseInt(published), parseInt(page) || 1, parseInt(size) || 10)
         res.status(200).send(result);
     } catch (error) {
         console.error(error);

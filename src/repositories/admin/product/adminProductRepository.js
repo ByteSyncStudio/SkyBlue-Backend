@@ -479,10 +479,10 @@ export async function listBestsellers(sortBy, size, user, searchTerm = "") {
     const processedProducts = products.map((product) => {
       const imageUrl = product.PictureId
         ? generateImageUrl2(
-            product.PictureId,
-            product.MimeType,
-            product.SeoFilename
-          )
+          product.PictureId,
+          product.MimeType,
+          product.SeoFilename
+        )
         : null;
       return {
         Id: product.Id,
@@ -509,6 +509,7 @@ export async function listBestsellers(sortBy, size, user, searchTerm = "") {
 }
 
 export async function ListSearchProducts(
+  categoryId,
   categoryName,
   productName,
   manufacturerId,
@@ -566,13 +567,16 @@ export async function ListSearchProducts(
       )
       .orderBy("Product.UpdatedOnUTC", "desc");
 
+    if (categoryId) {
+      query = query
+        .join("Product_Category_Mapping", "Product.Id", "Product_Category_Mapping.ProductId")
+        .join("Category", "Product_Category_Mapping.CategoryId", "Category.Id")
+        .where("Category.Id", categoryId);
+    }
+
     if (categoryName) {
       query = query
-        .join(
-          "Product_Category_Mapping",
-          "Product.Id",
-          "Product_Category_Mapping.ProductId"
-        )
+        .join("Product_Category_Mapping", "Product.Id", "Product_Category_Mapping.ProductId")
         .join("Category", "Product_Category_Mapping.CategoryId", "Category.Id")
         .where("Category.Name", "like", `%${categoryName}%`);
     }
@@ -631,10 +635,10 @@ export async function ListSearchProducts(
       imageUrl:
         product.PictureId && product.MimeType && product.SeoFilename
           ? generateImageUrl2(
-              product.PictureId,
-              product.MimeType,
-              product.SeoFilename
-            )
+            product.PictureId,
+            product.MimeType,
+            product.SeoFilename
+          )
           : null,
     }));
 
@@ -749,10 +753,10 @@ export async function GetProduct(productId) {
     // Generate the image URL
     const imageUrl = product.PictureId
       ? generateImageUrl2(
-          product.PictureId,
-          product.MimeType,
-          product.SeoFilename
-        )
+        product.PictureId,
+        product.MimeType,
+        product.SeoFilename
+      )
       : null;
 
     // Construct the response object
@@ -902,10 +906,10 @@ export async function ListInventory(
       imageUrl:
         product.PictureId && product.MimeType && product.SeoFilename
           ? generateImageUrl2(
-              product.PictureId,
-              product.MimeType,
-              product.SeoFilename
-            )
+            product.PictureId,
+            product.MimeType,
+            product.SeoFilename
+          )
           : null,
     }));
 
