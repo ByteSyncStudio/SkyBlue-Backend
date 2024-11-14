@@ -76,9 +76,9 @@ export async function GetAllCategories(searchTerm = '') {
     return JSON.stringify(organizedCategories, null, 2); // Pretty print JSON
 }
 
-export async function AddCategory(Name, ParentCategoryId, Published, DiscountId, PictureId) {
+export async function AddCategory(Name, ParentCategoryId, Published, DiscountId, Description, ShowOnHomePage, PictureId) {
     try {
-        const [newCategoryId] = await knex.transaction(async (trx) => {
+        const result = await knex.transaction(async (trx) => {
             const [categoryId] = await trx('Category')
                 .insert({
                     Name,
@@ -88,12 +88,13 @@ export async function AddCategory(Name, ParentCategoryId, Published, DiscountId,
                     PictureId,
                     PageSize: 18,
                     AllowCustomersToSelectPageSize: 1,
-                    ShowOnHomePage: 0,
+                    ShowOnHomePage,
                     IncludeInTopMenu: 1,
                     SubjectToAcl: 1,
                     LimitedToStores: 1,
                     Deleted: 0,
                     DisplayOrder: 0,
+                    Description,
                     CreatedOnUtc: new Date().toISOString(),
                     UpdatedOnUtc: new Date().toISOString(),
                 })
@@ -103,15 +104,15 @@ export async function AddCategory(Name, ParentCategoryId, Published, DiscountId,
                 await MapDiscountToCategory(categoryId, DiscountId, trx);
             }
 
-            return categoryId;
+            return categoryId; // Return single ID value
         });
-        return newCategoryId;
+        
+        return result;
     } catch (error) {
         console.error("Error adding category:\n", error);
         throw error;
     }
 }
-
 export async function UpdateCategory(categoryId, updatedCategory) {
     try {
         await knex.transaction(async (trx) => {

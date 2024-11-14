@@ -22,7 +22,7 @@ export async function addCategory(req, res) {
     try {
         await uploadMiddleware(req, res);
 
-        let { Name, ParentCategoryId, Published, DiscountId } = req.body;
+        let { Name, ParentCategoryId, Published, DiscountId, Description, ShowOnHomePage } = req.body;
         const file = req.file;
 
         if (ParentCategoryId === undefined) {
@@ -46,8 +46,8 @@ export async function addCategory(req, res) {
             queueFileUpload(file.path, remotePath);
         }
 
-        const newCategoryId = await AddCategory(Name, ParentCategoryId, Published, DiscountId, pictureId);
-        res.status(201).send({ Id: newCategoryId });
+        const newCategoryId = await AddCategory(Name, ParentCategoryId, Published, DiscountId, Description, ShowOnHomePage, pictureId);
+        res.status(201).send({ newCategoryId });
     } catch (error) {
         console.error(error);
         res.status(error.statusCode || 500).send(error.message || 'Server error');
@@ -59,7 +59,7 @@ export async function updateCategory(req, res) {
         await uploadMiddleware(req, res);
 
         const categoryId = req.params.id;
-        const { Name, ParentCategoryId, Published, DiscountId, removedImage } = req.body;
+        const { Name, ParentCategoryId, Published, DiscountId, Description, ShowOnHomePage, removedImage } = req.body;
         const file = req.file;
 
         let pictureId;
@@ -83,13 +83,16 @@ export async function updateCategory(req, res) {
             pictureId = 0;
         }
 
-        const updatedCategory = {
-            Name,
-            ParentCategoryId: ParentCategoryId === 'undefined' ? 0 : parseInt(ParentCategoryId),
-            Published: Published === 'true',
-            DiscountId: DiscountId === 'null' ? null : parseInt(DiscountId),
-            PictureId: pictureId
-        };
+        const updatedCategory = {};
+
+        // Conditionally add fields to updatedCategory
+        if (Name !== undefined) updatedCategory.Name = Name;
+        if (ParentCategoryId !== undefined) updatedCategory.ParentCategoryId = parseInt(ParentCategoryId);
+        if (Published !== undefined) updatedCategory.Published = Published === 'true';
+        if (DiscountId !== undefined) updatedCategory.DiscountId = DiscountId === 'null' ? null : parseInt(DiscountId);
+        if (Description !== undefined) updatedCategory.Description = Description;
+        if (ShowOnHomePage !== undefined) updatedCategory.ShowOnHomePage = ShowOnHomePage === 'true' || ShowOnHomePage === '1' ? 1 : 0;
+        if (pictureId !== undefined) updatedCategory.PictureId = pictureId;
 
         await UpdateCategory(categoryId, updatedCategory);
         res.status(200).send({ Id: categoryId });
