@@ -1,4 +1,14 @@
-import { ApplyDiscountToCategory, ApplyDiscountToProducts, DeleteDiscount, GetAllDiscounts, GetDiscountWithTypes, GetSubCategoryDiscounts, PostDiscounts, RemoveDiscountFromCategory, RemoveDiscountFromProducts } from "../../../repositories/admin/discount/adminDiscountRepository.js";
+import {
+  ApplyDiscountToCategory,
+  ApplyDiscountToProducts,
+  DeleteDiscount,
+  GetAllDiscounts,
+  GetDiscountWithTypes,
+  GetSubCategoryDiscounts,
+  PostDiscounts,
+  RemoveDiscountFromCategory,
+  RemoveDiscountFromProducts,
+} from "../../../repositories/admin/discount/adminDiscountRepository.js";
 
 // Controller to get all discounts
 export const getAllDiscounts = async (req, res) => {
@@ -6,14 +16,18 @@ export const getAllDiscounts = async (req, res) => {
     const discounts = await GetAllDiscounts();
     res.status(200).json(discounts);
   } catch (error) {
-    res.status(500).json({ message: "Failed to retrieve discounts", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to retrieve discounts", error: error.message });
   }
 };
 
 // Controller to post a new discount
 export const postDiscounts = async (req, res) => {
   try {
-    const { Name, DiscountAmount, AppliedToSubCategories, DiscountTypeId } = req.body; // Extracting necessary fields from the request body
+    console.log("body: ", req.body);
+    const { Name, DiscountAmount, AppliedToSubCategories, DiscountTypeId } =
+      req.body; // Extracting necessary fields from the request body
 
     //DiscountTYpeId = 1 for fixed amount discount, 2 after checkout, 5 subcategory
 
@@ -22,7 +36,7 @@ export const postDiscounts = async (req, res) => {
       Name,
       DiscountTypeId, // Use the DiscountTypeId from the request body
       UsePercentage: 0,
-      DiscountPercentage: 0.0000,
+      DiscountPercentage: 0.0,
       DiscountAmount,
       MaximumDiscountAmount: null,
       StartDateUtc: new Date().toISOString(), // Automatically set StartDateUtc to current date and time in UTC
@@ -33,7 +47,7 @@ export const postDiscounts = async (req, res) => {
       DiscountLimitationId: 0,
       LimitationTimes: 1,
       MaximumDiscountedQuantity: null,
-      AppliedToSubCategories: AppliedToSubCategories ? 1 : 0 // Convert boolean to integer
+      AppliedToSubCategories: AppliedToSubCategories ? 1 : 0, // Convert boolean to integer
     };
 
     // Call the function to insert the discount and return the full discount details
@@ -41,10 +55,12 @@ export const postDiscounts = async (req, res) => {
 
     res.status(201).json({
       message: "Discount created successfully",
-      discount: newDiscount // Return the full discount details
+      discount: newDiscount, // Return the full discount details
     });
   } catch (error) {
-    res.status(500).json({ message: "Failed to create discount", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to create discount", error: error.message });
   }
 };
 
@@ -64,16 +80,20 @@ export const deleteDiscounts = async (req, res) => {
       res.status(404).json({ message: "Discount not found" });
     }
   } catch (error) {
-    res.status(500).json({ message: "Failed to delete discount", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to delete discount", error: error.message });
   }
-}
+};
 
 export const getSubCategoryDiscounts = async (req, res) => {
   try {
     const discounts = await GetSubCategoryDiscounts();
     res.status(200).json(discounts);
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch discounts", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to fetch discounts", error: error.message });
   }
 };
 
@@ -81,7 +101,7 @@ export const getSubCategoryDiscounts = async (req, res) => {
 export const applyDiscountToProducts = async (req, res) => {
   try {
     const { discountId } = req.params; // Get discountId from params
-    const { productIds } = req.body;   // Product IDs in request body
+    const { productIds } = req.body; // Product IDs in request body
 
     if (!productIds || productIds.length === 0) {
       return res.status(400).json({
@@ -105,12 +125,11 @@ export const applyDiscountToProducts = async (req, res) => {
   }
 };
 
-
 // Apply discount to categories
 export const applyDiscountToCategory = async (req, res) => {
   try {
     const { discountId } = req.params; // Get discountId from params
-    const { categoryIds } = req.body;   // Category IDs in request body
+    const { categoryIds } = req.body; // Category IDs in request body
 
     if (!categoryIds || categoryIds.length === 0) {
       return res.status(400).json({
@@ -138,7 +157,7 @@ export const applyDiscountToCategory = async (req, res) => {
 export const removeDiscountFromProducts = async (req, res) => {
   try {
     const { discountId } = req.params; // Get discountId from params
-    const { productIds } = req.body;   // Product IDs in request body
+    const { productIds } = req.body; // Product IDs in request body
 
     if (!productIds || productIds.length === 0) {
       return res.status(400).json({
@@ -162,12 +181,10 @@ export const removeDiscountFromProducts = async (req, res) => {
   }
 };
 
-
-
 export const removeDiscountFromCategory = async (req, res) => {
   try {
     const { discountId } = req.params; // Get discountId from params
-    const { categoryIds } = req.body;   // Category IDs in request body
+    const { categoryIds } = req.body; // Category IDs in request body
 
     if (!categoryIds || categoryIds.length === 0) {
       return res.status(400).json({
@@ -205,6 +222,9 @@ export async function getDiscountWithTypes(req, res) {
         break;
       case "order":
         typeId = 1;
+        break;
+      case "manufacturer":
+        typeId = 3;
         break;
       default:
         return res.status(400).json({

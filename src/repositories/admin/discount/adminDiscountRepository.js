@@ -79,7 +79,6 @@ export async function ApplyDiscountToProducts(discountId, productIds) {
 }
 
 
-
 export async function ApplyDiscountToCategory(discountId, categoryIds) {
   await knex("Discount_AppliedToCategories")
     .insert(

@@ -1246,7 +1246,6 @@ router.get("/category/single/:id", getSingleCategory);
 
 router.get("/product/search", adminAccess, getProducts);
 
-
 /**
  * @swagger
  * /product/names:
@@ -1272,10 +1271,9 @@ router.get("/product/search", adminAccess, getProducts);
  *       500:
  *         description: Internal server error
  */
-router.get('/product/names', adminAccess, getProductNames);
+router.get("/product/names", adminAccess, getProductNames);
 
 router.get("/product/:id", adminAccess, getProduct);
-
 
 /**
  * @swagger
@@ -1522,6 +1520,8 @@ router.post(
   adminAccess,
   applyDiscountToCategory
 );
+
+
 
 /**
  * @swagger
@@ -2989,7 +2989,6 @@ router.delete(
   adminAccess,
   deleteManufacturerProductController
 );
-
 
 router.patch("/product-stock/:productId", adminAccess, updateProductStock);
 
