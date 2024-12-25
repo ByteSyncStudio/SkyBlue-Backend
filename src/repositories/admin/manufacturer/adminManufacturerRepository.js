@@ -20,6 +20,9 @@ export async function GetAllManufacturers(name) {
       name: manufacturer.Name,
       description: manufacturer.Description,
       published: manufacturer.Published,
+      metaKeywords: manufacturer.MetaKeywords,
+      metaDescription: manufacturer.MetaDescription,
+      metaTitle: manufacturer.MetaTitle,
       displayOrder: manufacturer.DisplayOrder,
       discountName: manufacturer.DiscountName, // Add discount name
       discountAmount: manufacturer.DiscountAmount, // Add discount amount
