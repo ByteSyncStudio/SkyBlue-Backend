@@ -1,10 +1,20 @@
+import exp from "constants";
 import {
   ApplyDiscountToCategory,
+  ApplyDiscountToManufacturer,
   ApplyDiscountToProducts,
   DeleteDiscount,
+  DeleteDiscountfromManufacturer,
+  DeleteUsageDiscount,
+  EditDiscountType,
   GetAllDiscounts,
+  GetCategoryDiscount,
   GetDiscountWithTypes,
+  GetManufacturerDiscount,
+  GetProductDiscount,
   GetSubCategoryDiscounts,
+  GetUsageDiscount,
+  patchDiscount,
   PostDiscounts,
   RemoveDiscountFromCategory,
   RemoveDiscountFromProducts,
@@ -153,7 +163,6 @@ export const applyDiscountToCategory = async (req, res) => {
   }
 };
 
-
 export const removeDiscountFromProducts = async (req, res) => {
   try {
     const { discountId } = req.params; // Get discountId from params
@@ -241,6 +250,197 @@ export async function getDiscountWithTypes(req, res) {
     return res.status(500).json({
       success: false,
       message: "Failed to get discount.",
+    });
+  }
+}
+
+export const editDiscountType = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    res.status(200).send(await EditDiscountType(id));
+  } catch (error) {
+    console.error("Error editing discount type:", error);
+    res.status(error.statusCode || 500).send({
+      success: false,
+      message: error.message || "Server error",
+    });
+  }
+};
+
+export async function getDiscountToProducts(req, res) {
+  try {
+    const discountId = req.params.discountId;
+    const result = await GetProductDiscount(discountId);
+    res.status(200).json({
+      success: true,
+      result,
+    });
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch products.",
+    });
+  }
+}
+
+export async function getDiscountToCategory(req, res) {
+  try {
+    const discountId = req.params.discountId;
+    const result = await GetCategoryDiscount(discountId);
+    res.status(200).json({
+      success: true,
+      result,
+    });
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch products.",
+    });
+  }
+}
+
+export async function getUsageDiscount(req, res) {
+  try {
+    const discountId = req.params.discountId;
+    const result = await GetUsageDiscount(discountId);
+    res.status(200).json({
+      success: true,
+      result,
+    });
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch products.",
+    });
+  }
+}
+
+export async function deleteDiscountUsage(req, res) {
+  try {
+    const discountId = req.params.discountId;
+    const { orderId } = req.body;
+    const result = await DeleteUsageDiscount(discountId, orderId);
+    res.status(200).json({
+      success: true,
+      result,
+    });
+  } catch (error) {
+    console.error("Error deleting :", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete.",
+    });
+  }
+}
+
+export async function editDiscount(req, res) {
+  try {
+    const { discountId } = req.params;
+    const discountData = req.body;
+
+    // Validate input
+    if (!discountId || !Object.keys(discountData).length) {
+      return res.status(400).json({ message: "Invalid request data." });
+    }
+
+    // Call the patchDiscount function
+    const result = await patchDiscount(discountId, discountData);
+
+    // Return response
+    if (result) {
+      res
+        .status(200)
+        .json({ message: "Discount updated successfully.", data: result });
+    } else {
+      res.status(404).json({ message: "Discount not found." });
+    }
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Failed to update discount.", error: error.message });
+  }
+}
+
+export async function applyDiscountToManufacturer(req, res) {
+  try {
+    const discountId = req.params.discountId;
+    const { manufacturerIds } = req.body;
+    console.log("discountId", discountId, manufacturerIds);
+
+    if (!discountId || !manufacturerIds) {
+      return res.status(400).json({
+        success: false,
+        message: "Discount ID and manufacturer IDs are required.",
+      });
+    }
+
+    const result = await ApplyDiscountToManufacturer(
+      discountId,
+      manufacturerIds
+    );
+    res.status(200).json({
+      success: true,
+      message: "Discount successfully applied to manufacturer.",
+      result,
+    });
+  } catch (error) {
+    console.log("Error applying discount to manufacturer:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to apply discount to manufacturer.",
+    });
+  }
+}
+
+export async function getDiscountToManufacturer(req, res) {
+  try {
+    const discountId = req.params.discountId;
+    const result = await GetManufacturerDiscount(discountId);
+    res.status(200).json({
+      success: true,
+      result,
+    });
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch products.",
+    });
+  }
+}
+
+
+export async function removeDiscountToManufacturer(req, res) {
+  try {
+    const discountId = req.params.discountId;
+    const { manufacturerIds } = req.body;
+    console.log("discountId", discountId, manufacturerIds);
+
+    if (!discountId || !manufacturerIds) {
+      return res.status(400).json({
+        success: false,
+        message: "Discount ID and manufacturer IDs are required.",
+      });
+    }
+
+    const result = await DeleteDiscountfromManufacturer(
+      discountId,
+      manufacturerIds
+    );
+    res.status(200).json({
+      success: true,
+      message: "Discount successfully removed from manufacturer.",
+      result,
+    });
+  } catch (error) {
+    console.log("Error removing discount from manufacturer:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to remove discount from manufacturer.",
     });
   }
 }

@@ -44,14 +44,23 @@ import {
 import { getBestSellers } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
   applyDiscountToCategory,
+  applyDiscountToManufacturer,
   applyDiscountToProducts,
   deleteDiscounts,
+  deleteDiscountUsage,
+  editDiscount,
+  editDiscountType,
   getAllDiscounts,
+  getDiscountToCategory,
+  getDiscountToManufacturer,
+  getDiscountToProducts,
   getDiscountWithTypes,
   getSubCategoryDiscounts,
+  getUsageDiscount,
   postDiscounts,
   removeDiscountFromCategory,
   removeDiscountFromProducts,
+  removeDiscountToManufacturer,
 } from "../../controllers/admin/discount/adminDiscountController.js";
 import {
   getAllCategories as getAllCategories_Category,
@@ -1054,6 +1063,8 @@ router.get("/alldiscounts", adminAccess, getAllDiscounts);
  */
 router.get("/discount/subcategories", adminAccess, getSubCategoryDiscounts);
 
+router.get("/edit-discount/:id", adminAccess, editDiscountType);
+
 router.get("/discount/:type", adminAccess, getDiscountWithTypes);
 /**
  * @swagger
@@ -1479,6 +1490,23 @@ router.post(
   adminAccess,
   applyDiscountToProducts
 );
+
+
+router.get("/get-discount-to-product/:discountId", adminAccess, getDiscountToProducts);
+router.get("/get-discount-to-category/:discountId", adminAccess, getDiscountToCategory);
+
+router.get("/usage-discount/:discountId", adminAccess, getUsageDiscount);
+router.delete("/discount-usage/:discountId", adminAccess, deleteDiscountUsage);
+
+router.patch("/edit-discount/:discountId", adminAccess, editDiscount);
+
+
+router.get("/get-discount-to-manufacturer/:discountId", adminAccess, getDiscountToManufacturer);
+router.post("/apply-discount-to-manufacturer/:discountId", adminAccess, applyDiscountToManufacturer);
+router.delete("/remove-discount-to-manufacturer/:discountId", adminAccess, removeDiscountToManufacturer);
+
+
+
 
 /**
  * @swagger
