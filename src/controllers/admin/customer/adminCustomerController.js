@@ -1,4 +1,4 @@
-import { EditCustomerActive, EditCustomerDetails, GetAllCustomersWithRoles, GetCustomerByOrderTotal, GetCustomerRoles, GetSingleCustomer, UpdateCustomerRoles } from "../../../repositories/admin/customer/adminCustomerRepository.js";
+import { EditCustomerActive, EditCustomerDetails, GetAllCustomersWithRoles, GetCustomerAddress, GetCustomerByOrderTotal, GetCustomerOrder, GetCustomerRoles, GetCustomerShoppingCart, GetSingleCustomer, UpdateCustomerRoles } from "../../../repositories/admin/customer/adminCustomerRepository.js";
 
 export async function getAllCustomersWithRoles(req, res) {
     try {
@@ -139,6 +139,62 @@ export async function editCustomer(req, res) {
         }
     } catch (error) {
         console.error('Error in editCustomer:', error);
+        res.status(error.statusCode || 500).json({
+            success: false,
+            message: error.message || 'Server error'
+        });
+    }
+}
+
+
+export async function getCustomerOrder(req, res) {
+    try {
+        const { id } = req.params; // Correctly destructure `id` from params
+        const result = await GetCustomerOrder(id); // Pass the raw `id`
+        res.status(200).json({
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        console.error('Error in getCustomerOrder:', error);
+        res.status(error.statusCode || 500).json({
+            success: false,
+            message: error.message || 'Server error'
+        });
+    }
+}
+
+
+export async function getCustomerAddress(req, res) {
+    try {
+        const {id}= req.params;
+        const result = await GetCustomerAddress(id);
+        res.status(200).json({
+            success: true,
+            message: 'Customer address fetched successfully',   
+            result
+        });
+    } catch (error) {
+        console.error('Error in getCustomerAddress:', error);
+        res.status(error.statusCode || 500).json({
+            success: false,
+            message: error.message || 'Server error'
+        });
+    }
+}
+
+export async function getCustomerShoppingCart(req,res){
+    try {
+        const {id}= req.params;
+        const result = await GetCustomerShoppingCart(id);
+        res.status(200).json({
+            success: true,
+            message: 'Customer shopping cart fetched successfully',   
+            result
+        });
+        
+    } catch (error) {
+        console.log("Error in getCustomerShoppingCart:", error);
         res.status(error.statusCode || 500).json({
             success: false,
             message: error.message || 'Server error'

@@ -37,8 +37,11 @@ import {
 import {
   editCustomer,
   getAllCustomersWithRoles,
+  getCustomerAddress,
   getCustomerByOrderTotal,
+  getCustomerOrder,
   getCustomerRoles,
+  getCustomerShoppingCart,
   getSingleCustomer,
 } from "../../controllers/admin/customer/adminCustomerController.js";
 import { getBestSellers } from "../../controllers/admin/product/adminProductcontroller.js";
@@ -2604,6 +2607,14 @@ router.delete("/roles/:id", adminAccess, deleteRole);
 router.get("/ordersheet", adminAccess, orderSheet);
 
 router.get("/customer-details/:id", adminAccess, getSingleCustomer);
+
+
+
+router.get("/edit-customer-order/:id", adminAccess, getCustomerOrder);
+router.get("/edit-customer-address/:id", adminAccess, getCustomerAddress);
+
+router.get("/edit-customer-shopping-cart/:id", adminAccess, getCustomerShoppingCart)
+
 
 router.patch("/customer-details/:id", adminAccess, editCustomer);
 

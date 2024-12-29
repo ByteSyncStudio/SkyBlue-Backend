@@ -323,3 +323,111 @@ export async function EditCustomerActive(customerId, active) {
         };
     }
 }
+
+export async function GetCustomerOrder(customerId) {
+    console.log("Customer ID:", customerId); // Log the input for debugging
+    try {
+        return await knex('Order')
+            .select([
+                'Id',
+                'CustomOrderNumber',
+                'OrderStatusId',
+                'OrderTotal',
+                'PaymentStatusId',
+                'ShippingStatusId',
+                'CreatedOnUtc'
+            ])
+            .where('CustomerId', customerId) // Ensure this matches the database column
+            .orderBy('CreatedOnUtc', 'desc');
+    } catch (error) {
+        console.error('Error in GetCustomerOrder:', error);
+        error.statusCode = 500;
+        error.message = 'Error getting customer orders.';
+        throw error;
+    }
+}
+
+
+
+export async function GetCustomerAddress(id) {
+    try {
+      // Step 1: Fetch Address IDs for the given customer ID
+      const addressIds = await knex('CustomerAddresses')
+        .select('Address_Id')
+        .where('Customer_Id', id);
+  
+      if (!addressIds.length) {
+        return { success: false, message: 'No addresses found for the given customer ID' };
+      }
+  
+      const addressIdArray = addressIds.map(row => row.Address_Id);
+  
+      // Step 2: Fetch Address Details using Address IDs
+      const addresses = await knex('Address')
+        .select(
+          'Id',
+          'FirstName',
+          'LastName',
+          'Email',
+          'Company',
+          'CountryId',
+          'StateProvinceId',
+          'City',
+          'Address1',
+          'Address2',
+          'ZipPostalCode',
+          'PhoneNumber',
+          'FaxNumber',
+          'CustomAttributes',
+          'CreatedOnUtc'
+        )
+        .whereIn('Id', addressIdArray);
+  
+      // Step 3: Return address details
+      return { success: true, data: addresses };
+    } catch (error) {
+      console.error('Error fetching customer address:', error);
+      return { success: false, message: 'Failed to retrieve customer address', error };
+    }
+  }
+
+
+// Function to get customer shopping cart and product names
+export async function GetCustomerShoppingCart(id) {
+    try {
+      // Step 1: Fetch shopping cart items for the given customer ID
+      const shoppingCartItems = await knex('dbo.ShoppingCartItem')
+        .select('Id', 'StoreId', 'ShoppingCartTypeId', 'CustomerId', 'ProductId', 'AttributesXml', 'CustomerEnteredPrice', 'Quantity', 'RentalStartDateUtc', 'RentalEndDateUtc', 'CreatedOnUtc', 'UpdatedOnUtc')
+        .where('CustomerId', id);
+  
+      // If no shopping cart items are found, return an empty array
+      if (shoppingCartItems.length === 0) {
+        return [];
+      }
+  
+      // Step 2: Extract unique ProductIds
+      const productIds = [...new Set(shoppingCartItems.map(item => item.ProductId))];
+  
+      // Step 3: Fetch product details (product names and prices) for the unique ProductIds
+      const products = await knex('dbo.Product')
+        .select('Id', 'Name', 'Price')  // Include 'Price' field
+        .whereIn('Id', productIds);
+  
+      // Step 4: Merge product names and prices with shopping cart items
+      const shoppingCartWithDetails = shoppingCartItems.map(item => {
+        const product = products.find(p => p.Id === item.ProductId);
+        return {
+          ...item,
+          ProductName: product ? product.Name : 'Unknown Product',  // If product name is not found, return 'Unknown Product'
+          ProductPrice: product ? product.Price : 0,  // If product price is not found, return 0
+        };
+      });
+  
+      return shoppingCartWithDetails;  // Return the combined data
+  
+    } catch (error) {
+      console.error('Error fetching shopping cart data:', error);
+      throw new Error('An error occurred while fetching the shopping cart data.');
+    }
+  }
+  
