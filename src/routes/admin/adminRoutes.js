@@ -138,6 +138,7 @@ import {
   uploadImage,
 } from "../../controllers/admin/Campaign/adminCampaignController.js";
 import multer from "multer";
+import { getBulkProducts, updateBulkEdit } from "../../controllers/admin/vendors/adminBulkEditController.js";
 
 const router = express.Router();
 
@@ -725,6 +726,18 @@ router.post("/create-vendors", adminAccess, createNewVendor);
  *                   example: "Server error"
  */
 router.patch("/editvendor/:id", adminAccess, patchVendor);
+
+
+router.get("/bulk-products", adminAccess, getBulkProducts);
+router.patch("/bulk-products/bulk-edit", adminAccess, updateBulkEdit);
+
+
+
+
+
+
+
+
 
 /**
  * @swagger
