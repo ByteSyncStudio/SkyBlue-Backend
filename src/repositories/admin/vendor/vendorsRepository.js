@@ -60,12 +60,14 @@ export async function updateVendor(id, vendorData) {
 // Get a vendor by ID
 export async function getVendorById(id) {
   try {
-    return await knex("Vendor")
+    // Step 1: Fetch vendor details
+    const vendor = await knex("Vendor")
       .select(
         "Id",
         "Name",
         "Email",
         "Description",
+        "PictureId",
         "AddressId",
         "AdminComment",
         "Active",
@@ -80,8 +82,44 @@ export async function getVendorById(id) {
       )
       .where({ Id: id })
       .first();
+
+    if (!vendor) {
+      throw new Error("Vendor not found.");
+    }
+
+    // Step 2: Fetch all pictures related to the vendor
+    let picturesData = [];
+    if (vendor.PictureId) {
+      picturesData = await knex("Picture")
+        .select(
+          "Id",
+          "PictureBinary",
+          "MimeType",
+          "SeoFilename",
+          "AltAttribute",
+          "TitleAttribute",
+          "IsNew"
+        )
+        .whereIn("Id", vendor.PictureId.split(',')); // Assuming PictureIds are stored as a comma-separated string
+    }
+
+    // Step 3: Generate image URLs for each picture
+    const picturesWithUrls = picturesData.map((picture) => ({
+      ...picture,
+      imageUrl: generateImageUrl2(
+        picture.Id,
+        picture.MimeType,
+        picture.SeoFilename
+      ),
+    }));
+
+    // Step 4: Combine the vendor data with the picture data
+    return {
+      ...vendor,
+      pictures: picturesWithUrls, // Array of picture objects with image URLs
+    };
   } catch (error) {
-    console.error("Error in getVendorById repository function:", error);
-    throw new Error("Error fetching vendor.");
+    console.error("Error in getVendorWithImagesById function:", error);
+    throw new Error("Error fetching vendor with images.");
   }
 }

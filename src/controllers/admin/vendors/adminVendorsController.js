@@ -47,7 +47,9 @@ export const createNewVendor = async (req, res) => {
 
     // Ensure required fields are provided and valid
     if (!name || !email) {
-      return res.status(400).json({ success: false, message: "Name and Email are required." });
+      return res
+        .status(400)
+        .json({ success: false, message: "Name and Email are required." });
     }
 
     // Create a vendor with the necessary fields and default values
@@ -68,10 +70,17 @@ export const createNewVendor = async (req, res) => {
       AllowCustomersToSelectPageSize: true, // Always set to true
       PageSizeOptions: getPageSizeOptions(pageSize),
     };
+    console.log("Vendor data:", vendorData);
 
     await createVendor(vendorData);
 
-    res.status(201).json({ success: true, message: "Vendor created successfully.", data: vendorData });
+    res
+      .status(201)
+      .json({
+        success: true,
+        message: "Vendor created successfully.",
+        data: vendorData,
+      });
   } catch (error) {
     console.error("Error in createNewVendor API:", error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -99,49 +108,95 @@ export const patchVendor = async (req, res) => {
 
     // Ensure the vendor ID is provided
     if (!id) {
-      return res.status(400).json({ success: false, message: "Vendor ID is required." });
+      return res
+        .status(400)
+        .json({ success: false, message: "Vendor ID is required." });
     }
 
     // Fetch the existing vendor data
     const existingVendor = await getVendorById(id);
     if (!existingVendor) {
-      return res.status(404).json({ success: false, message: "Vendor not found." });
+      return res
+        .status(404)
+        .json({ success: false, message: "Vendor not found." });
     }
 
     // If deleteVendor is true, mark the vendor as deleted
     if (deleteVendor) {
       await updateVendor(id, { Deleted: 1 });
-      return res.status(200).json({ success: true, message: "Vendor deleted successfully." });
+      return res
+        .status(200)
+        .json({ success: true, message: "Vendor deleted successfully." });
     }
 
     // If deleteVendor is false and the vendor is currently marked as deleted, mark it as not deleted
     if (!deleteVendor && existingVendor.Deleted) {
       await updateVendor(id, { Deleted: 0 });
-      return res.status(200).json({ success: true, message: "Vendor restored successfully." });
+      return res
+        .status(200)
+        .json({ success: true, message: "Vendor restored successfully." });
     }
 
     // Prepare the updated fields
     const updatedFields = {
       Name: name ? name.trim() : existingVendor.Name,
       Email: email ? email.trim() : existingVendor.Email,
-      Description: description ? description.trim() : existingVendor.Description,
-      AdminComment: adminComment ? adminComment.trim() : existingVendor.AdminComment,
+      Description: description
+        ? description.trim()
+        : existingVendor.Description,
+      AdminComment: adminComment
+        ? adminComment.trim()
+        : existingVendor.AdminComment,
       Active: active ?? existingVendor.Active,
       DisplayOrder: displayOrder ?? existingVendor.DisplayOrder,
-      MetaKeywords: metaKeywords ? metaKeywords.trim() : existingVendor.MetaKeywords,
-      MetaDescription: metaDescription ? metaDescription.trim() : existingVendor.MetaDescription,
+      MetaKeywords: metaKeywords
+        ? metaKeywords.trim()
+        : existingVendor.MetaKeywords,
+      MetaDescription: metaDescription
+        ? metaDescription.trim()
+        : existingVendor.MetaDescription,
       MetaTitle: metaTitle ? metaTitle.trim() : existingVendor.MetaTitle,
       PageSize: pageSize ?? existingVendor.PageSize,
-      PageSizeOptions: pageSizeOptions ?? getPageSizeOptions(pageSize ?? existingVendor.PageSize),
+      PageSizeOptions:
+        pageSizeOptions ??
+        getPageSizeOptions(pageSize ?? existingVendor.PageSize),
       AllowCustomersToSelectPageSize: true, // Always set to true
     };
 
     // Update the vendor in the database
     await updateVendor(id, updatedFields);
 
-    res.status(200).json({ success: true, message: "Vendor updated successfully.", data: updatedFields });
+    res
+      .status(200)
+      .json({
+        success: true,
+        message: "Vendor updated successfully.",
+        data: updatedFields,
+      });
   } catch (error) {
     console.error("Error in patchVendor API:", error);
     res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const getOneVendor = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const vendor = await getVendorById(id);
+    if (!vendor) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Vendor not found." });
+    }
+    res
+      .status(200)
+      .json({
+        success: true,
+        message: "Successfully fetched vendor",
+        data: vendor,
+      });
+  } catch (error) {
+    console.error("Error in getOneVendor API:", error);
+    res.status(500).send("Server error");
   }
 };

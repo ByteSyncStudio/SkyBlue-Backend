@@ -6,6 +6,7 @@ import {
 import {
   createNewVendor,
   getAllVendors,
+  getOneVendor,
   patchVendor,
 } from "../../controllers/admin/vendors/adminVendorsController.js";
 import {
@@ -733,6 +734,7 @@ router.patch("/bulk-products/bulk-edit", adminAccess, updateBulkEdit);
 
 
 
+router.get("/getonevendor/:id", adminAccess, getOneVendor);
 
 
 
