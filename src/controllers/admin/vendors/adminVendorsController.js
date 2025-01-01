@@ -1,4 +1,5 @@
 import {
+  createOrUpdateAddress,
   createVendor,
   getVendorById,
   listVendors,
@@ -197,6 +198,59 @@ export const getOneVendor = async (req, res) => {
       });
   } catch (error) {
     console.error("Error in getOneVendor API:", error);
+    res.status(500).send("Server error");
+  }
+};
+
+export const updateVendorAddress = async (req, res) => {
+  try {
+    const { vendorId } = req.params;
+
+    const { 
+      email, 
+      country, 
+      state, 
+      city, 
+      address1, 
+      address2, 
+      zipCode, 
+      phone, 
+      fax 
+    } = req.body;
+
+    // Validate input (optional but recommended)
+    if (!vendorId) {
+      return res.status(400).json({ success: false, message: "Vendor ID is required." });
+    }
+
+   
+
+    // Create or update the address in the Address table
+    const addressData = {
+      Email: email,
+      CountryId: country,  // Assuming 'country' corresponds to 'CountryId'
+      StateProvinceId: state,  // Assuming 'state' corresponds to 'StateProvinceId'
+      City: city,
+      Address1: address1,
+      Address2: address2,
+      ZipPostalCode: zipCode,
+      PhoneNumber: phone,
+      FaxNumber: fax,
+      CreatedOnUtc: new Date().toISOString()
+    };
+
+    const address = await createOrUpdateAddress(addressData);
+
+    // Now, update the Vendor with the new AddressId
+    // const result = await UpdateVendorAddress(vendorId, { addressId: address.Id });
+
+    res.status(200).json({
+      success: true,
+      message: "Vendor address updated successfully.",
+       data: address,
+    });
+  } catch (error) {
+    console.error("Error in updateVendorAddress API:", error);
     res.status(500).send("Server error");
   }
 };
