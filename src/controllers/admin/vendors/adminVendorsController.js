@@ -1,6 +1,7 @@
 import {
   createOrUpdateAddress,
   createVendor,
+  getVendorAddressById,
   getVendorById,
   listVendors,
   updateVendor,
@@ -75,13 +76,11 @@ export const createNewVendor = async (req, res) => {
 
     await createVendor(vendorData);
 
-    res
-      .status(201)
-      .json({
-        success: true,
-        message: "Vendor created successfully.",
-        data: vendorData,
-      });
+    res.status(201).json({
+      success: true,
+      message: "Vendor created successfully.",
+      data: vendorData,
+    });
   } catch (error) {
     console.error("Error in createNewVendor API:", error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -167,13 +166,11 @@ export const patchVendor = async (req, res) => {
     // Update the vendor in the database
     await updateVendor(id, updatedFields);
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Vendor updated successfully.",
-        data: updatedFields,
-      });
+    res.status(200).json({
+      success: true,
+      message: "Vendor updated successfully.",
+      data: updatedFields,
+    });
   } catch (error) {
     console.error("Error in patchVendor API:", error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -189,13 +186,11 @@ export const getOneVendor = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Vendor not found." });
     }
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Successfully fetched vendor",
-        data: vendor,
-      });
+    res.status(200).json({
+      success: true,
+      message: "Successfully fetched vendor",
+      data: vendor,
+    });
   } catch (error) {
     console.error("Error in getOneVendor API:", error);
     res.status(500).send("Server error");
@@ -205,52 +200,71 @@ export const getOneVendor = async (req, res) => {
 export const updateVendorAddress = async (req, res) => {
   try {
     const { vendorId } = req.params;
+    console.log("Vendor ID:", vendorId);
 
-    const { 
-      email, 
-      country, 
-      state, 
-      city, 
-      address1, 
-      address2, 
-      zipCode, 
-      phone, 
-      fax 
+    const {
+      email,
+      country,
+      state,
+      city,
+      address1,
+      address2,
+      zipCode,
+      phone,
+      fax,
     } = req.body;
 
     // Validate input (optional but recommended)
     if (!vendorId) {
-      return res.status(400).json({ success: false, message: "Vendor ID is required." });
+      return res
+        .status(400)
+        .json({ success: false, message: "Vendor ID is required." });
     }
-
-   
 
     // Create or update the address in the Address table
     const addressData = {
       Email: email,
-      CountryId: country,  // Assuming 'country' corresponds to 'CountryId'
-      StateProvinceId: state,  // Assuming 'state' corresponds to 'StateProvinceId'
+      CountryId: country, 
+      StateProvinceId: state, 
       City: city,
       Address1: address1,
       Address2: address2,
       ZipPostalCode: zipCode,
       PhoneNumber: phone,
       FaxNumber: fax,
-      CreatedOnUtc: new Date().toISOString()
+      CreatedOnUtc: new Date().toISOString(),
     };
 
-    const address = await createOrUpdateAddress(addressData);
+    console.log("Address data:", addressData);
 
-    // Now, update the Vendor with the new AddressId
-    // const result = await UpdateVendorAddress(vendorId, { addressId: address.Id });
+    const address = await createOrUpdateAddress(addressData, vendorId);
 
     res.status(200).json({
       success: true,
       message: "Vendor address updated successfully.",
-       data: address,
+      data: address,
     });
   } catch (error) {
     console.error("Error in updateVendorAddress API:", error);
     res.status(500).send("Server error");
   }
 };
+
+export const getVendorAddress = async (req, res) => {
+  try {
+    const { vendorId } = req.params;
+    console.log("Vendor ID:", vendorId);
+
+    // Fetch the vendor address from the Address table
+    const address = await getVendorAddressById(vendorId);
+
+    res.status(200).json({
+      success: true,
+      message: "Successfully fetched vendor address",
+      data: address,
+    });
+  } catch (error) {
+    console.error("Error in getVendorAddress API:", error);
+    res.status(500).send("Server error");
+  }
+}

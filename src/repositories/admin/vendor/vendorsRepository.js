@@ -122,7 +122,6 @@ export async function getVendorById(id) {
 }
 
 export async function createOrUpdateAddress(addressData, vendorId) {
-  // Check if the address already exists (for example, using email or a unique identifier)
   console.log("AddressData:", addressData);
 
   let address = await knex("Address").where("Email", addressData.Email).first();
@@ -132,64 +131,69 @@ export async function createOrUpdateAddress(addressData, vendorId) {
     await knex("Address").where("Id", address.Id).update(addressData);
   } else {
     // Create a new address
-    const [newAddressId] = await knex("Address")
+    const [newAddress] = await knex("Address")
       .insert(addressData)
       .returning("Id");
 
+    const newAddressId = newAddress.Id || newAddress; // Extract Id in case of different dialects
+
+    console.log("newAddressId:", newAddressId);
+
     address = { ...addressData, Id: newAddressId };
 
-    console.log("object:", address);
+    console.log("Created address:", address);
 
+    // Update the Vendor table with the new AddressId
     await knex("Vendor")
       .where("Id", vendorId)
       .update({ AddressId: newAddressId });
 
-    console.log("newAddressId:", newAddressId);
+    console.log(`Vendor (ID: ${vendorId}) updated with AddressId: ${newAddressId}`);
   }
 
   return address;
 }
 
-// export async function UpdateVendorAddress(vendorId, addressData) {
-//   try {
+export async function getVendorAddressById(vendorId) {
+  try {
+    // Step 1: Fetch AddressId from Vendor Table
+    const vendor = await knex("Vendor")
+      .select("AddressId")
+      .where({ Id: vendorId })
+      .first();
 
-//     if (!vendorId) {
-//       return res.status(400).json({ success: false, message: 'Vendor ID is required.' });
-//     }
+    if (!vendor || !vendor.AddressId) {
+      throw new Error(`No address found for Vendor ID: ${vendorId}`);
+    }
 
-//     const newAddressData = {
-//       Email: addressData.email,
-//       CountryId: addressData.country,
-//       StateProvinceId: addressData.state,
-//       City: addressData.city,
-//       Address1: addressData.address1,
-//       Address2: addressData.address2,
-//       ZipPostalCode: addressData.zipCode,
-//       PhoneNumber: addressData.phone,
-//       FaxNumber: addressData.fax,
-//       CreatedOnUtc: new Date().toISOString(),
-//     };
+    console.log(`Vendor ID: ${vendorId}, Address ID: ${vendor.AddressId}`);
 
-//     // Insert new address
-//     const [newAddressId] = await knex('Address')
-//       .insert(newAddressData)
-//       .returning('Id');
+    // Step 2: Fetch Address Details from Address Table
+    const address = await knex("Address")
+      .select(
+        "Id",
+        "Email",
+        "CountryId",
+        "StateProvinceId",
+        "City",
+        "Address1",
+        "Address2",
+        "ZipPostalCode",
+        "PhoneNumber",
+        "FaxNumber"
+      )
+      .where({ Id: vendor.AddressId })
+      .first();
 
-//     if (!newAddressId) {
-//       throw new Error('Failed to insert new address. No AddressId returned.');
-//     }
+    if (!address) {
+      throw new Error(`Address not found for Address ID: ${vendor.AddressId}`);
+    }
 
-//     // Update vendor with the new AddressId
-//     await knex('Vendor')
-//       .where('Id', vendorId)
-//       .update({ AddressId: newAddressId });
+    console.log(`Address details fetched for Vendor ID: ${vendorId}`);
 
-//     res.status(200).json({
-//       success: true,
-//       message: 'Vendor address updated successfully.',
-//     });
-//   } catch (error) {
-//     console.error('Error in updateVendorAddress API:', error);
-//     res.status(500).json({ success: false, message: 'Server error.', error: error.message });
-//   }
-// }
+    return address;
+  } catch (error) {
+    console.error("Error in getVendorAddress repository function:", error);
+    throw new Error("Error fetching vendor address.");
+  }
+}
