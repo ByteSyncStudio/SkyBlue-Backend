@@ -76,7 +76,7 @@ export async function GetAllCategories(searchTerm = '') {
     return JSON.stringify(organizedCategories, null, 2); // Pretty print JSON
 }
 
-export async function AddCategory(Name, ParentCategoryId, Published, DiscountId, Description, ShowOnHomePage, PictureId) {
+export async function AddCategory(Name, ParentCategoryId, Published, DiscountId, Description, ShowOnHomePage, MetaKeywords, MetaDescription, MetaTitle, PictureId) {
     try {
         const result = await knex.transaction(async (trx) => {
             const [categoryId] = await trx('Category')
@@ -95,6 +95,9 @@ export async function AddCategory(Name, ParentCategoryId, Published, DiscountId,
                     Deleted: 0,
                     DisplayOrder: 0,
                     Description,
+                    MetaKeywords,
+                    MetaDescription,
+                    MetaTitle,
                     CreatedOnUtc: new Date().toISOString(),
                     UpdatedOnUtc: new Date().toISOString(),
                 })
@@ -203,6 +206,9 @@ export async function GetSingleCategory(categoryId) {
             'c.Name',
             'c.Published',
             'c.Deleted',
+            'c.MetaKeywords',
+            'c.MetaDescription',
+            'c.MetaTitle',
             'd.Name as DiscountName',
             'd.Id as DiscountId',
             'p.Id as PictureId',

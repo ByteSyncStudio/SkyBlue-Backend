@@ -22,7 +22,7 @@ export async function addCategory(req, res) {
     try {
         await uploadMiddleware(req, res);
 
-        let { Name, ParentCategoryId, Published, DiscountId, Description, ShowOnHomePage } = req.body;
+        let { Name, ParentCategoryId, Published, DiscountId, Description, ShowOnHomePage, MetaKeywords, MetaDescription, MetaTitle } = req.body;
         const file = req.file;
 
         if (ParentCategoryId === undefined) {
@@ -46,7 +46,7 @@ export async function addCategory(req, res) {
             queueFileUpload(file.path, remotePath);
         }
 
-        const newCategoryId = await AddCategory(Name, ParentCategoryId, Published, DiscountId, Description, ShowOnHomePage, pictureId);
+        const newCategoryId = await AddCategory(Name, ParentCategoryId, Published, DiscountId, Description, ShowOnHomePage, MetaKeywords, MetaDescription, MetaTitle, pictureId);
         res.status(201).send({ newCategoryId });
     } catch (error) {
         console.error(error);
@@ -59,7 +59,7 @@ export async function updateCategory(req, res) {
         await uploadMiddleware(req, res);
 
         const categoryId = req.params.id;
-        const { Name, ParentCategoryId, Published, DiscountId, Description, ShowOnHomePage, removedImage } = req.body;
+        const { Name, ParentCategoryId, Published, DiscountId, Description, ShowOnHomePage, MetaKeywords, MetaDescription, MetaTitle, removedImage } = req.body;
         const file = req.file;
 
         let pictureId;
@@ -92,6 +92,9 @@ export async function updateCategory(req, res) {
         if (DiscountId !== undefined) updatedCategory.DiscountId = DiscountId === 'null' ? null : parseInt(DiscountId);
         if (Description !== undefined) updatedCategory.Description = Description;
         if (ShowOnHomePage !== undefined) updatedCategory.ShowOnHomePage = ShowOnHomePage === 'true' || ShowOnHomePage === '1' ? 1 : 0;
+        if (MetaKeywords !== undefined) updatedCategory.MetaKeywords = MetaKeywords;
+        if (MetaDescription !== undefined) updatedCategory.MetaDescription = MetaDescription;
+        if (MetaTitle !== undefined) updatedCategory.MetaTitle = MetaTitle;
         if (pictureId !== undefined) updatedCategory.PictureId = pictureId;
 
         await UpdateCategory(categoryId, updatedCategory);
