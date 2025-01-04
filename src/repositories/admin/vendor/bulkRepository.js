@@ -126,3 +126,9 @@ export const EditBulkProduct = async (changes) => {
   // Perform all updates in parallel
   await Promise.all(productUpdates);
 }
+
+export const BulkDeleteProducts = async (productIds) => {
+  return await knex('Product')
+    .whereIn('Id', productIds)
+    .update({ Deleted: 1 });
+}
