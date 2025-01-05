@@ -6,7 +6,10 @@ import {
 import {
   createNewVendor,
   getAllVendors,
+  getOneVendor,
+  getVendorAddress,
   patchVendor,
+  updateVendorAddress,
 } from "../../controllers/admin/vendors/adminVendorsController.js";
 import {
   addNewOrderNote,
@@ -735,6 +738,13 @@ router.delete("/bulk-delete-products", adminAccess, bulkDeleteProducts);
 router.patch("/bulk-products/bulk-edit", adminAccess, updateBulkEdit);
 
 
+
+router.get("/getonevendor/:id", adminAccess, getOneVendor);
+
+//getvendoraddress
+router.get("/getvendoraddress/:vendorId", adminAccess, getVendorAddress);
+
+router.patch("/update-vendor-address/:vendorId", adminAccess, updateVendorAddress);
 
 
 
