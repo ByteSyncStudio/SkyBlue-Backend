@@ -148,7 +148,9 @@ export async function createOrUpdateAddress(addressData, vendorId) {
       .where("Id", vendorId)
       .update({ AddressId: newAddressId });
 
-    console.log(`Vendor (ID: ${vendorId}) updated with AddressId: ${newAddressId}`);
+    console.log(
+      `Vendor (ID: ${vendorId}) updated with AddressId: ${newAddressId}`
+    );
   }
 
   return address;
@@ -195,5 +197,22 @@ export async function getVendorAddressById(vendorId) {
   } catch (error) {
     console.error("Error in getVendorAddress repository function:", error);
     throw new Error("Error fetching vendor address.");
+  }
+}
+
+export async function getVendorProductsById(vendorId, page, pageSize) {
+  try {
+    const offset = (page - 1) * pageSize; // Calculate the offset for pagination
+
+    const products = await knex("Product")
+      .select("Id", "Name", "Published")
+      .where({ VendorId: vendorId })
+      .limit(pageSize)
+      .offset(offset);
+
+    return products;
+  } catch (error) {
+    console.error("Error in getVendorProductsById repository function:", error);
+    throw new Error("Error fetching vendor products.");
   }
 }

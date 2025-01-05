@@ -8,6 +8,7 @@ import {
   getAllVendors,
   getOneVendor,
   getVendorAddress,
+  getVendorProducts,
   patchVendor,
   updateVendorAddress,
 } from "../../controllers/admin/vendors/adminVendorsController.js";
@@ -730,6 +731,8 @@ router.post("/create-vendors", adminAccess, createNewVendor);
  */
 router.patch("/editvendor/:id", adminAccess, patchVendor);
 
+//getvendorproduct
+router.get("/vendor-products/:vendorId", adminAccess, getVendorProducts);
 
 router.get("/bulk-products", adminAccess, getBulkProducts);
 
