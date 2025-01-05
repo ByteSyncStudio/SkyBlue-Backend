@@ -1,10 +1,12 @@
 import {
+  AddCustomerToVendor,
   createOrUpdateAddress,
   createVendor,
   getVendorAddressById,
   getVendorById,
   getVendorProductsById,
   listVendors,
+  searchCustomerByEmailInDB,
   updateVendor,
 } from "../../../repositories/admin/vendor/vendorsRepository.js";
 
@@ -190,7 +192,7 @@ export const getOneVendor = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Successfully fetched vendor",
-      data: vendor,
+      vendor,
     });
   } catch (error) {
     console.error("Error in getOneVendor API:", error);
@@ -274,7 +276,6 @@ export const getVendorAddress = async (req, res) => {
 export const getVendorProducts = async (req, res) => {
   try {
     const { vendorId } = req.params;
-    console.log("Vendor ID:", vendorId);
 
     if(!vendorId) {
       return res
@@ -295,3 +296,65 @@ export const getVendorProducts = async (req, res) => {
     res.status(500).send("Server error");
   }
 }
+
+
+// Controller Function to Handle Search
+export const searchCustomerByEmail = async (req, res) => {
+  const { email } = req.query; // Get email from query parameters
+  if (!email) {
+    return res.status(400).json({ success: false, message: "Email is required" });
+  }
+
+  try {
+    // Fetch customer by email
+    const result = await searchCustomerByEmailInDB(email);
+
+    // If no customer found, return a message
+    if (result.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No customer found with the provided email",
+      });
+    }
+
+    // Return customer details if found
+    res.status(200).json({
+      success: true,
+      message: "Customer found",
+      result,
+    });
+  } catch (error) {
+    console.error("Error in searchCustomerByEmail API:", error);
+    res.status(500).send("Server error");
+  }
+};
+
+
+export const addCustomerToVendor = async (req, res) => {
+  try {
+    const { vendorId } = req.params; // Extract vendorId from request params
+    const { customerId } = req.body; // Extract customerId from request body
+
+    
+
+    // Validate input
+    if (!vendorId || !customerId) {
+      return res.status(400).json({
+        success: false,
+        message: "Vendor ID and Customer ID are required.",
+      });
+    }
+
+    // Call the function to add the customer to the vendor
+    const customer = await AddCustomerToVendor(vendorId, customerId);
+
+    res.status(200).json({
+      success: true,
+      message: "Customer added to vendor successfully.",
+      customer,
+    });
+  } catch (error) {
+    console.error("Error in addCustomerToVendor API:", error);
+    res.status(500).send("Server error");
+  }
+};

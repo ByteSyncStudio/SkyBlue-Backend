@@ -212,3 +212,59 @@ export async function getVendorProductsById(vendorId) {
     throw new Error("Error fetching vendor products.");
   }
 }
+
+
+// Function to search customer by email in the database
+export async function searchCustomerByEmailInDB(email) {
+  try {
+    const customers = await knex("Customer")
+      .select(
+        "Id",
+        "CustomerGuid",
+        "Username",
+        "Email",
+        "VendorId",
+        "Active",
+        "IsApproved",
+        "CreatedOnUtc"
+      )
+      .where("Email", "like", `%${email}%`); // Using 'like' for partial match
+
+    return customers;
+  } catch (error) {
+    console.error("Error in searchCustomerByEmailInDB repository function:", error);
+    throw new Error("Error searching for customer by email.");
+  }
+}
+
+
+// Repository function to add customer to vendor
+export async function AddCustomerToVendor(vendorId, customerId) {
+  try {
+    // Fetch the customer details from the database using customerId
+    const customer = await knex("Customer")
+      .select("Id", "VendorId", "Email") // Also select Email in case it's useful for error messages
+      .where("Id", customerId)
+      .first(); // We only need one customer, so use .first() to fetch a single result
+
+    if (!customer) {
+      throw new Error(`Customer with ID ${customerId} not found.`);
+    }
+
+    // Check if the customer already has a VendorId
+    if (customer.VendorId) {
+      throw new Error(`Customer with ID ${customerId} is already associated with a vendor.`);
+    }
+
+    // Update the VendorId for the customer to the provided vendorId
+    await knex("Customer")
+      .where("Id", customer.Id)
+      .update({ VendorId: vendorId }); // Update the VendorId to the provided vendorId
+
+    // Return the updated customer
+    return { ...customer, VendorId: vendorId };
+  } catch (error) {
+    console.error("Error in AddCustomerToVendor repository function:", error);
+    throw new Error("Error adding customer to vendor.");
+  }
+}

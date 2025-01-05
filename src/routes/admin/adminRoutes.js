@@ -4,12 +4,14 @@ import {
   approveUser,
 } from "../../controllers/admin/approve/approveController.js";
 import {
+  addCustomerToVendor,
   createNewVendor,
   getAllVendors,
   getOneVendor,
   getVendorAddress,
   getVendorProducts,
   patchVendor,
+  searchCustomerByEmail,
   updateVendorAddress,
 } from "../../controllers/admin/vendors/adminVendorsController.js";
 import {
@@ -743,6 +745,12 @@ router.patch("/bulk-products/bulk-edit", adminAccess, updateBulkEdit);
 
 
 router.get("/getonevendor/:id", adminAccess, getOneVendor);
+
+router.get("/getonevendor/:id", adminAccess, getOneVendor);
+
+router.get("/searchcustomer", adminAccess, searchCustomerByEmail);
+
+router.patch("/addcustomertovendor/:vendorId", adminAccess, addCustomerToVendor);
 
 //getvendoraddress
 router.get("/getvendoraddress/:vendorId", adminAccess, getVendorAddress);
