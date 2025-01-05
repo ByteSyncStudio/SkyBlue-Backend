@@ -274,41 +274,24 @@ export const getVendorAddress = async (req, res) => {
 export const getVendorProducts = async (req, res) => {
   try {
     const { vendorId } = req.params;
-    const { page = 1, pageSize = 10 } = req.query; // Default to page 1, 10 items per page
-
     console.log("Vendor ID:", vendorId);
 
-    if (!vendorId) {
+    if(!vendorId) {
       return res
         .status(400)
         .json({ success: false, message: "Vendor ID is required." });
     }
 
-    // Validate pagination inputs
-    const parsedPage = parseInt(page, 10);
-    const parsedPageSize = parseInt(pageSize, 10);
-
-    if (isNaN(parsedPage) || isNaN(parsedPageSize) || parsedPage < 1 || parsedPageSize < 1) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid pagination parameters. Page and pageSize must be positive integers.",
-      });
-    }
-
-    // Fetch the vendor's products with pagination
-    const products = await getVendorProductsById(vendorId, parsedPage, parsedPageSize);
+    // Fetch the vendor's products
+    const products = await getVendorProductsById(vendorId);
 
     res.status(200).json({
       success: true,
       message: "Successfully fetched vendor products",
       data: products,
-      meta: {
-        page: parsedPage,
-        pageSize: parsedPageSize,
-      },
     });
   } catch (error) {
     console.error("Error in getVendorProducts API:", error);
     res.status(500).send("Server error");
   }
-};
+}

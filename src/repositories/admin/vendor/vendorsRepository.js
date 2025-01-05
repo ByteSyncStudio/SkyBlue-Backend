@@ -200,15 +200,11 @@ export async function getVendorAddressById(vendorId) {
   }
 }
 
-export async function getVendorProductsById(vendorId, page, pageSize) {
+export async function getVendorProductsById(vendorId) {
   try {
-    const offset = (page - 1) * pageSize; // Calculate the offset for pagination
-
     const products = await knex("Product")
       .select("Id", "Name", "Published")
-      .where({ VendorId: vendorId })
-      .limit(pageSize)
-      .offset(offset);
+      .where({ VendorId: vendorId });
 
     return products;
   } catch (error) {
