@@ -229,8 +229,8 @@ export const updateVendorAddress = async (req, res) => {
     // Create or update the address in the Address table
     const addressData = {
       Email: email,
-      CountryId: country, 
-      StateProvinceId: state, 
+      CountryId: country,
+      StateProvinceId: state,
       City: city,
       Address1: address1,
       Address2: address2,
@@ -272,14 +272,13 @@ export const getVendorAddress = async (req, res) => {
     console.error("Error in getVendorAddress API:", error);
     res.status(500).send("Server error");
   }
-}
-
+};
 
 export const getVendorProducts = async (req, res) => {
   try {
     const { vendorId } = req.params;
 
-    if(!vendorId) {
+    if (!vendorId) {
       return res
         .status(400)
         .json({ success: false, message: "Vendor ID is required." });
@@ -297,14 +296,15 @@ export const getVendorProducts = async (req, res) => {
     console.error("Error in getVendorProducts API:", error);
     res.status(500).send("Server error");
   }
-}
-
+};
 
 // Controller Function to Handle Search
 export const searchCustomerByEmail = async (req, res) => {
   const { email } = req.query; // Get email from query parameters
   if (!email) {
-    return res.status(400).json({ success: false, message: "Email is required" });
+    return res
+      .status(400)
+      .json({ success: false, message: "Email is required" });
   }
 
   try {
@@ -330,7 +330,6 @@ export const searchCustomerByEmail = async (req, res) => {
     res.status(500).send("Server error");
   }
 };
-
 
 export const addCustomerToVendor = async (req, res) => {
   try {
@@ -385,11 +384,11 @@ export const getOneVendorEdit = async (req, res) => {
     console.error("Error in getOneVendor API:", error);
     res.status(500).send("Server error");
   }
-}
+};
 
 export const removeCustomerToVendor = async (req, res) => {
   try {
-    const {customerId} = req.body;
+    const { customerId } = req.body;
 
     // Validate input
     if (!customerId) {
@@ -419,4 +418,4 @@ export const removeCustomerToVendor = async (req, res) => {
     console.error("Error in removeCustomerToVendor API:", error);
     res.status(500).send("Server error");
   }
-}
+};
