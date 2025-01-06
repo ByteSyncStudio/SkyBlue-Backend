@@ -8,9 +8,11 @@ import {
   createNewVendor,
   getAllVendors,
   getOneVendor,
+  getOneVendorEdit,
   getVendorAddress,
   getVendorProducts,
   patchVendor,
+  removeCustomerToVendor,
   searchCustomerByEmail,
   updateVendorAddress,
 } from "../../controllers/admin/vendors/adminVendorsController.js";
@@ -746,11 +748,13 @@ router.patch("/bulk-products/bulk-edit", adminAccess, updateBulkEdit);
 
 router.get("/getonevendor/:id", adminAccess, getOneVendor);
 
-router.get("/getonevendor/:id", adminAccess, getOneVendor);
+router.get("/getonevendoredit/:id", adminAccess, getOneVendorEdit);
 
 router.get("/searchcustomer", adminAccess, searchCustomerByEmail);
 
 router.patch("/addcustomertovendor/:vendorId", adminAccess, addCustomerToVendor);
+
+router.patch("/removecustomervendor", adminAccess, removeCustomerToVendor);
 
 //getvendoraddress
 router.get("/getvendoraddress/:vendorId", adminAccess, getVendorAddress);

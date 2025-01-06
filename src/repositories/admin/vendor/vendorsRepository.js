@@ -110,16 +110,32 @@ export async function getVendorById(id) {
       ),
     }));
 
-    // Step 4: Combine the vendor data with the picture data
+    // Step 4: Fetch associated customers
+    const customers = await knex("Customer")
+      .select(
+        "Id",
+        "CustomerGuid",
+        "Username",
+        "Email",
+        "AdminComment",
+        "Active",
+        "CreatedOnUtc",
+        "LastActivityDateUtc"
+      )
+      .where({ VendorId: id });
+
+    // Step 5: Combine the vendor data with the picture and customer data
     return {
       ...vendor,
       pictures: picturesWithUrls, // Array of picture objects with image URLs
+      customers, // Array of customer objects associated with the vendor
     };
   } catch (error) {
     console.error("Error in getVendorWithImagesById function:", error);
-    throw new Error("Error fetching vendor with images.");
+    throw new Error("Error fetching vendor with images and customers.");
   }
 }
+
 
 export async function createOrUpdateAddress(addressData, vendorId) {
   console.log("AddressData:", addressData);
@@ -213,7 +229,6 @@ export async function getVendorProductsById(vendorId) {
   }
 }
 
-
 // Function to search customer by email in the database
 export async function searchCustomerByEmailInDB(email) {
   try {
@@ -232,39 +247,134 @@ export async function searchCustomerByEmailInDB(email) {
 
     return customers;
   } catch (error) {
-    console.error("Error in searchCustomerByEmailInDB repository function:", error);
+    console.error(
+      "Error in searchCustomerByEmailInDB repository function:",
+      error
+    );
     throw new Error("Error searching for customer by email.");
   }
 }
 
-
 // Repository function to add customer to vendor
 export async function AddCustomerToVendor(vendorId, customerId) {
   try {
-    // Fetch the customer details from the database using customerId
     const customer = await knex("Customer")
-      .select("Id", "VendorId", "Email") // Also select Email in case it's useful for error messages
+      .select("Id", "VendorId", "Email")
       .where("Id", customerId)
-      .first(); // We only need one customer, so use .first() to fetch a single result
+      .first();
 
-    if (!customer) {
-      throw new Error(`Customer with ID ${customerId} not found.`);
-    }
-
-    // Check if the customer already has a VendorId
     if (customer.VendorId) {
-      throw new Error(`Customer with ID ${customerId} is already associated with a vendor.`);
+      return { message: "Customer already has a vendor.", email: customer.Email };
     }
 
-    // Update the VendorId for the customer to the provided vendorId
     await knex("Customer")
       .where("Id", customer.Id)
-      .update({ VendorId: vendorId }); // Update the VendorId to the provided vendorId
+      .update({ VendorId: vendorId });
 
     // Return the updated customer
     return { ...customer, VendorId: vendorId };
   } catch (error) {
     console.error("Error in AddCustomerToVendor repository function:", error);
     throw new Error("Error adding customer to vendor.");
+  }
+}
+
+export async function getVendorEditById(id) { 
+  try {
+    // Step 1: Fetch vendor details
+    const vendor = await knex("Vendor")
+      .select(
+        "Id",
+        "Name",
+        "Email",
+        "Description",
+        "PictureId",
+        "AddressId",
+        "AdminComment",
+        "Active",
+        "Deleted",
+        "DisplayOrder",
+        "MetaKeywords",
+        "MetaDescription",
+        "MetaTitle",
+        "PageSize",
+        "AllowCustomersToSelectPageSize",
+        "PageSizeOptions"
+      )
+      .where({ Id: id })
+      .first();
+
+    if (!vendor) {
+      throw new Error("Vendor not found.");
+    }
+
+    // Step 2: Fetch all pictures related to the vendor
+    let picturesData = [];
+    if (vendor.PictureId) {
+      picturesData = await knex("Picture")
+        .select(
+          "Id",
+          "PictureBinary",
+          "MimeType",
+          "SeoFilename",
+          "AltAttribute",
+          "TitleAttribute",
+          "IsNew"
+        )
+        .whereIn("Id", vendor.PictureId.split(",")); // Assuming PictureIds are stored as a comma-separated string
+    }
+
+    // Step 3: Generate image URLs for each picture
+    const picturesWithUrls = picturesData.map((picture) => ({
+      ...picture,
+      imageUrl: generateImageUrl2(
+        picture.Id,
+        picture.MimeType,
+        picture.SeoFilename
+      ),
+    }));
+
+    // Step 4: Fetch associated customers
+    const customers = await knex("Customer")
+      .select(
+        "Id",
+        "Username",
+        "Email",
+        "Active"
+      )
+      .where({ VendorId: id });
+
+    // Step 5: Combine the vendor data with the picture and customer data
+    return {
+      ...vendor,
+      pictures: picturesWithUrls, // Array of picture objects with image URLs
+      customers, // Array of customer objects associated with the vendor
+    };
+  } catch (error) {
+    console.error("Error in getVendorWithImagesById function:", error);
+    throw new Error("Error fetching vendor with images and customers.");
+  }
+}
+
+export async function RemoveCustomerFromVendor(customerId){
+  try {
+    const customer = await knex("Customer")
+      .select("Id", "VendorId", "Email")
+      .where("Id", customerId)
+      .first();
+
+    if (!customer.VendorId) {
+      return { message: "Customer does not have a vendor.", email: customer.Email };
+    }
+
+    await knex("Customer")
+      .where("Id", customer.Id)
+      .update({ VendorId: 0 });
+
+    // Return the updated customer
+    return { ...customer, VendorId: 0 };
+  } catch (error) {
+    console.error("Error in RemoveCustomerFromVendor repository function:", error);
+    throw new Error("Error removing customer from vendor.");
   }
 }

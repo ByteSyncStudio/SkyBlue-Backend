@@ -4,8 +4,10 @@ import {
   createVendor,
   getVendorAddressById,
   getVendorById,
+  getVendorEditById,
   getVendorProductsById,
   listVendors,
+  RemoveCustomerFromVendor,
   searchCustomerByEmailInDB,
   updateVendor,
 } from "../../../repositories/admin/vendor/vendorsRepository.js";
@@ -335,8 +337,6 @@ export const addCustomerToVendor = async (req, res) => {
     const { vendorId } = req.params; // Extract vendorId from request params
     const { customerId } = req.body; // Extract customerId from request body
 
-    
-
     // Validate input
     if (!vendorId || !customerId) {
       return res.status(400).json({
@@ -346,15 +346,77 @@ export const addCustomerToVendor = async (req, res) => {
     }
 
     // Call the function to add the customer to the vendor
-    const customer = await AddCustomerToVendor(vendorId, customerId);
+    const result = await AddCustomerToVendor(vendorId, customerId);
+
+    if (result.message) {
+      return res.status(400).json({
+        success: false,
+        message: result.message,
+        email: result.email,
+      });
+    }
 
     res.status(200).json({
       success: true,
       message: "Customer added to vendor successfully.",
-      customer,
+      customer: result,
     });
   } catch (error) {
     console.error("Error in addCustomerToVendor API:", error);
     res.status(500).send("Server error");
   }
 };
+
+export const getOneVendorEdit = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const vendor = await getVendorEditById(id);
+    if (!vendor) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Vendor not found." });
+    }
+    res.status(200).json({
+      success: true,
+      message: "Successfully fetched vendor",
+      vendor,
+    });
+  } catch (error) {
+    console.error("Error in getOneVendor API:", error);
+    res.status(500).send("Server error");
+  }
+}
+
+export const removeCustomerToVendor = async (req, res) => {
+  try {
+    const {customerId} = req.body;
+
+    // Validate input
+    if (!customerId) {
+      return res.status(400).json({
+        success: false,
+        message: "Vendor ID and Customer ID are required.",
+      });
+    }
+
+    // Call the function to remove the customer from the vendor
+    const result = await RemoveCustomerFromVendor(customerId);
+
+    if (result.message) {
+      return res.status(400).json({
+        success: false,
+        message: result.message,
+        email: result.email,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Customer removed from vendor successfully.",
+      customer: result,
+    });
+  } catch (error) {
+    console.error("Error in removeCustomerToVendor API:", error);
+    res.status(500).send("Server error");
+  }
+}
