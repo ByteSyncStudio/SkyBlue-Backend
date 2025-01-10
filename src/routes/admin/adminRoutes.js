@@ -41,6 +41,8 @@ import {
   tester,
   updateProductStock,
   getProductNames,
+  getProductSeoDetail,
+  updateProductSeoDetail,
 } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
   editCustomer,
@@ -1329,6 +1331,17 @@ router.get("/product/search", adminAccess, getProducts);
 router.get("/product/names", adminAccess, getProductNames);
 
 router.get("/product/:id", adminAccess, getProduct);
+
+router.get("/product-seo-detail/:id", adminAccess, getProductSeoDetail);
+
+router.patch("/product-seo-detail/:id", adminAccess, updateProductSeoDetail);
+
+
+
+
+
+
+
 
 /**
  * @swagger

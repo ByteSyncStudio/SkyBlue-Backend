@@ -946,3 +946,9 @@ export async function GetProductNames(searchTerm) {
     .where('Product.Name', 'like', `%${searchTerm}%`)
     .select('Id', 'Name')
 }
+
+export async function GetProductSEODetail(productId) {
+  return knex("Product")
+    .where('Product.Id', productId)
+    .select('Id', 'Name', 'MetaKeywords', 'MetaDescription', 'MetaTitle')
+}
