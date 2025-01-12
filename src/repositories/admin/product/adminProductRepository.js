@@ -479,10 +479,10 @@ export async function listBestsellers(sortBy, size, user, searchTerm = "") {
     const processedProducts = products.map((product) => {
       const imageUrl = product.PictureId
         ? generateImageUrl2(
-          product.PictureId,
-          product.MimeType,
-          product.SeoFilename
-        )
+            product.PictureId,
+            product.MimeType,
+            product.SeoFilename
+          )
         : null;
       return {
         Id: product.Id,
@@ -569,14 +569,22 @@ export async function ListSearchProducts(
 
     if (categoryId) {
       query = query
-        .join("Product_Category_Mapping", "Product.Id", "Product_Category_Mapping.ProductId")
+        .join(
+          "Product_Category_Mapping",
+          "Product.Id",
+          "Product_Category_Mapping.ProductId"
+        )
         .join("Category", "Product_Category_Mapping.CategoryId", "Category.Id")
         .where("Category.Id", categoryId);
     }
 
     if (categoryName) {
       query = query
-        .join("Product_Category_Mapping", "Product.Id", "Product_Category_Mapping.ProductId")
+        .join(
+          "Product_Category_Mapping",
+          "Product.Id",
+          "Product_Category_Mapping.ProductId"
+        )
         .join("Category", "Product_Category_Mapping.CategoryId", "Category.Id")
         .where("Category.Name", "like", `%${categoryName}%`);
     }
@@ -635,10 +643,10 @@ export async function ListSearchProducts(
       imageUrl:
         product.PictureId && product.MimeType && product.SeoFilename
           ? generateImageUrl2(
-            product.PictureId,
-            product.MimeType,
-            product.SeoFilename
-          )
+              product.PictureId,
+              product.MimeType,
+              product.SeoFilename
+            )
           : null,
     }));
 
@@ -753,10 +761,10 @@ export async function GetProduct(productId) {
     // Generate the image URL
     const imageUrl = product.PictureId
       ? generateImageUrl2(
-        product.PictureId,
-        product.MimeType,
-        product.SeoFilename
-      )
+          product.PictureId,
+          product.MimeType,
+          product.SeoFilename
+        )
       : null;
 
     // Construct the response object
@@ -906,10 +914,10 @@ export async function ListInventory(
       imageUrl:
         product.PictureId && product.MimeType && product.SeoFilename
           ? generateImageUrl2(
-            product.PictureId,
-            product.MimeType,
-            product.SeoFilename
-          )
+              product.PictureId,
+              product.MimeType,
+              product.SeoFilename
+            )
           : null,
     }));
 
@@ -943,12 +951,74 @@ export async function UpdateProductStock(productId, stockQuantity) {
 
 export async function GetProductNames(searchTerm) {
   return knex("Product")
-    .where('Product.Name', 'like', `%${searchTerm}%`)
-    .select('Id', 'Name')
+    .where("Product.Name", "like", `%${searchTerm}%`)
+    .select("Id", "Name");
 }
 
 export async function GetProductSEODetail(productId) {
   return knex("Product")
-    .where('Product.Id', productId)
-    .select('Id', 'Name', 'MetaKeywords', 'MetaDescription', 'MetaTitle')
+    .where("Product.Id", productId)
+    .select("Id", "Name", "MetaKeywords", "MetaDescription", "MetaTitle");
+}
+
+
+export async function getProductGeneralInfo(productId) {
+  const productDetails = await knex("Product")
+    .where("Id", productId)
+    .select(
+      "Id",
+      "ProductTypeId as ProductType",
+      "ProductTemplateId as ProductTemplate",
+      "VisibleIndividually",
+      "ItemLocation as AisleLocation",
+      "BoxQty",
+      "Name as ProductName",
+      "ShortDescription",
+      "FullDescription",
+      "Sku",
+      "Barcode",
+      "Barcode2 as BoxBarcode",
+      "Published",
+      "ShowOnHomePage",
+      "DisplayOrder",
+      "AllowCustomerReviews",
+      "AvailableStartDateTimeUtc as AvailableStartDate",
+      "AvailableEndDateTimeUtc as AvailableEndDate",
+      "MarkAsNew",
+      "TaxCategoryId",
+      "MarkAsNewStartDateTimeUtc as MarkAsNewStartDate",
+      "MarkAsNewEndDateTimeUtc as MarkAsNewEndDate",
+      "AdminComment",
+      "CreatedOnUtc as CreatedOn",
+      "UpdatedOnUtc as UpdatedOn"
+    )
+    .first();
+
+  // Fetch Tier Prices
+  const tierPrices = await knex("TierPrice")
+    .where("ProductId", productId)
+    .select(
+      "Quantity",
+      "Price",
+      "StartDateTimeUtc",
+      "EndDateTimeUtc"
+    );
+
+  // Fetch Tax Category
+  const taxCategory = await knex("TaxCategory")
+    .select("Id", "Name as TaxCategoryName")
+    .where("Id", productDetails.TaxCategoryId)
+    .first();
+
+  return {
+    product: productDetails,
+    prices: {
+      tierPrices, // Already fetched as an array
+      Price: productDetails.Price,
+      OldPrice: productDetails.OldPrice,
+      ProductCost: productDetails.ProductCost,
+      DisableBuyButton: productDetails.DisableBuyButton,
+      TaxCategory: taxCategory,
+    },
+  };
 }

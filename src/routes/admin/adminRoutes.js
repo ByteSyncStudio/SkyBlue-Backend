@@ -43,6 +43,7 @@ import {
   getProductNames,
   getProductSeoDetail,
   updateProductSeoDetail,
+  getProductDetail,
 } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
   editCustomer,
@@ -1338,7 +1339,7 @@ router.patch("/product-seo-detail/:id", adminAccess, updateProductSeoDetail);
 
 
 
-
+router.get("/product-detail/:id", adminAccess, getProductDetail);
 
 
 

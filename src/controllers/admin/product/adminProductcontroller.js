@@ -24,6 +24,7 @@ import {
   UpdateProductStock,
   GetProductNames,
   GetProductSEODetail,
+  getProductGeneralInfo,
 } from "../../../repositories/admin/product/adminProductRepository.js";
 import multer from "multer";
 import { queueFileUpload } from "../../../config/ftpsClient.js";
@@ -425,30 +426,51 @@ export async function getProductSeoDetail(req, res) {
 }
 
 export async function updateProductSeoDetail(req, res) {
-    const productId = req.params.id;
-    const { MetaKeywords = null, MetaDescription = null, Metatitle = null } = req.body; // Default to null
-  
-    try {
-      if (!productId) {
-        throw { statusCode: 400, message: "Product ID is required" };
-      }
-  
-      // Ensure at least one field is provided for the update
-      const updateData = { MetaKeywords, MetaDescription, Metatitle };
-      const hasDataToUpdate = Object.values(updateData).some(value => value !== undefined);
-  
-      if (!hasDataToUpdate) {
-        return res.status(400).send({ success: false, message: "No data provided to update." });
-      }
-  
-      await knex("Product")
-        .where("Id", productId)
-        .update(updateData);
-  
-      res.status(200).send({ success: true, message: "SEO details updated" });
-    } catch (error) {
-      console.error(error);
-      res.status(500).send("Server error");
+  const productId = req.params.id;
+  const {
+    MetaKeywords = null,
+    MetaDescription = null,
+    Metatitle = null,
+  } = req.body; // Default to null
+
+  try {
+    if (!productId) {
+      throw { statusCode: 400, message: "Product ID is required" };
     }
+
+    // Ensure at least one field is provided for the update
+    const updateData = { MetaKeywords, MetaDescription, Metatitle };
+    const hasDataToUpdate = Object.values(updateData).some(
+      (value) => value !== undefined
+    );
+
+    if (!hasDataToUpdate) {
+      return res
+        .status(400)
+        .send({ success: false, message: "No data provided to update." });
+    }
+
+    await knex("Product").where("Id", productId).update(updateData);
+
+    res.status(200).send({ success: true, message: "SEO details updated" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server error");
   }
-  
+}
+
+export async function getProductDetail(req, res) {
+  const productId = req.params.id;
+  try {
+    if (!productId) {
+      throw { statusCode: 400, message: "Product ID is required" };
+    }
+
+    const result = await getProductGeneralInfo(productId);
+
+    res.status(200).send({ success: true, result });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server error");
+  }
+}
