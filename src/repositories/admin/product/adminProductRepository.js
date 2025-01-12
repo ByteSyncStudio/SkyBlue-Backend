@@ -961,7 +961,6 @@ export async function GetProductSEODetail(productId) {
     .select("Id", "Name", "MetaKeywords", "MetaDescription", "MetaTitle");
 }
 
-
 export async function getProductGeneralInfo(productId) {
   const productDetails = await knex("Product")
     .where("Id", productId)
@@ -1001,7 +1000,8 @@ export async function getProductGeneralInfo(productId) {
       "Quantity",
       "Price",
       "StartDateTimeUtc",
-      "EndDateTimeUtc"
+      "EndDateTimeUtc",
+      "StoreId"
     );
 
   // Fetch Tax Category
@@ -1010,15 +1010,21 @@ export async function getProductGeneralInfo(productId) {
     .where("Id", productDetails.TaxCategoryId)
     .first();
 
+  // Fetch Discounts Applied to the Product
+  const discounts = await knex("Discount_AppliedToProducts")
+    .where("Product_Id", productId)
+    .select("Discount_Id");
+
   return {
     product: productDetails,
     prices: {
-      tierPrices, // Already fetched as an array
+      tierPrices,
       Price: productDetails.Price,
       OldPrice: productDetails.OldPrice,
       ProductCost: productDetails.ProductCost,
       DisableBuyButton: productDetails.DisableBuyButton,
       TaxCategory: taxCategory,
+      discounts, // Discounts are now part of the prices section
     },
   };
 }
