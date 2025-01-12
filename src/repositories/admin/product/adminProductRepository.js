@@ -962,6 +962,7 @@ export async function GetProductSEODetail(productId) {
 }
 
 export async function getProductGeneralInfo(productId) {
+  // Fetch product details
   const productDetailsPromise = knex("Product")
     .where("Id", productId)
     .select(
@@ -985,6 +986,9 @@ export async function getProductGeneralInfo(productId) {
       "AvailableEndDateTimeUtc as AvailableEndDate",
       "MarkAsNew",
       "TaxCategoryId",
+      "Price",
+      "OldPrice",
+      "ProductCost",
       "MarkAsNewStartDateTimeUtc as MarkAsNewStartDate",
       "MarkAsNewEndDateTimeUtc as MarkAsNewEndDate",
       "AdminComment",
@@ -993,20 +997,26 @@ export async function getProductGeneralInfo(productId) {
     )
     .first();
 
+  // Fetch tier prices with CustomerRole name
   const tierPricesPromise = knex("TierPrice")
+    .leftJoin("CustomerRole", "TierPrice.CustomerRoleId", "CustomerRole.Id")
     .where("ProductId", productId)
     .select(
-      "Quantity",
-      "Price",
-      "StartDateTimeUtc",
-      "EndDateTimeUtc",
-      "StoreId"
+      "TierPrice.Quantity",
+      "TierPrice.Price",
+      "TierPrice.StartDateTimeUtc",
+      "TierPrice.EndDateTimeUtc",
+      "TierPrice.StoreId",
+      "TierPrice.CustomerRoleId",
+      "CustomerRole.Name as CustomerRoleName" // Fetch role name
     );
 
+  // Fetch discounts applied to products
   const discountsPromise = knex("Discount_AppliedToProducts")
     .where("Product_Id", productId)
     .select("Discount_Id");
 
+  // Await product details and tax category separately
   const productDetails = await productDetailsPromise;
 
   const taxCategoryPromise = knex("TaxCategory")
@@ -1014,12 +1024,15 @@ export async function getProductGeneralInfo(productId) {
     .where("Id", productDetails.TaxCategoryId)
     .first();
 
+  // Await all promises in parallel
   const [tierPrices, taxCategory, discounts] = await Promise.all([
     tierPricesPromise,
     taxCategoryPromise,
     discountsPromise,
   ]);
 
+  console.log("Product details:", productDetails);
+  // Return the result
   return {
     product: productDetails,
     prices: {
