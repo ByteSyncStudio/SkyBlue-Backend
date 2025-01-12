@@ -962,7 +962,7 @@ export async function GetProductSEODetail(productId) {
 }
 
 export async function getProductGeneralInfo(productId) {
-  const productDetails = await knex("Product")
+  const productDetailsPromise = knex("Product")
     .where("Id", productId)
     .select(
       "Id",
@@ -993,8 +993,7 @@ export async function getProductGeneralInfo(productId) {
     )
     .first();
 
-  // Fetch Tier Prices
-  const tierPrices = await knex("TierPrice")
+  const tierPricesPromise = knex("TierPrice")
     .where("ProductId", productId)
     .select(
       "Quantity",
@@ -1004,16 +1003,22 @@ export async function getProductGeneralInfo(productId) {
       "StoreId"
     );
 
-  // Fetch Tax Category
-  const taxCategory = await knex("TaxCategory")
+  const discountsPromise = knex("Discount_AppliedToProducts")
+    .where("Product_Id", productId)
+    .select("Discount_Id");
+
+  const productDetails = await productDetailsPromise;
+
+  const taxCategoryPromise = knex("TaxCategory")
     .select("Id", "Name as TaxCategoryName")
     .where("Id", productDetails.TaxCategoryId)
     .first();
 
-  // Fetch Discounts Applied to the Product
-  const discounts = await knex("Discount_AppliedToProducts")
-    .where("Product_Id", productId)
-    .select("Discount_Id");
+  const [tierPrices, taxCategory, discounts] = await Promise.all([
+    tierPricesPromise,
+    taxCategoryPromise,
+    discountsPromise,
+  ]);
 
   return {
     product: productDetails,
@@ -1024,7 +1029,7 @@ export async function getProductGeneralInfo(productId) {
       ProductCost: productDetails.ProductCost,
       DisableBuyButton: productDetails.DisableBuyButton,
       TaxCategory: taxCategory,
-      discounts, // Discounts are now part of the prices section
+      discounts,
     },
   };
 }
