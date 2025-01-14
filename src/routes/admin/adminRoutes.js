@@ -44,6 +44,7 @@ import {
   getProductSeoDetail,
   updateProductSeoDetail,
   getProductDetail,
+  getProductDetailInventory,
 } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
   editCustomer,
@@ -1340,6 +1341,7 @@ router.patch("/product-seo-detail/:id", adminAccess, updateProductSeoDetail);
 
 
 router.get("/product-detail/:id", adminAccess, getProductDetail);
+router.get("/product-detail-inventory/:id", adminAccess, getProductDetailInventory);
 
 
 

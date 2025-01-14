@@ -1031,10 +1031,9 @@ export async function getProductGeneralInfo(productId) {
     discountsPromise,
   ]);
 
-  console.log("Product details:", productDetails);
   // Return the result
   return {
-    product: productDetails,
+    products: productDetails,
     prices: {
       tierPrices,
       Price: productDetails.Price,
@@ -1044,5 +1043,83 @@ export async function getProductGeneralInfo(productId) {
       TaxCategory: taxCategory,
       discounts,
     },
+  };
+}
+
+export async function getProductInventory(productId) {
+  const product = await knex("Product")
+    .select(
+      "Name",
+      "Sku",
+      "StockQuantity",
+      "DisplayStockAvailability",
+      "DisplayStockQuantity",
+      "MinStockQuantity",
+      "LowStockActivityId",
+      "NotifyAdminForQuantityBelow",
+      "BackorderModeId",
+      "AllowBackInStockSubscriptions",
+      "ProductAvailabilityRangeId",
+      "OrderMinimumQuantity",
+      "OrderMaximumQuantity",
+      "AllowedQuantities",
+      "NotReturnable",
+      "ManageInventoryMethodId"
+    )
+    .where("Id", productId)
+    .first();
+
+  if (!product) {
+    throw { statusCode: 404, message: "Product not found" };
+  }
+
+  // Fetch product availability range details
+  let productAvailabilityRange = 0;
+  if (product.ProductAvailabilityRangeId) {
+    productAvailabilityRange = await knex("ProductAvailabilityRange")
+      .select("Id", "Name", "DisplayOrder")
+      .where("Id", product.ProductAvailabilityRangeId)
+      .first();
+  }
+
+  // Map the low stock activity ID to meaningful text
+  const lowStockActivityMap = {
+    0: "Nothing",
+    1: "Disable buy button",
+    2: "Unpublish product",
+  };
+
+  // Map the backorder mode ID to meaningful text
+  const backorderModeMap = {
+    0: "No backorders",
+    1: "Allow qty below 0",
+    2: "Allow qty below 0 and notify customer",
+  };
+
+  // Map the inventory management method ID to meaningful text
+  const manageInventoryMethodMap = {
+    0: "Don't track inventory",
+    1: "Track inventory",
+    2: "Track inventory by product attributes",
+  };
+
+  // Construct the response
+  return {
+    name: product.Name,
+    sku: product.Sku,
+    stockQuantity: product.StockQuantity,
+    displayStockAvailability: !!product.DisplayStockAvailability,
+    displayStockQuantity: !!product.DisplayStockQuantity,
+    minStockQuantity: product.MinStockQuantity,
+    lowStockActivity: lowStockActivityMap[product.LowStockActivityId] || "Unknown",
+    notifyAdminForQuantityBelow: product.NotifyAdminForQuantityBelow,
+    backorderMode: backorderModeMap[product.BackorderModeId],
+    allowBackInStockSubscriptions: !!product.AllowBackInStockSubscriptions,
+    productAvailabilityRange: productAvailabilityRange || null,
+    minCartQuantity: product.OrderMinimumQuantity,
+    maxCartQuantity: product.OrderMaximumQuantity,
+    allowedQuantities: product.AllowedQuantities,
+    notReturnable: !!product.NotReturnable,
+    inventoryMethod: manageInventoryMethodMap[product.ManageInventoryMethodId] || "Unknown",
   };
 }

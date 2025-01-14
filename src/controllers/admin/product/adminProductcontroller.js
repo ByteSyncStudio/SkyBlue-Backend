@@ -25,6 +25,7 @@ import {
   GetProductNames,
   GetProductSEODetail,
   getProductGeneralInfo,
+  getProductInventory,
 } from "../../../repositories/admin/product/adminProductRepository.js";
 import multer from "multer";
 import { queueFileUpload } from "../../../config/ftpsClient.js";
@@ -467,6 +468,23 @@ export async function getProductDetail(req, res) {
     }
 
     const result = await getProductGeneralInfo(productId);
+
+    res.status(200).send({ success: true, result });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server error");
+  }
+}
+
+
+export async function getProductDetailInventory(req, res) {
+  const productId = req.params.id;
+  try {
+    if (!productId) {
+      throw { statusCode: 400, message: "Product ID is required" };
+    }
+
+    const result = await getProductInventory(productId);
 
     res.status(200).send({ success: true, result });
   } catch (error) {
