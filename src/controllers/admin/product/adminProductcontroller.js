@@ -26,6 +26,7 @@ import {
   GetProductSEODetail,
   getProductGeneralInfo,
   getProductInventory,
+  Getmapping,
 } from "../../../repositories/admin/product/adminProductRepository.js";
 import multer from "multer";
 import { queueFileUpload } from "../../../config/ftpsClient.js";
@@ -490,5 +491,29 @@ export async function getProductDetailInventory(req, res) {
   } catch (error) {
     console.error(error);
     res.status(500).send("Server error");
+  }
+}
+
+
+export async function getProductAvaliability(req,res) {
+  try {
+    const result = await knex ("ProductAvailabilityRange").select("*");
+    res.status(200).send(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server error");
+  }
+}
+
+export async function getProductMapping(req,res) {
+  try {
+    const productId = req.params.id;
+    const result = await Getmapping(productId)
+    res.status(200).send(result);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server error");
+    
   }
 }

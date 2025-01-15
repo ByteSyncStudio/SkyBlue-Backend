@@ -1073,15 +1073,6 @@ export async function getProductInventory(productId) {
     throw { statusCode: 404, message: "Product not found" };
   }
 
-  // Fetch product availability range details
-  let productAvailabilityRange = 0;
-  if (product.ProductAvailabilityRangeId) {
-    productAvailabilityRange = await knex("ProductAvailabilityRange")
-      .select("Id", "Name", "DisplayOrder")
-      .where("Id", product.ProductAvailabilityRangeId)
-      .first();
-  }
-
   // Map the low stock activity ID to meaningful text
   const lowStockActivityMap = {
     0: "Nothing",
@@ -1096,14 +1087,12 @@ export async function getProductInventory(productId) {
     2: "Allow qty below 0 and notify customer",
   };
 
-  // Map the inventory management method ID to meaningful text
   const manageInventoryMethodMap = {
     0: "Don't track inventory",
     1: "Track inventory",
     2: "Track inventory by product attributes",
   };
 
-  // Construct the response
   return {
     name: product.Name,
     sku: product.Sku,
@@ -1111,15 +1100,79 @@ export async function getProductInventory(productId) {
     displayStockAvailability: !!product.DisplayStockAvailability,
     displayStockQuantity: !!product.DisplayStockQuantity,
     minStockQuantity: product.MinStockQuantity,
-    lowStockActivity: lowStockActivityMap[product.LowStockActivityId] || "Unknown",
+    lowStockActivity:
+      lowStockActivityMap[product.LowStockActivityId] || "Unknown",
     notifyAdminForQuantityBelow: product.NotifyAdminForQuantityBelow,
     backorderMode: backorderModeMap[product.BackorderModeId],
     allowBackInStockSubscriptions: !!product.AllowBackInStockSubscriptions,
-    productAvailabilityRange: productAvailabilityRange || null,
+    productAvailabilityRange: product.ProductAvailabilityRangeId, // Directly return the ID
     minCartQuantity: product.OrderMinimumQuantity,
     maxCartQuantity: product.OrderMaximumQuantity,
     allowedQuantities: product.AllowedQuantities,
     notReturnable: !!product.NotReturnable,
-    inventoryMethod: manageInventoryMethodMap[product.ManageInventoryMethodId] || "Unknown",
+    inventoryMethod:
+      manageInventoryMethodMap[product.ManageInventoryMethodId] || "Unknown",
   };
+}
+
+export async function Getmapping(productId) {
+  try {
+    // Step 1: Get all ManufacturerIds and Names related to the productId from Product_Manufacturer_Mapping
+    const manufacturerMappingsPromise = knex("Product_Manufacturer_Mapping")
+      .join(
+        "Manufacturer",
+        "Manufacturer.Id",
+        "Product_Manufacturer_Mapping.ManufacturerId"
+      ) // Join with Manufacturer table
+      .select(
+        "Manufacturer.Id as ManufacturerId",
+        "Manufacturer.Name as ManufacturerName"
+      ) // Select the ID and Name of Manufacturer
+      .where("ProductId", productId);
+
+    // Step 2: Get the VendorId and VendorName from Product table by joining with Vendor table
+    const productVendorMappingPromise = knex("Product")
+      .join("Vendor", "Vendor.Id", "Product.VendorId") // Join with Vendor table
+      .where("Product.Id", productId)
+      .select("Vendor.Id as VendorId", "Vendor.Name as VendorName")
+      .first();
+
+    // Step 3: Get Store mapping details from Product table
+    const productStoreMappingPromise = knex("Product")
+      .where("Id", productId)
+      .select("LimitedToStores")
+      .first();
+
+    // Await all promises in parallel
+    const [manufacturerMappings, productVendorMapping, productStoreMapping] =
+      await Promise.all([
+        manufacturerMappingsPromise,
+        productVendorMappingPromise,
+        productStoreMappingPromise,
+      ]);
+
+    if (manufacturerMappings.length === 0) {
+      console.log("No manufacturer mappings found for product ID:", productId);
+    }
+
+    // Step 4: Extract manufacturer IDs and names from the result
+    const manufacturers = manufacturerMappings.map((mapping) => ({
+      ManufacturerId: mapping.ManufacturerId,
+      ManufacturerName: mapping.ManufacturerName,
+    }));
+
+    // Return the list of Manufacturer IDs and Names, Vendor ID and Name, and Store Mapping for the given product
+    return {
+      productId,
+      manufacturers,
+      productVendorMapping: {
+        VendorId: productVendorMapping?.VendorId,
+        VendorName: productVendorMapping?.VendorName,
+      },
+      productStoreMapping,
+    };
+  } catch (error) {
+    console.error("Error in Getmapping:", error);
+    throw error; // Rethrow the error so it can be caught in the controller
+  }
 }
