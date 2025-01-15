@@ -27,6 +27,7 @@ import {
   getProductGeneralInfo,
   getProductInventory,
   Getmapping,
+  updateGeneralProduct,
 } from "../../../repositories/admin/product/adminProductRepository.js";
 import multer from "multer";
 import { queueFileUpload } from "../../../config/ftpsClient.js";
@@ -477,7 +478,6 @@ export async function getProductDetail(req, res) {
   }
 }
 
-
 export async function getProductDetailInventory(req, res) {
   const productId = req.params.id;
   try {
@@ -494,10 +494,9 @@ export async function getProductDetailInventory(req, res) {
   }
 }
 
-
-export async function getProductAvaliability(req,res) {
+export async function getProductAvaliability(req, res) {
   try {
-    const result = await knex ("ProductAvailabilityRange").select("*");
+    const result = await knex("ProductAvailabilityRange").select("*");
     res.status(200).send(result);
   } catch (error) {
     console.error(error);
@@ -505,15 +504,83 @@ export async function getProductAvaliability(req,res) {
   }
 }
 
-export async function getProductMapping(req,res) {
+export async function getProductMapping(req, res) {
   try {
     const productId = req.params.id;
-    const result = await Getmapping(productId)
+    const result = await Getmapping(productId);
     res.status(200).send(result);
-
   } catch (error) {
     console.error(error);
     res.status(500).send("Server error");
-    
+  }
+}
+
+export async function updateGeneralInfoProduct(req, res) {
+  try {
+    const productId = req.params.id;
+    updateGeneralProduct();
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server error");
+  }
+}
+
+export async function getProductPurchasedWithOrder(req, res) {
+  const productId = req.params.id;
+  try {
+    // Step 1: Get Order Items for the Product
+    const orderItems = await knex("dbo.OrderItem")
+      .select("OrderId", "ProductId")
+      .where("ProductId", productId);
+
+    if (!orderItems.length) {
+      return res
+        .status(404)
+        .json({ message: "No orders found for the product" });
+    }
+
+    // Step 2: Get Order details for each OrderId
+    const orderIds = orderItems.map((item) => item.OrderId);
+    const orders = await knex("dbo.Order")
+      .select(
+        "Id as OrderId",
+        "CustomerId",
+        "OrderStatusId",
+        "ShippingStatusId",
+        "PaymentStatusId"
+      )
+      .whereIn("Id", orderIds);
+
+    // Step 3: Get Customer details for each order
+    const customerIds = orders.map((order) => order.CustomerId);
+    const customers = await knex("dbo.Customer")
+      .select("Id as CustomerId", "Email")
+      .whereIn("Id", customerIds);
+
+    // Mapping order statuses based on the given conditions
+    const orderStatusMap = {
+      10: "Pending",
+      20: "Processing",
+      30: "Completed",
+      40: "Cancelled",
+    };
+
+    // Prepare the response data
+    const result = orders.map((order) => {
+      const customer = customers.find((c) => c.CustomerId === order.CustomerId);
+      return {
+        OrderId: order.OrderId,
+        CustomerEmail: customer ? customer.Email : "N/A",
+        OrderStatus: orderStatusMap[order.OrderStatusId] || "Unknown",
+        ShippingStatus: orderStatusMap[order.ShippingStatusId] || "Unknown",
+        PaymentStatus: orderStatusMap[order.PaymentStatusId] || "Unknown",
+      };
+    });
+
+    // Step 4: Send the response
+    res.status(200).json({ success: true, result });
+  } catch (error) {
+    console.error("Error fetching product orders:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
   }
 }

@@ -1176,3 +1176,8 @@ export async function Getmapping(productId) {
     throw error; // Rethrow the error so it can be caught in the controller
   }
 }
+
+
+export const updateGeneralProduct = async (productId, updateData) => {
+  console.log("hey")
+}

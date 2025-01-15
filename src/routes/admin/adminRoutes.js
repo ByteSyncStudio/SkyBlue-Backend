@@ -47,6 +47,8 @@ import {
   getProductDetailInventory,
   getProductAvaliability,
   getProductMapping,
+  updateGeneralInfoProduct,
+  getProductPurchasedWithOrder,
 } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
   editCustomer,
@@ -1346,7 +1348,8 @@ router.get("/product-detail/:id", adminAccess, getProductDetail);
 router.get("/product-detail-inventory/:id", adminAccess, getProductDetailInventory);
 router.get("/product-avaliability", adminAccess, getProductAvaliability);
 router.get("/product-mapping/:id", adminAccess, getProductMapping);
-
+router.get("/product/purchasedwithorder/:id", adminAccess, getProductPurchasedWithOrder);
+router.patch("/product/generalinfo/:id", adminAccess, updateGeneralInfoProduct)
 
 
 /**
