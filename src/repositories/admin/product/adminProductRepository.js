@@ -1013,8 +1013,9 @@ export async function getProductGeneralInfo(productId) {
 
   // Fetch discounts applied to products
   const discountsPromise = knex("Discount_AppliedToProducts")
-    .where("Product_Id", productId)
-    .select("Discount_Id");
+    .join("Discount", "Discount.Id", "Discount_AppliedToProducts.Discount_Id")
+    .where("Discount_AppliedToProducts.Product_Id", productId)
+    .select("Discount.Id as Discount_Id", "Discount.Name as DiscountName");
 
   // Await product details and tax category separately
   const productDetails = await productDetailsPromise;
@@ -1177,7 +1178,6 @@ export async function Getmapping(productId) {
   }
 }
 
-
 export const updateGeneralProduct = async (productId, updateData) => {
   try {
     // Map frontend keys to database column names if necessary
@@ -1206,12 +1206,12 @@ export const updateGeneralProduct = async (productId, updateData) => {
       UpdatedOnUtc: new Date(), // Automatically set the updated timestamp
     };
 
-     // Perform the update operation in the database
-     const result = await knex("Product")
-       .where({ Id: productId })
-       .update(mappedData);
+    // Perform the update operation in the database
+    const result = await knex("Product")
+      .where({ Id: productId })
+      .update(mappedData);
 
-     return result; // Return result to the controller
+    return result; // Return result to the controller
   } catch (error) {
     console.error("Error updating product in the database:", error);
     throw error; // Propagate error to the controller
