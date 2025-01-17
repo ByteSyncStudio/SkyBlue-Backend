@@ -28,6 +28,8 @@ import {
   getProductInventory,
   Getmapping,
   updateGeneralProduct,
+  updatePriceDetailProduct,
+  DeleteTierPriceProduct,
 } from "../../../repositories/admin/product/adminProductRepository.js";
 import multer from "multer";
 import { queueFileUpload } from "../../../config/ftpsClient.js";
@@ -515,7 +517,6 @@ export async function getProductMapping(req, res) {
   }
 }
 
-
 export async function getProductPurchasedWithOrder(req, res) {
   const productId = req.params.id;
   try {
@@ -576,17 +577,117 @@ export async function getProductPurchasedWithOrder(req, res) {
   }
 }
 
-
 export async function updateGeneralInfoProduct(req, res) {
   try {
     const productId = req.params.id;
-    const updateData = req.body
-    const result = await updateGeneralProduct(productId,updateData);
-    res.status(200).send( {
+    const updateData = req.body;
+    const result = await updateGeneralProduct(productId, updateData);
+    res.status(200).send({
       success: true,
       message: "Product Updated.",
-      result
+      result,
     });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server error");
+  }
+}
+
+export async function updatePriceDetailsProduct(req, res) {
+  try {
+    const productId = req.params.id;
+    const updateData = req.body;
+
+    // Validate the request body
+    if (!productId || !updateData) {
+      return res.status(400).send({ success: false, message: "Invalid data." });
+    }
+
+    const result = await updatePriceDetailProduct(productId, updateData);
+
+    res.status(200).send(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ success: false, message: "Server error." });
+  }
+}
+
+export async function addTierPrice(req, res) {
+  const productId = req.params.id;
+  const storeId = 0;
+  const { CustomerRoleId, Price, Quantity, StartDateTimeUtc, EndDateTimeUtc } =
+    req.body;
+
+  // Check if required fields are provided
+  if (!CustomerRoleId || !Price || !Quantity) {
+    return res
+      .status(400)
+      .send({ success: false, message: "All fields are required." });
+  }
+
+  try {
+    // Prepare the tier price object
+    const newTierPrice = {
+      ProductId: productId,
+      StoreId: storeId,
+      CustomerRoleId,
+      Price,
+      Quantity,
+      StartDateTimeUtc: StartDateTimeUtc ? new Date(StartDateTimeUtc) : null,
+      EndDateTimeUtc: EndDateTimeUtc ? new Date(EndDateTimeUtc) : null,
+    };
+
+    console.log("New tier price:", newTierPrice);
+
+    // Insert the new tier price into the database
+    const result = await knex("TierPrice").insert(newTierPrice);
+
+    res.status(201).send({
+      success: true,
+      message: "Tier price added successfully.",
+      data: { ...newTierPrice, Id: result[0] }, // Assuming the DB returns the inserted ID
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ success: false, message: "Server error." });
+  }
+}
+
+export async function deleteTierPriceProduct(req, res) {
+  try {
+    const productId = req.params.id;
+    const { customerRoleId } = req.body;
+    console.log("productId", productId);
+    console.log("customerRoleId", customerRoleId);
+    const result = await DeleteTierPriceProduct(productId, customerRoleId);
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server error");
+  }
+}
+
+export async function editTierPriceProduct(req, res) {
+  try {
+    const productId = req.params.id;
+    const {
+      CustomerRoleId,
+      Price,
+      Quantity,
+      StartDateTimeUtc,
+      EndDateTimeUtc,
+    } = req.body;
+    console.log("CustomerRoleId", CustomerRoleId);
+    const result = await knex("TierPrice")
+      .where("ProductId", productId)
+      .andWhere("CustomerRoleId", CustomerRoleId)
+      .update({
+        Price,
+        Quantity,
+        StartDateTimeUtc: StartDateTimeUtc ? new Date(StartDateTimeUtc) : null,
+        EndDateTimeUtc: EndDateTimeUtc ? new Date(EndDateTimeUtc) : null,
+      });
+    res.status(200).json({ success: true });
   } catch (error) {
     console.error(error);
     res.status(500).send("Server error");

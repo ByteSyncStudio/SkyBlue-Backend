@@ -49,6 +49,10 @@ import {
   getProductMapping,
   updateGeneralInfoProduct,
   getProductPurchasedWithOrder,
+  updatePriceDetailsProduct,
+  addTierPrice,
+  deleteTierPriceProduct,
+  editTierPriceProduct,
 } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
   editCustomer,
@@ -1343,13 +1347,16 @@ router.get("/product-seo-detail/:id", adminAccess, getProductSeoDetail);
 router.patch("/product-seo-detail/:id", adminAccess, updateProductSeoDetail);
 
 
-
+router.post("/product/tierPrice/:id", adminAccess, addTierPrice);
+router.delete("/product/tierPrice/:id", adminAccess, deleteTierPriceProduct);
 router.get("/product-detail/:id", adminAccess, getProductDetail);
 router.get("/product-detail-inventory/:id", adminAccess, getProductDetailInventory);
 router.get("/product-avaliability", adminAccess, getProductAvaliability);
 router.get("/product-mapping/:id", adminAccess, getProductMapping);
 router.get("/product/purchasedwithorder/:id", adminAccess, getProductPurchasedWithOrder);
 router.patch("/product/generalinfo/:id", adminAccess, updateGeneralInfoProduct)
+router.patch("/product/priceDetails/:id", adminAccess, updatePriceDetailsProduct)
+router.patch("/product/editTierPrice/:id", adminAccess, editTierPriceProduct)
 
 
 /**

@@ -1217,3 +1217,38 @@ export const updateGeneralProduct = async (productId, updateData) => {
     throw error; // Propagate error to the controller
   }
 };
+
+export const updatePriceDetailProduct = async (productId, updateData) => {
+  try {
+    const { Price, OldPrice, ProductCost, TaxCategoryId } = updateData;
+
+    // Update product details in the Product table
+    await knex("Product").where("Id", productId).update({
+      Price,
+      OldPrice,
+      ProductCost,
+      TaxCategoryId,
+      UpdatedOnUtc: new Date(), // Track when it was updated
+    });
+
+    return { success: true, message: "Product prices updated successfully." };
+  } catch (error) {
+    console.error("Error updating product prices:", error);
+    throw new Error("Failed to update product prices.");
+  }
+};
+
+
+export const DeleteTierPriceProduct = async (productId, customerRoleId) => {
+  try {
+    // Delete the tier price for the given product and customer role
+    await knex("TierPrice")
+      .where({ ProductId: productId, CustomerRoleId: customerRoleId })
+      .del();
+
+    return { success: true, message: "Tier price deleted successfully." };
+  } catch (error) {
+    console.error("Error deleting tier price:", error);
+    throw new Error("Failed to delete tier price.");
+  }
+}
