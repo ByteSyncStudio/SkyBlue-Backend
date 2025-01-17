@@ -515,15 +515,6 @@ export async function getProductMapping(req, res) {
   }
 }
 
-export async function updateGeneralInfoProduct(req, res) {
-  try {
-    const productId = req.params.id;
-    updateGeneralProduct();
-  } catch (error) {
-    console.error(error);
-    res.status(500).send("Server error");
-  }
-}
 
 export async function getProductPurchasedWithOrder(req, res) {
   const productId = req.params.id;
@@ -582,5 +573,22 @@ export async function getProductPurchasedWithOrder(req, res) {
   } catch (error) {
     console.error("Error fetching product orders:", error);
     res.status(500).json({ success: false, message: "Server Error" });
+  }
+}
+
+
+export async function updateGeneralInfoProduct(req, res) {
+  try {
+    const productId = req.params.id;
+    const updateData = req.body
+    const result = await updateGeneralProduct(productId,updateData);
+    res.status(200).send( {
+      success: true,
+      message: "Product Updated.",
+      result
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server error");
   }
 }

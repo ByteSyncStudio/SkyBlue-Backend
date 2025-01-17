@@ -1179,5 +1179,41 @@ export async function Getmapping(productId) {
 
 
 export const updateGeneralProduct = async (productId, updateData) => {
-  console.log("hey")
-}
+  try {
+    // Map frontend keys to database column names if necessary
+    const mappedData = {
+      ProductTypeId: updateData.ProductType,
+      ProductTemplateId: updateData.ProductTemplate,
+      VisibleIndividually: updateData.VisibleIndividually,
+      ItemLocation: updateData.AisleLocation,
+      BoxQty: updateData.BoxQty,
+      Name: updateData.ProductName,
+      ShortDescription: updateData.ShortDescription,
+      FullDescription: updateData.FullDescription,
+      Sku: updateData.Sku,
+      Barcode: updateData.Barcode,
+      Barcode2: updateData.BoxBarcode,
+      Published: updateData.Published,
+      ShowOnHomePage: updateData.ShowOnHomePage,
+      DisplayOrder: updateData.DisplayOrder,
+      AllowCustomerReviews: updateData.AllowCustomerReviews,
+      AvailableStartDateTimeUtc: updateData.AvailableStartDate,
+      AvailableEndDateTimeUtc: updateData.AvailableEndDate,
+      MarkAsNew: updateData.MarkAsNew,
+      MarkAsNewStartDateTimeUtc: updateData.MarkAsNewStartDate,
+      MarkAsNewEndDateTimeUtc: updateData.MarkAsNewEndDate,
+      AdminComment: updateData.AdminComment,
+      UpdatedOnUtc: new Date(), // Automatically set the updated timestamp
+    };
+
+     // Perform the update operation in the database
+     const result = await knex("Product")
+       .where({ Id: productId })
+       .update(mappedData);
+
+     return result; // Return result to the controller
+  } catch (error) {
+    console.error("Error updating product in the database:", error);
+    throw error; // Propagate error to the controller
+  }
+};
