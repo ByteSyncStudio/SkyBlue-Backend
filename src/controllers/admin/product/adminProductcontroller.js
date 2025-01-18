@@ -31,6 +31,7 @@ import {
   updatePriceDetailProduct,
   DeleteTierPriceProduct,
   UpdateProductInventory,
+  UpdateProductMapping,
 } from "../../../repositories/admin/product/adminProductRepository.js";
 import multer from "multer";
 import { queueFileUpload } from "../../../config/ftpsClient.js";
@@ -718,5 +719,20 @@ export async function updateInventoryProduct(req, res) {
   } catch (error) {
     console.error("Error updating inventory:", error);
     res.status(500).json({ success: false, message: "Server error" });
+  }
+}
+
+export async function updateProductMapping(req, res) {
+  try {
+    const productId = req.params.id; // Extract the product ID
+    const { manufacturers, vendor } = req.body; // Destructure the input data
+
+    // Update vendor and manufacturers
+    const result = await UpdateProductMapping(productId, { manufacturers, vendor });
+
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error("Error in updateProductMapping:", error);
+    res.status(500).send("Server error");
   }
 }

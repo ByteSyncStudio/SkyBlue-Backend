@@ -54,6 +54,7 @@ import {
   deleteTierPriceProduct,
   editTierPriceProduct,
   updateInventoryProduct,
+  updateProductMapping,
 } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
   editCustomer,
@@ -1359,7 +1360,7 @@ router.patch("/product/generalinfo/:id", adminAccess, updateGeneralInfoProduct)
 router.patch("/product/priceDetails/:id", adminAccess, updatePriceDetailsProduct)
 router.patch("/product/editTierPrice/:id", adminAccess, editTierPriceProduct)
 router.patch("/product/updateInventory/:id", adminAccess, updateInventoryProduct)
-
+router.patch("/product/updateMapping/:id", adminAccess, updateProductMapping)
 
 
 

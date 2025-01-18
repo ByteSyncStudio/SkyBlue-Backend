@@ -1274,8 +1274,6 @@ export const UpdateProductInventory = async (productId, updateData) => {
       UpdatedOnUtc: new Date(), // Track last updated timestamp
     };
 
-    console.log("updateFields",updateFields)
-
     // Execute update query
     const result = await knex("Product")
       .where({ Id: productId })
@@ -1284,6 +1282,47 @@ export const UpdateProductInventory = async (productId, updateData) => {
     return result; // Number of rows affected
   } catch (error) {
     console.error("Error updating product inventory:", error);
+    throw new Error("Database operation failed");
+  }
+};
+
+export const UpdateProductMapping = async (productId, updateData) => {
+  const { manufacturers, vendor } = updateData;
+
+  try {
+    // Update the vendor in dbo.Product
+    await knex('Product')
+      .where('Id', productId)
+      .update({ VendorId: vendor });
+
+    // Fetch existing manufacturers for the product
+    const existingManufacturers = await knex('Product_Manufacturer_Mapping')
+      .select('ManufacturerId')
+      .where('ProductId', productId);
+
+    const existingIds = existingManufacturers.map(m => m.ManufacturerId);
+
+    // Filter new manufacturers that are not already associated with the product
+    const newManufacturers = manufacturers.filter(
+      manufacturer => !existingIds.includes(manufacturer.ManufacturerId)
+    );
+
+    // Prepare data for insertion
+    const manufacturerMappings = newManufacturers.map(manufacturer => ({
+      ProductId: productId,
+      ManufacturerId: manufacturer.ManufacturerId,
+      IsFeaturedProduct: 0, // Default value
+      DisplayOrder: 0, // Default value
+    }));
+
+    // Insert new manufacturer mappings
+    if (manufacturerMappings.length > 0) {
+      await knex('Product_Manufacturer_Mapping').insert(manufacturerMappings);
+    }
+
+    return { updatedVendor: vendor, insertedManufacturers: newManufacturers };
+  } catch (error) {
+    console.error("Error in UpdateProductMapping:", error);
     throw new Error("Database operation failed");
   }
 };
