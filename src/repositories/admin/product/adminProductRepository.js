@@ -1252,3 +1252,38 @@ export const DeleteTierPriceProduct = async (productId, customerRoleId) => {
     throw new Error("Failed to delete tier price.");
   }
 }
+
+export const UpdateProductInventory = async (productId, updateData) => {
+  try {
+    // Map updateData to database column names
+    const updateFields = {
+      ManageInventoryMethodId: updateData.inventoryMethod,
+      StockQuantity: updateData.stockQuantity,
+      DisplayStockAvailability: updateData.displayStockAvailability,
+      DisplayStockQuantity: updateData.displayStockQuantity,
+      MinStockQuantity: updateData.minStockQuantity,
+      LowStockActivityId: updateData.lowStockActivity,
+      NotifyAdminForQuantityBelow: updateData.notifyAdminForQuantityBelow,
+      BackorderModeId: updateData.backorderMode,
+      AllowBackInStockSubscriptions: updateData.allowBackInStockSubscriptions,
+      OrderMinimumQuantity: updateData.minCartQuantity,
+      OrderMaximumQuantity: updateData.maxCartQuantity,
+      AllowedQuantities: updateData.allowedQuantities,
+      NotReturnable: updateData.notReturnable,
+      ProductAvailabilityRangeId: updateData.productAvailabilityRange === 'None' ? 0 : parseInt(updateData.productAvailabilityRange),
+      UpdatedOnUtc: new Date(), // Track last updated timestamp
+    };
+
+    console.log("updateFields",updateFields)
+
+    // Execute update query
+    const result = await knex("Product")
+      .where({ Id: productId })
+      .update(updateFields);
+
+    return result; // Number of rows affected
+  } catch (error) {
+    console.error("Error updating product inventory:", error);
+    throw new Error("Database operation failed");
+  }
+};

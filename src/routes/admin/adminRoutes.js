@@ -53,6 +53,7 @@ import {
   addTierPrice,
   deleteTierPriceProduct,
   editTierPriceProduct,
+  updateInventoryProduct,
 } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
   editCustomer,
@@ -1357,6 +1358,9 @@ router.get("/product/purchasedwithorder/:id", adminAccess, getProductPurchasedWi
 router.patch("/product/generalinfo/:id", adminAccess, updateGeneralInfoProduct)
 router.patch("/product/priceDetails/:id", adminAccess, updatePriceDetailsProduct)
 router.patch("/product/editTierPrice/:id", adminAccess, editTierPriceProduct)
+router.patch("/product/updateInventory/:id", adminAccess, updateInventoryProduct)
+
+
 
 
 /**

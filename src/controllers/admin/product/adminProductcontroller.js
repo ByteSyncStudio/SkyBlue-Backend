@@ -30,6 +30,7 @@ import {
   updateGeneralProduct,
   updatePriceDetailProduct,
   DeleteTierPriceProduct,
+  UpdateProductInventory,
 } from "../../../repositories/admin/product/adminProductRepository.js";
 import multer from "multer";
 import { queueFileUpload } from "../../../config/ftpsClient.js";
@@ -691,5 +692,31 @@ export async function editTierPriceProduct(req, res) {
   } catch (error) {
     console.error(error);
     res.status(500).send("Server error");
+  }
+}
+
+
+
+export async function updateInventoryProduct(req, res) {
+  try {
+    const productId = req.params.id;
+    const updateData = req.body;
+
+    // Validate input
+    if (!productId || Object.keys(updateData).length === 0) {
+      return res.status(400).send("Invalid input: Provide product ID and update data.");
+    }
+
+    // Call service to update inventory
+    const result = await UpdateProductInventory(productId, updateData);
+
+    if (result) {
+      res.status(200).json({ success: true, message: "Inventory updated successfully." });
+    } else {
+      res.status(404).json({ success: false, message: "Product not found or update failed." });
+    }
+  } catch (error) {
+    console.error("Error updating inventory:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 }
