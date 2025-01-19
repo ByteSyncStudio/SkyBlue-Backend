@@ -1,4 +1,5 @@
 import knex from "../../../config/knex.js";
+import { getAllPermissionsWithRoles } from "../../../repositories/admin/configurations/configurationsRepo.js";
 
 export const getShippingMethods = async (req, res) => {
   try {
@@ -105,5 +106,14 @@ export const updateShippingMethodofOrder = async (req, res) => {
         success: false,
         message: "An error occurred while updating the shipping method",
       });
+  }
+}
+
+export const getContentManagementSystem = async (req, res) => {
+  try {
+    const data = await getAllPermissionsWithRoles();
+    res.status(200).send({ message: "success true", data });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 }
