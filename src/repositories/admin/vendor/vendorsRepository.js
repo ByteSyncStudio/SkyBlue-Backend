@@ -1,5 +1,8 @@
 import knex from "../../../config/knex.js";
-import { generateImageUrl2, generateImageUrlVendors } from "../../../utils/imageUtils.js";
+import {
+  generateImageUrl2,
+  generateImageUrlVendors,
+} from "../../../utils/imageUtils.js";
 
 // List all vendors excluding deleted ones
 export async function listVendors(name) {
@@ -49,13 +52,11 @@ export async function createVendor(vendorData) {
 export async function updateVendor(id, vendorData, trx = knex) {
   try {
     // Use the passed transaction or create a new query
-    const query = trx('Vendor')
-      .where({ Id: id })
-      .update(vendorData);
-    
+    const query = trx("Vendor").where({ Id: id }).update(vendorData);
+
     // Set a longer timeout for large updates
     query.timeout(30000); // 30 seconds timeout
-    
+
     await query;
   } catch (error) {
     console.error("Error in updateVendor repository function:", error);
@@ -94,8 +95,10 @@ export async function getVendorById(id) {
     }
 
     // Step 2: Fetch all pictures related to the vendor
-    let pictureData = null
+    let pictureData = null;
+    let pictureWithUrl = null;
     if (vendor.PictureId != 0) {
+      console.log("Vendor Picture ID:", vendor.PictureId);
       pictureData = await knex("Picture")
         .select(
           "Id",
@@ -108,10 +111,14 @@ export async function getVendorById(id) {
         )
         .where("Id", vendor.PictureId)
         .first();
-    }
 
-    // Step 3: Generate image URLs for each picture
-    const pictureWithUrl = generateImageUrlVendors(pictureData.Id, pictureData.MimeType, pictureData.SeoFilename);
+      // Step 3: Generate image URLs for each picture
+      pictureWithUrl = generateImageUrlVendors(
+        pictureData.Id,
+        pictureData.MimeType,
+        pictureData.SeoFilename
+      );
+    }
 
     // Step 4: Fetch associated customers
     const customers = await knex("Customer")
@@ -134,11 +141,10 @@ export async function getVendorById(id) {
       customers, // Array of customer objects associated with the vendor
     };
   } catch (error) {
-    console.error("Error in getVendorWithImagesById function:", error);
+    console.error("Error in getVendorById function:", error);
     throw new Error("Error fetching vendor with images and customers.");
   }
 }
-
 
 export async function createOrUpdateAddress(addressData, vendorId) {
   console.log("AddressData:", addressData);
@@ -267,7 +273,10 @@ export async function AddCustomerToVendor(vendorId, customerId) {
       .first();
 
     if (customer.VendorId) {
-      return { message: "Customer already has a vendor.", email: customer.Email };
+      return {
+        message: "Customer already has a vendor.",
+        email: customer.Email,
+      };
     }
 
     await knex("Customer")
@@ -282,7 +291,7 @@ export async function AddCustomerToVendor(vendorId, customerId) {
   }
 }
 
-export async function getVendorEditById(id) { 
+export async function getVendorEditById(id) {
   try {
     // Step 1: Fetch vendor details
     const vendor = await knex("Vendor")
@@ -311,7 +320,8 @@ export async function getVendorEditById(id) {
       throw new Error("Vendor not found.");
     }
 
-    let pictureData = null
+    let pictureData = null;
+    let pictureWithUrl = null;
     if (vendor.PictureId != 0) {
       pictureData = await knex("Picture")
         .select(
@@ -325,18 +335,17 @@ export async function getVendorEditById(id) {
         )
         .where("Id", vendor.PictureId)
         .first();
-    }
 
-    // Step 3: Generate image URLs for each picture
-    const pictureWithUrl = generateImageUrlVendors(pictureData.Id, pictureData.MimeType, pictureData.SeoFilename);
+      // Step 3: Generate image URLs for each picture
+      pictureWithUrl = generateImageUrlVendors(
+        pictureData.Id,
+        pictureData.MimeType,
+        pictureData.SeoFilename
+      );
+    }
     // Step 4: Fetch associated customers
     const customers = await knex("Customer")
-      .select(
-        "Id",
-        "Username",
-        "Email",
-        "Active"
-      )
+      .select("Id", "Username", "Email", "Active")
       .where({ VendorId: id });
 
     // Step 5: Combine the vendor data with the picture and customer data
@@ -351,7 +360,7 @@ export async function getVendorEditById(id) {
   }
 }
 
-export async function RemoveCustomerFromVendor(customerId){
+export async function RemoveCustomerFromVendor(customerId) {
   try {
     const customer = await knex("Customer")
       .select("Id", "VendorId", "Email")
@@ -359,44 +368,50 @@ export async function RemoveCustomerFromVendor(customerId){
       .first();
 
     if (!customer.VendorId) {
-      return { message: "Customer does not have a vendor.", email: customer.Email };
+      return {
+        message: "Customer does not have a vendor.",
+        email: customer.Email,
+      };
     }
 
-    await knex("Customer")
-      .where("Id", customer.Id)
-      .update({ VendorId: 0 });
+    await knex("Customer").where("Id", customer.Id).update({ VendorId: 0 });
 
     // Return the updated customer
     return { ...customer, VendorId: 0 };
   } catch (error) {
-    console.error("Error in RemoveCustomerFromVendor repository function:", error);
+    console.error(
+      "Error in RemoveCustomerFromVendor repository function:",
+      error
+    );
     throw new Error("Error removing customer from vendor.");
   }
 }
 
 export async function AddVendorPicture(pictureData, trx) {
   try {
-      const [pictureId] = await trx('Picture').insert({
-          MimeType: pictureData.mimeType,
-          SeoFilename: pictureData.seoFilename,
-          AltAttribute: pictureData.altAttribute || '',
-          TitleAttribute: pictureData.titleAttribute || '',
-          IsNew: true,
-      }).returning('Id');
-      return pictureId.Id;
+    const [pictureId] = await trx("Picture")
+      .insert({
+        MimeType: pictureData.mimeType,
+        SeoFilename: pictureData.seoFilename,
+        AltAttribute: pictureData.altAttribute || "",
+        TitleAttribute: pictureData.titleAttribute || "",
+        IsNew: true,
+      })
+      .returning("Id");
+    return pictureId.Id;
   } catch (error) {
-      console.error("Error creating vendor picture:\n", error);
-      throw error;
+    console.error("Error creating vendor picture:\n", error);
+    throw error;
   }
 }
 
 export async function updateVendorPicture(vendorId, pictureId, trx) {
   try {
-      await trx('Vendor')
-          .where({ Id: vendorId })
-          .update({ PictureId: pictureId });
+    await trx("Vendor")
+      .where({ Id: vendorId })
+      .update({ PictureId: pictureId });
   } catch (error) {
-      console.error("Error updating vendor picture:\n", error);
-      throw error;
+    console.error("Error updating vendor picture:\n", error);
+    throw error;
   }
 }
