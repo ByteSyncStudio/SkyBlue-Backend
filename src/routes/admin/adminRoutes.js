@@ -164,7 +164,7 @@ import {
 } from "../../controllers/admin/Campaign/adminCampaignController.js";
 import multer from "multer";
 import { bulkDeleteProducts, getBulkProducts, updateBulkEdit } from "../../controllers/admin/vendors/adminBulkEditController.js";
-import { addShippingMethod, deleteShippingMethod, getShippingMethods, updateShippingMethodofOrder } from "../../controllers/admin/ShippingMethod/shippingMethodController.js";
+import { addShippingMethod, deleteShippingMethod, getContentManagementSystem, getShippingMethods, updateShippingMethodofOrder } from "../../controllers/admin/Configurations/shippingMethodController.js";
 
 const router = express.Router();
 
@@ -1374,6 +1374,10 @@ router.get("/shipping-method/all", adminAccess, getShippingMethods);
 router.post("/shipping-method/add", adminAccess, addShippingMethod);
 router.patch("/shipping-method/edit", adminAccess, updateShippingMethodofOrder);
 router.delete("/shipping-method/delete", adminAccess, deleteShippingMethod);
+
+
+//AccesListControl
+router.get("/content-management/access-list-control", adminAccess, getContentManagementSystem);
 
 /**
  * @swagger

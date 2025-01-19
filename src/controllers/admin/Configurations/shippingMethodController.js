@@ -1,4 +1,5 @@
 import knex from "../../../config/knex.js";
+import { getAllPermissionsWithRoles } from "../../../repositories/admin/configurations/configurationsRepo.js";
 
 export const getShippingMethods = async (req, res) => {
   try {
@@ -47,12 +48,10 @@ export const deleteShippingMethod = async (req, res) => {
     const result = await knex("ShippingMethod").where("id", methodId).del();
 
     if (result) {
-      return res
-        .status(200)
-        .json({
-          success: true,
-          message: "Shipping method deleted successfully",
-        });
+      return res.status(200).json({
+        success: true,
+        message: "Shipping method deleted successfully",
+      });
     } else {
       return res
         .status(404)
@@ -60,15 +59,12 @@ export const deleteShippingMethod = async (req, res) => {
     }
   } catch (error) {
     console.error("Error deleting shipping method:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: "An error occurred while deleting the shipping method",
-      });
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while deleting the shipping method",
+    });
   }
 };
-
 
 export const updateShippingMethodofOrder = async (req, res) => {
   const { id, Name, DisplayOrder, Description } = req.body;
@@ -77,21 +73,17 @@ export const updateShippingMethodofOrder = async (req, res) => {
   }
 
   try {
-    const result = await knex("ShippingMethod")
-      .where("id", id)
-      .update({
-        Name: Name,
-        DisplayOrder: DisplayOrder,
-        Description: Description,
-      });
+    const result = await knex("ShippingMethod").where("id", id).update({
+      Name: Name,
+      DisplayOrder: DisplayOrder,
+      Description: Description,
+    });
 
     if (result) {
-      return res
-        .status(200)
-        .json({
-          success: true,
-          message: "Shipping method updated successfully",
-        });
+      return res.status(200).json({
+        success: true,
+        message: "Shipping method updated successfully",
+      });
     } else {
       return res
         .status(404)
@@ -99,11 +91,18 @@ export const updateShippingMethodofOrder = async (req, res) => {
     }
   } catch (error) {
     console.error("Error updating shipping method:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: "An error occurred while updating the shipping method",
-      });
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while updating the shipping method",
+    });
   }
-}
+};
+
+export const getContentManagementSystem = async (req, res) => {
+  try {
+    const data = await getAllPermissionsWithRoles();
+    res.status(200).send({ message: "success true", data });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
