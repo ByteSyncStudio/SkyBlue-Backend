@@ -1367,8 +1367,9 @@ router.patch("/product/updateInventory/:id", adminAccess, updateInventoryProduct
 router.patch("/product/updateMapping/:id", adminAccess, updateProductMapping)
 
 
-//shipping method
 
+
+//shipping method
 router.get("/shipping-method/all", adminAccess, getShippingMethods);
 router.post("/shipping-method/add", adminAccess, addShippingMethod);
 router.patch("/shipping-method/edit", adminAccess, updateShippingMethodofOrder);
