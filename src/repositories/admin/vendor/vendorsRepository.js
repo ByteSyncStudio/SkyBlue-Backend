@@ -1,4 +1,5 @@
 import knex from "../../../config/knex.js";
+import { generateImageUrl2, generateImageUrlVendors } from "../../../utils/imageUtils.js";
 
 // List all vendors excluding deleted ones
 export async function listVendors(name) {
@@ -45,9 +46,17 @@ export async function createVendor(vendorData) {
 }
 
 // Update an existing vendor
-export async function updateVendor(id, vendorData) {
+export async function updateVendor(id, vendorData, trx = knex) {
   try {
-    await knex("Vendor").where({ Id: id }).update(vendorData);
+    // Use the passed transaction or create a new query
+    const query = trx('Vendor')
+      .where({ Id: id })
+      .update(vendorData);
+    
+    // Set a longer timeout for large updates
+    query.timeout(30000); // 30 seconds timeout
+    
+    await query;
   } catch (error) {
     console.error("Error in updateVendor repository function:", error);
     throw new Error("Error updating vendor.");
@@ -85,9 +94,9 @@ export async function getVendorById(id) {
     }
 
     // Step 2: Fetch all pictures related to the vendor
-    let picturesData = [];
-    if (vendor.PictureId) {
-      picturesData = await knex("Picture")
+    let pictureData = null
+    if (vendor.PictureId != 0) {
+      pictureData = await knex("Picture")
         .select(
           "Id",
           "PictureBinary",
@@ -97,18 +106,12 @@ export async function getVendorById(id) {
           "TitleAttribute",
           "IsNew"
         )
-        .whereIn("Id", vendor.PictureId.split(",")); // Assuming PictureIds are stored as a comma-separated string
+        .where("Id", vendor.PictureId)
+        .first();
     }
 
     // Step 3: Generate image URLs for each picture
-    const picturesWithUrls = picturesData.map((picture) => ({
-      ...picture,
-      imageUrl: generateImageUrl2(
-        picture.Id,
-        picture.MimeType,
-        picture.SeoFilename
-      ),
-    }));
+    const pictureWithUrl = generateImageUrlVendors(pictureData.Id, pictureData.MimeType, pictureData.SeoFilename);
 
     // Step 4: Fetch associated customers
     const customers = await knex("Customer")
@@ -127,7 +130,7 @@ export async function getVendorById(id) {
     // Step 5: Combine the vendor data with the picture and customer data
     return {
       ...vendor,
-      pictures: picturesWithUrls, // Array of picture objects with image URLs
+      pictures: pictureWithUrl, // Array of picture objects with image URLs
       customers, // Array of customer objects associated with the vendor
     };
   } catch (error) {
@@ -308,10 +311,9 @@ export async function getVendorEditById(id) {
       throw new Error("Vendor not found.");
     }
 
-    // Step 2: Fetch all pictures related to the vendor
-    let picturesData = [];
-    if (vendor.PictureId) {
-      picturesData = await knex("Picture")
+    let pictureData = null
+    if (vendor.PictureId != 0) {
+      pictureData = await knex("Picture")
         .select(
           "Id",
           "PictureBinary",
@@ -321,19 +323,12 @@ export async function getVendorEditById(id) {
           "TitleAttribute",
           "IsNew"
         )
-        .whereIn("Id", vendor.PictureId.split(",")); // Assuming PictureIds are stored as a comma-separated string
+        .where("Id", vendor.PictureId)
+        .first();
     }
 
     // Step 3: Generate image URLs for each picture
-    const picturesWithUrls = picturesData.map((picture) => ({
-      ...picture,
-      imageUrl: generateImageUrl2(
-        picture.Id,
-        picture.MimeType,
-        picture.SeoFilename
-      ),
-    }));
-
+    const pictureWithUrl = generateImageUrlVendors(pictureData.Id, pictureData.MimeType, pictureData.SeoFilename);
     // Step 4: Fetch associated customers
     const customers = await knex("Customer")
       .select(
@@ -347,7 +342,7 @@ export async function getVendorEditById(id) {
     // Step 5: Combine the vendor data with the picture and customer data
     return {
       ...vendor,
-      pictures: picturesWithUrls, // Array of picture objects with image URLs
+      picture: pictureWithUrl, // Array of picture objects with image URLs
       customers, // Array of customer objects associated with the vendor
     };
   } catch (error) {
@@ -376,5 +371,32 @@ export async function RemoveCustomerFromVendor(customerId){
   } catch (error) {
     console.error("Error in RemoveCustomerFromVendor repository function:", error);
     throw new Error("Error removing customer from vendor.");
+  }
+}
+
+export async function AddVendorPicture(pictureData, trx) {
+  try {
+      const [pictureId] = await trx('Picture').insert({
+          MimeType: pictureData.mimeType,
+          SeoFilename: pictureData.seoFilename,
+          AltAttribute: pictureData.altAttribute || '',
+          TitleAttribute: pictureData.titleAttribute || '',
+          IsNew: true,
+      }).returning('Id');
+      return pictureId.Id;
+  } catch (error) {
+      console.error("Error creating vendor picture:\n", error);
+      throw error;
+  }
+}
+
+export async function updateVendorPicture(vendorId, pictureId, trx) {
+  try {
+      await trx('Vendor')
+          .where({ Id: vendorId })
+          .update({ PictureId: pictureId });
+  } catch (error) {
+      console.error("Error updating vendor picture:\n", error);
+      throw error;
   }
 }

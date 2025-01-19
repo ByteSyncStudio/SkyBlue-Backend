@@ -10,7 +10,14 @@ import {
   RemoveCustomerFromVendor,
   searchCustomerByEmailInDB,
   updateVendor,
+  AddVendorPicture,
+  updateVendorPicture
 } from "../../../repositories/admin/vendor/vendorsRepository.js";
+import multer from "multer";
+import { queueFileUpload } from "../../../config/ftpsClient.js";
+import knex from "../../../config/knex.js";
+
+const upload = multer({ dest: "uploads/" });
 
 // Helper function to determine page size options
 const getPageSizeOptions = (pageSize) => {
@@ -93,94 +100,136 @@ export const createNewVendor = async (req, res) => {
 };
 
 // Update an existing vendor
-export const patchVendor = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const {
-      name,
-      email,
-      description,
-      adminComment,
-      active,
-      displayOrder,
-      metaKeywords,
-      metaDescription,
-      metaTitle,
-      pageSize,
-      pageSizeOptions,
-      deleteVendor, // Field to trigger vendor deletion
-    } = req.body;
+export const patchVendor = [
+  upload.single("image"),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const file = req.file;
+      const {
+        name,
+        email,
+        description,
+        adminComment,
+        active,
+        displayOrder,
+        metaKeywords,
+        metaDescription,
+        metaTitle,
+        pageSize,
+        pageSizeOptions,
+        deleteVendor, // Field to trigger vendor deletion
+      } = req.body;
 
-    // Ensure the vendor ID is provided
-    if (!id) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Vendor ID is required." });
+      // Ensure the vendor ID is provided
+      if (!id) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Vendor ID is required." });
+      }
+
+      // Fetch the existing vendor data
+      const existingVendor = await getVendorById(id);
+      if (!existingVendor) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Vendor not found." });
+      }
+
+
+      await knex.transaction(async (trx) => {
+        // Handle file upload if present
+        let pictureId = existingVendor.PictureId;
+        if (file) {
+          // Add picture to database
+          const pictureData = {
+            mimeType: file.mimetype,
+            seoFilename: `vendor-${id}`,
+            altAttribute: name || existingVendor.Name,
+            titleAttribute: name || existingVendor.Name
+          };
+          pictureId = await AddVendorPicture(pictureData, trx);
+
+          // Update vendor's picture ID
+          await updateVendorPicture(id, pictureId, trx);
+          
+          // Upload the image to FTP
+          const fileExtension = file.mimetype.split('/')[1];
+          const formattedId = pictureId.toString().padStart(7, '0');
+          const remotePath = `/acc1845619052/SkyblueWholesale/Content/Images/Vendors/${formattedId}.${fileExtension}`;
+
+          console.log('Queueing vendor image upload:', file.path, 'to', remotePath);
+          queueFileUpload(file.path, remotePath);
+
+        }
+
+        // Handle vendor deletion
+        if (deleteVendor) {
+          await updateVendor(id, { Deleted: 1 }, trx);
+          return res.status(200).json({ 
+            success: true, 
+            message: "Vendor deleted successfully." 
+          });
+        }
+
+        // Handle vendor restoration
+        if (!deleteVendor && existingVendor.Deleted) {
+          await updateVendor(id, { Deleted: 0 }, trx);
+          return res.status(200).json({ 
+            success: true, 
+            message: "Vendor restored successfully." 
+          });
+        }
+
+        // Split updates into smaller chunks
+        // Basic info update
+        const basicInfo = {
+          Name: name ? name.trim() : existingVendor.Name,
+          Email: email ? email.trim() : existingVendor.Email,
+          Description: description ? description.trim() : existingVendor.Description,
+          AdminComment: adminComment ? adminComment.trim() : existingVendor.AdminComment,
+          Active: active ?? existingVendor.Active,
+          DisplayOrder: displayOrder ?? existingVendor.DisplayOrder,
+        };
+        await updateVendor(id, basicInfo, trx);
+
+        // Meta info update
+        const metaInfo = {
+          MetaKeywords: metaKeywords ? metaKeywords.trim() : existingVendor.MetaKeywords,
+          MetaDescription: metaDescription ? metaDescription.trim() : existingVendor.MetaDescription,
+          MetaTitle: metaTitle ? metaTitle.trim() : existingVendor.MetaTitle,
+        };
+        await updateVendor(id, metaInfo, trx);
+
+        // Page settings update
+        const pageSettings = {
+          PageSize: pageSize ?? existingVendor.PageSize,
+          PageSizeOptions: pageSizeOptions ?? getPageSizeOptions(pageSize ?? existingVendor.PageSize),
+          AllowCustomersToSelectPageSize: true,
+          PictureId: pictureId
+        };
+        await updateVendor(id, pageSettings, trx);
+        
+        // Return all updated fields for response
+        const updatedFields = {
+          ...basicInfo,
+          ...metaInfo,
+          ...pageSettings
+        };
+        
+        return updatedFields;
+      });
+
+      res.status(200).json({
+        success: true,
+        message: "Vendor updated successfully.",
+      });
+    } catch (error) {
+      console.error("Error in patchVendor API:", error);
+      res.status(500).json({ success: false, message: "Server error" });
     }
-
-    // Fetch the existing vendor data
-    const existingVendor = await getVendorById(id);
-    if (!existingVendor) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Vendor not found." });
-    }
-
-    // If deleteVendor is true, mark the vendor as deleted
-    if (deleteVendor) {
-      await updateVendor(id, { Deleted: 1 });
-      return res
-        .status(200)
-        .json({ success: true, message: "Vendor deleted successfully." });
-    }
-
-    // If deleteVendor is false and the vendor is currently marked as deleted, mark it as not deleted
-    if (!deleteVendor && existingVendor.Deleted) {
-      await updateVendor(id, { Deleted: 0 });
-      return res
-        .status(200)
-        .json({ success: true, message: "Vendor restored successfully." });
-    }
-
-    // Prepare the updated fields
-    const updatedFields = {
-      Name: name ? name.trim() : existingVendor.Name,
-      Email: email ? email.trim() : existingVendor.Email,
-      Description: description
-        ? description.trim()
-        : existingVendor.Description,
-      AdminComment: adminComment
-        ? adminComment.trim()
-        : existingVendor.AdminComment,
-      Active: active ?? existingVendor.Active,
-      DisplayOrder: displayOrder ?? existingVendor.DisplayOrder,
-      MetaKeywords: metaKeywords
-        ? metaKeywords.trim()
-        : existingVendor.MetaKeywords,
-      MetaDescription: metaDescription
-        ? metaDescription.trim()
-        : existingVendor.MetaDescription,
-      MetaTitle: metaTitle ? metaTitle.trim() : existingVendor.MetaTitle,
-      PageSize: pageSize ?? existingVendor.PageSize,
-      PageSizeOptions:
-        pageSizeOptions ??
-        getPageSizeOptions(pageSize ?? existingVendor.PageSize),
-      AllowCustomersToSelectPageSize: true, // Always set to true
-    };
-
-    // Update the vendor in the database
-    await updateVendor(id, updatedFields);
-
-    res.status(200).json({
-      success: true,
-      message: "Vendor updated successfully.",
-      data: updatedFields,
-    });
-  } catch (error) {
-    console.error("Error in patchVendor API:", error);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-};
+  },
+];
 
 export const getOneVendor = async (req, res) => {
   try {
