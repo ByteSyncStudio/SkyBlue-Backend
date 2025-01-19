@@ -57,6 +57,8 @@ import {
   updateProductMapping,
 } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
+  addCustomerAddress,
+  deleteCustomerAddress,
   editCustomer,
   getAllCustomersWithRoles,
   getCustomerAddress,
@@ -65,6 +67,7 @@ import {
   getCustomerRoles,
   getCustomerShoppingCart,
   getSingleCustomer,
+  getSingleCustomerAddress,
 } from "../../controllers/admin/customer/adminCustomerController.js";
 import { getBestSellers } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
@@ -142,7 +145,7 @@ import {
   getRoles,
 } from "../../controllers/admin/roles/adminRolesController.js";
 import { sendEmail } from "../../controllers/admin/email/adminEmailController.js";
-import { getCountriesAndStates } from "../../repositories/admin/Orders/adminOrders.js";
+import { getCountriesAndStates, updateShippingMethod } from "../../repositories/admin/Orders/adminOrders.js";
 import {
   addProductToFlyerController,
   deleteProductFlyerController,
@@ -161,6 +164,7 @@ import {
 } from "../../controllers/admin/Campaign/adminCampaignController.js";
 import multer from "multer";
 import { bulkDeleteProducts, getBulkProducts, updateBulkEdit } from "../../controllers/admin/vendors/adminBulkEditController.js";
+import { addShippingMethod, deleteShippingMethod, getShippingMethods, updateShippingMethodofOrder } from "../../controllers/admin/ShippingMethod/shippingMethodController.js";
 
 const router = express.Router();
 
@@ -1363,6 +1367,12 @@ router.patch("/product/updateInventory/:id", adminAccess, updateInventoryProduct
 router.patch("/product/updateMapping/:id", adminAccess, updateProductMapping)
 
 
+//shipping method
+
+router.get("/shipping-method/all", adminAccess, getShippingMethods);
+router.post("/shipping-method/add", adminAccess, addShippingMethod);
+router.patch("/shipping-method/edit", adminAccess, updateShippingMethodofOrder);
+router.delete("/shipping-method/delete", adminAccess, deleteShippingMethod);
 
 /**
  * @swagger
@@ -2682,11 +2692,13 @@ router.delete("/roles/:id", adminAccess, deleteRole);
 router.get("/ordersheet", adminAccess, orderSheet);
 
 router.get("/customer-details/:id", adminAccess, getSingleCustomer);
-
-
+router.get("/customer-details-address/:id", adminAccess, getSingleCustomerAddress);
+router.delete("/customer-address/:id", adminAccess, deleteCustomerAddress);
 
 router.get("/edit-customer-order/:id", adminAccess, getCustomerOrder);
 router.get("/edit-customer-address/:id", adminAccess, getCustomerAddress);
+
+router.post("/add-customer-address/:id", adminAccess, addCustomerAddress);
 
 router.get("/edit-customer-shopping-cart/:id", adminAccess, getCustomerShoppingCart)
 

@@ -696,8 +696,6 @@ export async function editTierPriceProduct(req, res) {
   }
 }
 
-
-
 export async function updateInventoryProduct(req, res) {
   try {
     const productId = req.params.id;
@@ -705,16 +703,23 @@ export async function updateInventoryProduct(req, res) {
 
     // Validate input
     if (!productId || Object.keys(updateData).length === 0) {
-      return res.status(400).send("Invalid input: Provide product ID and update data.");
+      return res
+        .status(400)
+        .send("Invalid input: Provide product ID and update data.");
     }
 
     // Call service to update inventory
     const result = await UpdateProductInventory(productId, updateData);
 
     if (result) {
-      res.status(200).json({ success: true, message: "Inventory updated successfully." });
+      res
+        .status(200)
+        .json({ success: true, message: "Inventory updated successfully." });
     } else {
-      res.status(404).json({ success: false, message: "Product not found or update failed." });
+      res.status(404).json({
+        success: false,
+        message: "Product not found or update failed.",
+      });
     }
   } catch (error) {
     console.error("Error updating inventory:", error);
@@ -728,7 +733,10 @@ export async function updateProductMapping(req, res) {
     const { manufacturers, vendor } = req.body; // Destructure the input data
 
     // Update vendor and manufacturers
-    const result = await UpdateProductMapping(productId, { manufacturers, vendor });
+    const result = await UpdateProductMapping(productId, {
+      manufacturers,
+      vendor,
+    });
 
     res.status(200).json({ success: true, data: result });
   } catch (error) {

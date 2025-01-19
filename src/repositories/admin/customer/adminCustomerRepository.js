@@ -237,6 +237,8 @@ export async function GetSingleCustomer(customerId) {
       )
       .where("Customer.Id", customerId)
       .first();
+    
+      console.log("Customer Details:", customerDetails);
 
     // Fetch customer roles separately
     const roles = await knex("Customer_CustomerRole_Mapping as ccrm")
@@ -258,6 +260,91 @@ export async function GetSingleCustomer(customerId) {
     throw error;
   }
 }
+
+export async function GetSingleCustomerAddress(customerId) {
+  try {
+    // Fetch customer details without roles
+    const customerDetails = await knex("Customer")
+      .select("Id", "Username", "Email", "Active", "CreatedOnUtc")
+      .where("Id", customerId)
+      .first();
+    
+    if (!customerDetails) {
+      throw new Error("Customer not found");
+    }
+
+
+    // Fetch all addresses associated with the customer
+    const addresses = await knex("Address")
+      .select(
+        "Id",
+        "FirstName",
+        "LastName",
+        "Email",
+        "Company",
+        "CountryId",
+        "StateProvinceId",
+        "City",
+        "Address1",
+        "Address2",
+        "ZipPostalCode",
+        "PhoneNumber"
+      )
+      .where("Email", customerDetails.Email);
+
+
+    // Fetch customer roles separately
+    const roles = await knex("Customer_CustomerRole_Mapping as ccrm")
+      .join("CustomerRole as cr", "ccrm.CustomerRole_Id", "cr.Id")
+      .select("cr.Id", "cr.Name")
+      .where("ccrm.Customer_Id", customerId);
+
+
+    // Combine customer details, roles, and addresses
+    const result = {
+      ...customerDetails,
+      Addresses: addresses, // Array of addresses
+      Roles: roles.map((role) => ({ Id: role.Id, Name: role.Name })),
+    };
+
+    return result;
+  } catch (error) {
+    console.error(error);
+    error.statusCode = 500;
+    error.message = "Error getting customer data.";
+    throw error;
+  }
+}
+
+
+export async function DeleteCustomerAddress(addressId) {
+  try {
+    // Check if the address exists
+    const address = await knex("Address")
+      .select("Id")
+      .where("Id", addressId)
+      .first();
+
+    if (!address) {
+      throw new Error("Address not found");
+    }
+
+    // Delete the address
+    await knex("Address")
+      .where("Id", addressId)
+      .del();
+
+    return { success: true, message: "Address deleted successfully" };
+  } catch (error) {
+    console.error("Error deleting address:", error);
+    error.statusCode = 500;
+    error.message = "Error deleting address.";
+    throw error;
+  }
+}
+
+
+
 
 export async function UpdateCustomerRoles(
   customerId,
@@ -483,5 +570,34 @@ export async function GetCustomerShoppingCart(id) {
   } catch (error) {
     console.error("Error fetching shopping cart data:", error);
     throw new Error("An error occurred while fetching the shopping cart data.");
+  }
+}
+
+
+
+export async function AddCustomerAddress(customerId, addressData) {
+  try {
+    const newAddress = {
+      FirstName: addressData.FirstName,
+      LastName: addressData.LastName,
+      Email: addressData.Email,
+      Company: addressData.Company,
+      CountryId: addressData.Country,
+      StateProvinceId: addressData.State,
+      City: addressData.City,
+      Address1: addressData.Address1,
+      Address2: addressData.Address2,
+      ZipPostalCode: addressData.ZipPostalCode,
+      PhoneNumber: addressData.PhoneNumber,
+      CreatedOnUtc: new Date(),
+    };
+    console.log("New Address:", newAddress);
+
+    // Insert the address into the database
+    const result = await knex("Address").insert(newAddress);
+    return result;
+  } catch (error) {
+    console.error("Error adding customer address:", error);
+    throw error;
   }
 }

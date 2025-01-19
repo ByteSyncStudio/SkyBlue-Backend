@@ -1,4 +1,4 @@
-import { EditCustomerActive, EditCustomerDetails, GetAllCustomersWithRoles, GetCustomerAddress, GetCustomerByOrderTotal, GetCustomerOrder, GetCustomerRoles, GetCustomerShoppingCart, GetSingleCustomer, UpdateCustomerRoles } from "../../../repositories/admin/customer/adminCustomerRepository.js";
+import { AddCustomerAddress, DeleteCustomerAddress, EditCustomerActive, EditCustomerDetails, GetAllCustomersWithRoles, GetCustomerAddress, GetCustomerByOrderTotal, GetCustomerOrder, GetCustomerRoles, GetCustomerShoppingCart, GetSingleCustomer, GetSingleCustomerAddress, UpdateCustomerRoles } from "../../../repositories/admin/customer/adminCustomerRepository.js";
 
 export async function getAllCustomersWithRoles(req, res) {
     try {
@@ -84,6 +84,36 @@ export async function getSingleCustomer(req, res) {
         });
     }
 }
+
+export async function getSingleCustomerAddress(req, res) {
+    try {
+        res.status(200).send(await GetSingleCustomerAddress(req.params.id));
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Server error'
+        });
+    }
+}
+
+export async function deleteCustomerAddress(req, res) {
+    try {
+        const addressId = req.params.id;;
+        const result = await DeleteCustomerAddress(addressId);
+        if(!result) {
+            res.status(404).json({ success: false, message: 'Address not found' });
+        }
+        res.status(200).json(result);
+    } catch (error) {
+        console.error('Error in deleteCustomerAddress:', error);
+        res.status(error.statusCode || 500).json({
+            success: false,
+            message: error.message || 'Server error'
+        });
+    }
+}
+
+
 
 export async function editCustomer(req, res) {
     try {
@@ -201,3 +231,26 @@ export async function getCustomerShoppingCart(req,res){
         });
     }
 }
+
+export async function addCustomerAddress(req, res) {
+    try {
+      const customerId = req.params.id; // Customer ID from the route
+      const addressData = req.body; // Address data from the frontend
+  
+      if (!customerId || !addressData) {
+        return res.status(400).json({ success: false, message: "Invalid data" });
+      }
+  
+      // Call service to add address
+      const result = await AddCustomerAddress(customerId, addressData);
+  
+      if (result) {
+        res.status(201).json({ success: true, message: "Address added successfully" });
+      } else {
+        res.status(500).json({ success: false, message: "Failed to add address" });
+      }
+    } catch (error) {
+      res.status(500).json({ success: false, message: "Internal Server Error", error: error.message });
+    }
+  }
+  
