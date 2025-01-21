@@ -119,7 +119,6 @@ export async function deleteCategory(req, res) {
 export async function getSingleCategory(req, res) {
     try {
         const categoryId = req.params.id;
-        console.log(categoryId)
         const result = await GetSingleCategory(categoryId);
         res.status(200).send(result)
     } catch (error) {

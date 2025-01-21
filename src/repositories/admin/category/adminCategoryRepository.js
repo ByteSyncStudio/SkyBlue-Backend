@@ -104,7 +104,7 @@ export async function AddCategory(Name, ParentCategoryId, Published, DiscountId,
                 .returning('Id');
 
             if (DiscountId) {
-                await MapDiscountToCategory(categoryId, DiscountId, trx);
+                await MapDiscountToCategory(categoryId.Id, DiscountId, trx);
             }
 
             return categoryId; // Return single ID value
