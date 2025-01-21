@@ -79,7 +79,7 @@ export async function updateCategory(req, res) {
             console.log(fileExtension, formattedId)
             const remotePath = `/acc1845619052/SkyblueWholesale/content/images/thumbs/${formattedId}_${seoFilename}.${fileExtension}`;
             queueFileUpload(file.path, remotePath);
-        } else if (removedImage) {
+        } else if (removedImage === 'true' || removedImage === true) {
             pictureId = 0;
         }
 

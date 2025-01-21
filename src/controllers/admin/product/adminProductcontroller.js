@@ -731,12 +731,13 @@ export async function updateInventoryProduct(req, res) {
 export async function updateProductMapping(req, res) {
   try {
     const productId = req.params.id; // Extract the product ID
-    const { manufacturers, vendor } = req.body; // Destructure the input data
+    const { categoryIds, manufacturerIds, vendorId } = req.body; // Destructure the input data
 
     // Update vendor and manufacturers
     const result = await UpdateProductMapping(productId, {
-      manufacturers,
-      vendor,
+      categoryIds,
+      manufacturerIds,
+      vendorId,
     });
 
     res.status(200).json({ success: true, data: result });

@@ -1131,6 +1131,11 @@ export async function Getmapping(productId) {
       ) // Select the ID and Name of Manufacturer
       .where("ProductId", productId);
 
+    const categoryMappingPromise = knex("Product_Category_Mapping")
+      .join("Category", "Category.Id", "Product_Category_Mapping.CategoryId")
+      .where("Product_Category_Mapping.ProductId", productId)
+      .select("Category.Id as CategoryId", "Category.Name as CategoryName")
+
     // Step 2: Get the VendorId and VendorName from Product table by joining with Vendor table
     const productVendorMappingPromise = knex("Product")
       .join("Vendor", "Vendor.Id", "Product.VendorId") // Join with Vendor table
@@ -1145,11 +1150,12 @@ export async function Getmapping(productId) {
       .first();
 
     // Await all promises in parallel
-    const [manufacturerMappings, productVendorMapping, productStoreMapping] =
+    const [manufacturerMappings, productVendorMapping, productStoreMapping, category] =
       await Promise.all([
         manufacturerMappingsPromise,
         productVendorMappingPromise,
         productStoreMappingPromise,
+        categoryMappingPromise
       ]);
 
     if (manufacturerMappings.length === 0) {
@@ -1166,6 +1172,7 @@ export async function Getmapping(productId) {
     return {
       productId,
       manufacturers,
+      category,
       productVendorMapping: {
         VendorId: productVendorMapping?.VendorId,
         VendorName: productVendorMapping?.VendorName,
@@ -1238,7 +1245,6 @@ export const updatePriceDetailProduct = async (productId, updateData) => {
   }
 };
 
-
 export const DeleteTierPriceProduct = async (productId, customerRoleId) => {
   try {
     // Delete the tier price for the given product and customer role
@@ -1251,7 +1257,7 @@ export const DeleteTierPriceProduct = async (productId, customerRoleId) => {
     console.error("Error deleting tier price:", error);
     throw new Error("Failed to delete tier price.");
   }
-}
+};
 
 export const UpdateProductInventory = async (productId, updateData) => {
   try {
@@ -1270,7 +1276,10 @@ export const UpdateProductInventory = async (productId, updateData) => {
       OrderMaximumQuantity: updateData.maxCartQuantity,
       AllowedQuantities: updateData.allowedQuantities,
       NotReturnable: updateData.notReturnable,
-      ProductAvailabilityRangeId: updateData.productAvailabilityRange === 'None' ? 0 : parseInt(updateData.productAvailabilityRange),
+      ProductAvailabilityRangeId:
+        updateData.productAvailabilityRange === "None"
+          ? 0
+          : parseInt(updateData.productAvailabilityRange),
       UpdatedOnUtc: new Date(), // Track last updated timestamp
     };
 
@@ -1287,40 +1296,40 @@ export const UpdateProductInventory = async (productId, updateData) => {
 };
 
 export const UpdateProductMapping = async (productId, updateData) => {
-  const { manufacturers, vendor } = updateData;
+  const { categoryIds, manufacturerIds, vendorId } = updateData;
+  console.log(updateData)
 
   try {
     // Update the vendor in dbo.Product
-    await knex('Product')
-      .where('Id', productId)
-      .update({ VendorId: vendor });
+    await knex("Product").where("Id", productId).update({ VendorId: vendorId });
 
-    // Fetch existing manufacturers for the product
-    const existingManufacturers = await knex('Product_Manufacturer_Mapping')
-      .select('ManufacturerId')
-      .where('ProductId', productId);
+    //? Delete existing manufacturer mappings and category mappings
+    await Promise.all([
+      knex("Product_Manufacturer_Mapping").where("ProductId", productId).del(),
+      knex("Product_Category_Mapping").where("ProductId", productId).del(),
+    ]);
 
-    const existingIds = existingManufacturers.map(m => m.ManufacturerId);
+    //? Insert new manufacturer mappings and category mappings
+    await Promise.all([
+      knex("Product_Manufacturer_Mapping").insert(
+        manufacturerIds.map((manufacturerId) => ({
+          ProductId: productId,
+          ManufacturerId: manufacturerId,
+          IsFeaturedProduct: 0,
+          DisplayOrder: 0,
+        }))
+      ),
+      knex("Product_Category_Mapping").insert(
+        categoryIds.map((categoryId) => ({
+          ProductId: productId,
+          CategoryId: categoryId,
+          IsFeaturedProduct: 0,
+          DisplayOrder: 0,
+        }))
+      ),
+    ]);
 
-    // Filter new manufacturers that are not already associated with the product
-    const newManufacturers = manufacturers.filter(
-      manufacturer => !existingIds.includes(manufacturer.ManufacturerId)
-    );
-
-    // Prepare data for insertion
-    const manufacturerMappings = newManufacturers.map(manufacturer => ({
-      ProductId: productId,
-      ManufacturerId: manufacturer.ManufacturerId,
-      IsFeaturedProduct: 0, // Default value
-      DisplayOrder: 0, // Default value
-    }));
-
-    // Insert new manufacturer mappings
-    if (manufacturerMappings.length > 0) {
-      await knex('Product_Manufacturer_Mapping').insert(manufacturerMappings);
-    }
-
-    return { updatedVendor: vendor, insertedManufacturers: newManufacturers };
+    return;
   } catch (error) {
     console.error("Error in UpdateProductMapping:", error);
     throw new Error("Database operation failed");
@@ -1338,13 +1347,12 @@ export const GetProductImages = async (productId) => {
     // Generate image URLs
     const imageUrls = images.map((image) => ({
       pictureId: image.Id,
-      url: generateImageUrl2(image.Id, image.MimeType, image.SeoFilename)
+      url: generateImageUrl2(image.Id, image.MimeType, image.SeoFilename),
     }));
 
     return imageUrls;
-      
   } catch (error) {
     console.error("Error fetching product images:", error);
     throw new Error("Database operation failed");
   }
-}
+};
