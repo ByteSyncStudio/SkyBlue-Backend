@@ -177,7 +177,7 @@ export async function MapDiscountToCategory(categoryId, discountId, trx) {
     try {
         await trx('Discount_AppliedToCategories').insert({
             Discount_Id: discountId,
-            Category_Id: categoryId.Id
+            Category_Id: categoryId
         });
     } catch (error) {
         console.error("Error mapping discount to category:\n", error);
