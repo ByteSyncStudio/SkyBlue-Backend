@@ -213,7 +213,9 @@ export async function GetSingleCategory(categoryId) {
             'd.Id as DiscountId',
             'p.Id as PictureId',
             'p.MimeType',
-            'p.SeoFilename'
+            'p.SeoFilename',
+            'c.Description',
+            'c.ShowOnHomePage'
         ])
         .where('c.Id', categoryId)
         .first();
