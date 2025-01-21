@@ -103,8 +103,8 @@ export async function AddCategory(Name, ParentCategoryId, Published, DiscountId,
                 })
                 .returning('Id');
 
-            if (DiscountId) {
-                await MapDiscountToCategory(categoryId.Id, DiscountId, trx);
+            if (DiscountId !== 'null' && DiscountId !== null) {
+                await MapDiscountToCategory(categoryId, DiscountId, trx);
             }
 
             return categoryId; // Return single ID value
@@ -177,7 +177,7 @@ export async function MapDiscountToCategory(categoryId, discountId, trx) {
     try {
         await trx('Discount_AppliedToCategories').insert({
             Discount_Id: discountId,
-            Category_Id: categoryId
+            Category_Id: categoryId.Id
         });
     } catch (error) {
         console.error("Error mapping discount to category:\n", error);
