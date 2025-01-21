@@ -185,8 +185,8 @@ export async function MapProductToPicture(
   trx
 ) {
   try {
-    //? Unmap previous pictures
-    await trx("Product_Picture_Mapping").where({ ProductId: productId }).del();
+    // //? Unmap previous pictures
+    // await trx("Product_Picture_Mapping").where({ ProductId: productId }).del();
 
     const result = await trx("Product_Picture_Mapping").insert({
       ProductId: productId,
@@ -1326,3 +1326,25 @@ export const UpdateProductMapping = async (productId, updateData) => {
     throw new Error("Database operation failed");
   }
 };
+
+export const GetProductImages = async (productId) => {
+  try {
+    // Fetch product images
+    const images = await knex("Product_Picture_Mapping")
+      .join("Picture", "Picture.Id", "Product_Picture_Mapping.PictureId")
+      .where("Product_Picture_Mapping.ProductId", productId)
+      .select("Picture.Id", "Picture.MimeType", "Picture.SeoFilename");
+
+    // Generate image URLs
+    const imageUrls = images.map((image) => ({
+      pictureId: image.Id,
+      url: generateImageUrl2(image.Id, image.MimeType, image.SeoFilename)
+    }));
+
+    return imageUrls;
+      
+  } catch (error) {
+    console.error("Error fetching product images:", error);
+    throw new Error("Database operation failed");
+  }
+}

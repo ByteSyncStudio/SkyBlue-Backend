@@ -32,6 +32,7 @@ import {
   DeleteTierPriceProduct,
   UpdateProductInventory,
   UpdateProductMapping,
+  GetProductImages,
 } from "../../../repositories/admin/product/adminProductRepository.js";
 import multer from "multer";
 import { queueFileUpload } from "../../../config/ftpsClient.js";
@@ -745,3 +746,106 @@ export async function updateProductMapping(req, res) {
   }
 }
 
+export async function getProductImages(req, res) {
+  try {
+    const productId = req.params.id;
+    const images = await GetProductImages(productId);
+    res.status(200).send({ images });
+  } catch (error) {
+    console.error("Error in getProductImages:", error);
+    res.status(500).send("Server error");
+  }
+}
+
+export const addProductImages = [
+  upload.array("images"),
+  async (req, res) => {
+    try {
+      const productId = req.params.id;
+      const files = req.files;
+      const { SeoFilenames } = req.body;
+
+      if (!files || files.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "No images provided",
+        });
+      }
+
+      const seoFilenamesArray = SeoFilenames
+        ? SeoFilenames.split(",").map((name) => name.trim())
+        : [];
+
+      await knex.transaction(async (trx) => {
+        // Process each image file
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          const seoFilename =
+            seoFilenamesArray[i] || `product-${productId}-image-${i + 1}`;
+          const fileExtension = file.mimetype.split("/")[1];
+
+          // Add picture to database
+          const pictureId = await AddPicture(
+            {
+              mimeType: file.mimetype,
+              seoFilename: seoFilename,
+            },
+            trx
+          );
+
+          // Format ID for FTP path
+          const formattedId = pictureId.toString().padStart(7, "0");
+          const remotePath = `/acc1845619052/SkyblueWholesale/Content/images/thumbs/${formattedId}_${seoFilename}.${fileExtension}`;
+
+          // Queue file upload to FTP
+          queueFileUpload(file.path, remotePath);
+
+          // Map product to picture
+          await MapProductToPicture(productId, pictureId, i + 1, trx);
+        }
+      });
+
+      res.status(200).json({
+        success: true,
+        message: "Images added successfully",
+      });
+    } catch (error) {
+      console.error("Error adding product images:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to add product images",
+      });
+    }
+  },
+];
+
+export async function deleteProductImage(req, res) {
+  try {
+    const productId = req.params.productId;
+    const imageId = req.params.imageId;
+
+    if (!imageId) {
+      return res.status(400).json({
+        success: false,
+        message: "No image ID provided",
+      });
+    }
+
+    await knex.transaction(async (trx) => {
+      // Unlink the image from the database
+      await DeleteProductPictures(productId, [imageId], trx);
+      //TODO: Delete the image from FTP server
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Images deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting product images:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete product images",
+    });
+  }
+}

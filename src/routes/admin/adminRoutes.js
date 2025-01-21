@@ -55,6 +55,9 @@ import {
   editTierPriceProduct,
   updateInventoryProduct,
   updateProductMapping,
+  getProductImages,
+  addProductImages,
+  deleteProductImage,
 } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
   addCustomerAddress,
@@ -260,6 +263,12 @@ router.get("/unapproved", adminAccess, getUnapprovedUsers);
 router.put("/approve/:id", adminAccess, approveUser);
 
 router.post("/product/add", adminAccess, addProduct);
+
+router.get("/product/images/:id", adminAccess, getProductImages);
+
+router.post("/product/images/add/:id", adminAccess, addProductImages);
+
+router.delete("/product/images/:productId/delete/:imageId", adminAccess, deleteProductImage);
 
 /**
  * @swagger
@@ -761,8 +770,6 @@ router.get("/bulk-products", adminAccess, getBulkProducts);
 router.delete("/bulk-delete-products", adminAccess, bulkDeleteProducts);
 
 router.patch("/bulk-products/bulk-edit", adminAccess, updateBulkEdit);
-
-
 
 router.get("/getonevendor/:id", adminAccess, getOneVendor);
 
