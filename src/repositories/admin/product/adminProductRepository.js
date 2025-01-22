@@ -1356,3 +1356,15 @@ export const GetProductImages = async (productId) => {
     throw new Error("Database operation failed");
   }
 };
+
+
+export async function updateProductPublishedStatus(productIds, published) {
+  return knex('Product')
+  .whereIn('Id', productIds)
+  .update({ Published: published, UpdatedOnUtc: new Date() })
+  .then((rowsUpdated) => rowsUpdated)
+  .catch((error) => {
+    console.error('Knex error:', error);
+    throw error;
+  });
+}

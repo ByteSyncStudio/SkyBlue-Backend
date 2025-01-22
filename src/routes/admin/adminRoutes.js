@@ -58,6 +58,7 @@ import {
   getProductImages,
   addProductImages,
   deleteProductImage,
+  updatePublishedStatus,
 } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
   addCustomerAddress,
@@ -148,7 +149,10 @@ import {
   getRoles,
 } from "../../controllers/admin/roles/adminRolesController.js";
 import { sendEmail } from "../../controllers/admin/email/adminEmailController.js";
-import { getCountriesAndStates, updateShippingMethod } from "../../repositories/admin/Orders/adminOrders.js";
+import {
+  getCountriesAndStates,
+  updateShippingMethod,
+} from "../../repositories/admin/Orders/adminOrders.js";
 import {
   addProductToFlyerController,
   deleteProductFlyerController,
@@ -166,8 +170,18 @@ import {
   uploadImage,
 } from "../../controllers/admin/Campaign/adminCampaignController.js";
 import multer from "multer";
-import { bulkDeleteProducts, getBulkProducts, updateBulkEdit } from "../../controllers/admin/vendors/adminBulkEditController.js";
-import { addShippingMethod, deleteShippingMethod, getContentManagementSystem, getShippingMethods, updateShippingMethodofOrder } from "../../controllers/admin/Configurations/shippingMethodController.js";
+import {
+  bulkDeleteProducts,
+  getBulkProducts,
+  updateBulkEdit,
+} from "../../controllers/admin/vendors/adminBulkEditController.js";
+import {
+  addShippingMethod,
+  deleteShippingMethod,
+  getContentManagementSystem,
+  getShippingMethods,
+  updateShippingMethodofOrder,
+} from "../../controllers/admin/Configurations/shippingMethodController.js";
 
 const router = express.Router();
 
@@ -268,7 +282,11 @@ router.get("/product/images/:id", adminAccess, getProductImages);
 
 router.post("/product/images/add/:id", adminAccess, addProductImages);
 
-router.delete("/product/images/:productId/delete/:imageId", adminAccess, deleteProductImage);
+router.delete(
+  "/product/images/:productId/delete/:imageId",
+  adminAccess,
+  deleteProductImage
+);
 
 /**
  * @swagger
@@ -777,20 +795,22 @@ router.get("/getonevendoredit/:id", adminAccess, getOneVendorEdit);
 
 router.get("/searchcustomer", adminAccess, searchCustomerByEmail);
 
-router.patch("/addcustomertovendor/:vendorId", adminAccess, addCustomerToVendor);
+router.patch(
+  "/addcustomertovendor/:vendorId",
+  adminAccess,
+  addCustomerToVendor
+);
 
 router.patch("/removecustomervendor", adminAccess, removeCustomerToVendor);
 
 //getvendoraddress
 router.get("/getvendoraddress/:vendorId", adminAccess, getVendorAddress);
 
-router.patch("/update-vendor-address/:vendorId", adminAccess, updateVendorAddress);
-
-
-
-
-
-
+router.patch(
+  "/update-vendor-address/:vendorId",
+  adminAccess,
+  updateVendorAddress
+);
 
 /**
  * @swagger
@@ -1359,22 +1379,36 @@ router.get("/product-seo-detail/:id", adminAccess, getProductSeoDetail);
 
 router.patch("/product-seo-detail/:id", adminAccess, updateProductSeoDetail);
 
-
 router.post("/product/tierPrice/:id", adminAccess, addTierPrice);
 router.delete("/product/tierPrice/:id", adminAccess, deleteTierPriceProduct);
 router.get("/product-detail/:id", adminAccess, getProductDetail);
-router.get("/product-detail-inventory/:id", adminAccess, getProductDetailInventory);
+router.get(
+  "/product-detail-inventory/:id",
+  adminAccess,
+  getProductDetailInventory
+);
 router.get("/product-avaliability", adminAccess, getProductAvaliability);
 router.get("/product-mapping/:id", adminAccess, getProductMapping);
-router.get("/product/purchasedwithorder/:id", adminAccess, getProductPurchasedWithOrder);
-router.patch("/product/generalinfo/:id", adminAccess, updateGeneralInfoProduct)
-router.patch("/product/priceDetails/:id", adminAccess, updatePriceDetailsProduct)
-router.patch("/product/editTierPrice/:id", adminAccess, editTierPriceProduct)
-router.patch("/product/updateInventory/:id", adminAccess, updateInventoryProduct)
-router.patch("/product/updateMapping/:id", adminAccess, updateProductMapping)
+router.get(
+  "/product/purchasedwithorder/:id",
+  adminAccess,
+  getProductPurchasedWithOrder
+);
+router.patch("/product/generalinfo/:id", adminAccess, updateGeneralInfoProduct);
+router.patch(
+  "/product/priceDetails/:id",
+  adminAccess,
+  updatePriceDetailsProduct
+);
+router.patch("/product/editTierPrice/:id", adminAccess, editTierPriceProduct);
+router.patch(
+  "/product/updateInventory/:id",
+  adminAccess,
+  updateInventoryProduct
+);
+router.patch("/product/updateMapping/:id", adminAccess, updateProductMapping);
 
-
-
+router.put("/product/publish-product", adminAccess, updatePublishedStatus);
 
 //shipping method
 router.get("/shipping-method/all", adminAccess, getShippingMethods);
@@ -1382,9 +1416,12 @@ router.post("/shipping-method/add", adminAccess, addShippingMethod);
 router.patch("/shipping-method/edit", adminAccess, updateShippingMethodofOrder);
 router.delete("/shipping-method/delete", adminAccess, deleteShippingMethod);
 
-
 //AccesListControl
-router.get("/content-management/access-list-control", adminAccess, getContentManagementSystem);
+router.get(
+  "/content-management/access-list-control",
+  adminAccess,
+  getContentManagementSystem
+);
 
 /**
  * @swagger
@@ -1591,22 +1628,37 @@ router.post(
   applyDiscountToProducts
 );
 
-
-router.get("/get-discount-to-product/:discountId", adminAccess, getDiscountToProducts);
-router.get("/get-discount-to-category/:discountId", adminAccess, getDiscountToCategory);
+router.get(
+  "/get-discount-to-product/:discountId",
+  adminAccess,
+  getDiscountToProducts
+);
+router.get(
+  "/get-discount-to-category/:discountId",
+  adminAccess,
+  getDiscountToCategory
+);
 
 router.get("/usage-discount/:discountId", adminAccess, getUsageDiscount);
 router.delete("/discount-usage/:discountId", adminAccess, deleteDiscountUsage);
 
 router.patch("/edit-discount/:discountId", adminAccess, editDiscount);
 
-
-router.get("/get-discount-to-manufacturer/:discountId", adminAccess, getDiscountToManufacturer);
-router.post("/apply-discount-to-manufacturer/:discountId", adminAccess, applyDiscountToManufacturer);
-router.delete("/remove-discount-to-manufacturer/:discountId", adminAccess, removeDiscountToManufacturer);
-
-
-
+router.get(
+  "/get-discount-to-manufacturer/:discountId",
+  adminAccess,
+  getDiscountToManufacturer
+);
+router.post(
+  "/apply-discount-to-manufacturer/:discountId",
+  adminAccess,
+  applyDiscountToManufacturer
+);
+router.delete(
+  "/remove-discount-to-manufacturer/:discountId",
+  adminAccess,
+  removeDiscountToManufacturer
+);
 
 /**
  * @swagger
@@ -1648,8 +1700,6 @@ router.post(
   adminAccess,
   applyDiscountToCategory
 );
-
-
 
 /**
  * @swagger
@@ -2704,7 +2754,11 @@ router.delete("/roles/:id", adminAccess, deleteRole);
 router.get("/ordersheet", adminAccess, orderSheet);
 
 router.get("/customer-details/:id", adminAccess, getSingleCustomer);
-router.get("/customer-details-address/:id", adminAccess, getSingleCustomerAddress);
+router.get(
+  "/customer-details-address/:id",
+  adminAccess,
+  getSingleCustomerAddress
+);
 router.delete("/customer-address/:id", adminAccess, deleteCustomerAddress);
 
 router.get("/edit-customer-order/:id", adminAccess, getCustomerOrder);
@@ -2712,8 +2766,11 @@ router.get("/edit-customer-address/:id", adminAccess, getCustomerAddress);
 
 router.post("/add-customer-address/:id", adminAccess, addCustomerAddress);
 
-router.get("/edit-customer-shopping-cart/:id", adminAccess, getCustomerShoppingCart)
-
+router.get(
+  "/edit-customer-shopping-cart/:id",
+  adminAccess,
+  getCustomerShoppingCart
+);
 
 router.patch("/customer-details/:id", adminAccess, editCustomer);
 

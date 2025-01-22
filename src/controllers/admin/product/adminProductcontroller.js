@@ -33,6 +33,7 @@ import {
   UpdateProductInventory,
   UpdateProductMapping,
   GetProductImages,
+  updateProductPublishedStatus,
 } from "../../../repositories/admin/product/adminProductRepository.js";
 import multer from "multer";
 import { queueFileUpload } from "../../../config/ftpsClient.js";
@@ -848,5 +849,25 @@ export async function deleteProductImage(req, res) {
       success: false,
       message: "Failed to delete product images",
     });
+  }
+}
+
+export async function updatePublishedStatus(req,res){
+  const { productIds, published } = req.body;
+
+  if (!Array.isArray(productIds) || productIds.length === 0) {
+    return res.status(400).json({ success: false, message: 'Product IDs must be an array and not empty.' });
+  }
+
+  if (typeof published !== 'boolean') {
+    return res.status(400).json({ success: false, message: 'Published must be a boolean value.' });
+  }
+
+  try {
+    const result = await updateProductPublishedStatus(productIds, published);
+    return res.status(200).json({ success: true, message: `${result} products updated.` });
+  } catch (error) {
+    console.error('Error updating products:', error);
+    return res.status(500).json({ success: false, message: 'An error occurred while updating the products.' });
   }
 }
