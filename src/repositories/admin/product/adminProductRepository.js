@@ -1368,3 +1368,14 @@ export async function updateProductPublishedStatus(productIds, published) {
     throw error;
   });
 }
+
+export async function DeleteSelectedProduct(productIds, deleted) {
+  return knex('Product')
+    .whereIn('Id', productIds)
+    .update({ Deleted: deleted, UpdatedOnUtc: new Date() })
+    .then((rowsUpdated) => rowsUpdated)
+    .catch((error) => {
+      console.error('Knex error:', error);
+      throw error;
+    });
+}

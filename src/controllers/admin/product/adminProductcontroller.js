@@ -34,6 +34,7 @@ import {
   UpdateProductMapping,
   GetProductImages,
   updateProductPublishedStatus,
+  DeleteSelectedProduct,
 } from "../../../repositories/admin/product/adminProductRepository.js";
 import multer from "multer";
 import { queueFileUpload } from "../../../config/ftpsClient.js";
@@ -865,6 +866,26 @@ export async function updatePublishedStatus(req,res){
 
   try {
     const result = await updateProductPublishedStatus(productIds, published);
+    return res.status(200).json({ success: true, message: `${result} products updated.` });
+  } catch (error) {
+    console.error('Error updating products:', error);
+    return res.status(500).json({ success: false, message: 'An error occurred while updating the products.' });
+  }
+}
+
+export async function deleteSelectedProduct(req, res) {
+  const { productIds, deleted } = req.body;
+
+  if (!Array.isArray(productIds) || productIds.length === 0) {
+    return res.status(400).json({ success: false, message: 'Product IDs must be an array and not empty.' });
+  }
+
+  if (typeof deleted !== 'boolean') {
+    return res.status(400).json({ success: false, message: 'Published must be a boolean value.' });
+  }
+
+  try {
+    const result = await DeleteSelectedProduct(productIds, deleted);
     return res.status(200).json({ success: true, message: `${result} products updated.` });
   } catch (error) {
     console.error('Error updating products:', error);
