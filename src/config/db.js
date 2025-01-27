@@ -10,7 +10,7 @@ const config = {
     password: process.env.DB_PASSWORD,
     database: process.env.DB_DATABASE,
     options: {
-      encrypt: true,
+      encrypt: false,
     },
   },
   pool: {
