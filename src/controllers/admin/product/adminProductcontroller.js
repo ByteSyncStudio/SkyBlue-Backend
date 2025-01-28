@@ -533,7 +533,7 @@ export async function getProductPurchasedWithOrder(req, res) {
     if (!orderItems.length) {
       return res
         .status(404)
-        .json({ message: "No orders found for the product" });
+        .send({ message: "No orders found for the product" });
     }
 
     // Step 2: Get Order details for each OrderId
