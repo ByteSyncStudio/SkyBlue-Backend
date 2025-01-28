@@ -1134,7 +1134,7 @@ export async function Getmapping(productId) {
     const categoryMappingPromise = knex("Product_Category_Mapping")
       .join("Category", "Category.Id", "Product_Category_Mapping.CategoryId")
       .where("Product_Category_Mapping.ProductId", productId)
-      .select("Category.Id as CategoryId", "Category.Name as CategoryName")
+      .select("Category.Id as CategoryId", "Category.Name as CategoryName");
 
     // Step 2: Get the VendorId and VendorName from Product table by joining with Vendor table
     const productVendorMappingPromise = knex("Product")
@@ -1150,13 +1150,17 @@ export async function Getmapping(productId) {
       .first();
 
     // Await all promises in parallel
-    const [manufacturerMappings, productVendorMapping, productStoreMapping, category] =
-      await Promise.all([
-        manufacturerMappingsPromise,
-        productVendorMappingPromise,
-        productStoreMappingPromise,
-        categoryMappingPromise
-      ]);
+    const [
+      manufacturerMappings,
+      productVendorMapping,
+      productStoreMapping,
+      category,
+    ] = await Promise.all([
+      manufacturerMappingsPromise,
+      productVendorMappingPromise,
+      productStoreMappingPromise,
+      categoryMappingPromise,
+    ]);
 
     if (manufacturerMappings.length === 0) {
       console.log("No manufacturer mappings found for product ID:", productId);
@@ -1297,7 +1301,7 @@ export const UpdateProductInventory = async (productId, updateData) => {
 
 export const UpdateProductMapping = async (productId, updateData) => {
   const { categoryIds, manufacturerIds, vendorId } = updateData;
-  console.log(updateData)
+  console.log(updateData);
 
   try {
     // Update the vendor in dbo.Product
@@ -1357,14 +1361,24 @@ export const GetProductImages = async (productId) => {
   }
 };
 
-
 export async function updateProductPublishedStatus(productIds, published) {
-  return knex('Product')
-  .whereIn('Id', productIds)
-  .update({ Published: published, UpdatedOnUtc: new Date() })
-  .then((rowsUpdated) => rowsUpdated)
-  .catch((error) => {
-    console.error('Knex error:', error);
-    throw error;
-  });
+  return knex("Product")
+    .whereIn("Id", productIds)
+    .update({ Published: published, UpdatedOnUtc: new Date() })
+    .then((rowsUpdated) => rowsUpdated)
+    .catch((error) => {
+      console.error("Knex error:", error);
+      throw error;
+    });
+}
+
+export async function DeleteSelectedProduct(productIds, deleted) {
+  return knex("Product")
+    .whereIn("Id", productIds)
+    .update({ Deleted: deleted, UpdatedOnUtc: new Date() })
+    .then((rowsUpdated) => rowsUpdated)
+    .catch((error) => {
+      console.error("Knex error:", error);
+      throw error;
+    });
 }

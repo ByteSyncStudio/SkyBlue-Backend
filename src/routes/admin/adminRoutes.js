@@ -59,6 +59,7 @@ import {
   addProductImages,
   deleteProductImage,
   updatePublishedStatus,
+  deleteSelectedProduct,
 } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
   addCustomerAddress,
@@ -1409,6 +1410,7 @@ router.patch(
 router.patch("/product/updateMapping/:id", adminAccess, updateProductMapping);
 
 router.put("/product/publish-product", adminAccess, updatePublishedStatus);
+router.put("/product/delete-product", adminAccess, deleteSelectedProduct);
 
 //shipping method
 router.get("/shipping-method/all", adminAccess, getShippingMethods);
