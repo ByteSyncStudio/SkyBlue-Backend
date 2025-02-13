@@ -60,6 +60,11 @@ import {
   deleteProductImage,
   updatePublishedStatus,
   deleteSelectedProduct,
+  getAllProductAttributes,
+  updateProductAttribute,
+  getUsedByAttributes,
+  addProductAttribute,
+  deleteProductAttribute,
 } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
   addCustomerAddress,
@@ -427,6 +432,13 @@ router.get(
   adminAccess,
   getContentManagementSystem
 );
+
+//ProductAttribute
+router.get("/product-attributes", adminAccess, getAllProductAttributes);
+router.get("/usedBy-ProductAttribute/:id", adminAccess, getUsedByAttributes)
+router.patch("/edit-product-attribute/:id", adminAccess, updateProductAttribute);
+router.post("/add-new-product-attribute", adminAccess, addProductAttribute);
+router.delete("/delete-product-attribute/:id", adminAccess, deleteProductAttribute);
 
 //Slider
 router.post("/slider/add", adminAccess, addSlider);

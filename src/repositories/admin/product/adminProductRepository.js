@@ -1382,3 +1382,26 @@ export async function DeleteSelectedProduct(productIds, deleted) {
       throw error;
     });
 }
+
+
+export async function GetUsedProductAttribute(id) {
+  try {
+    // ✅ Await query execution to get product IDs
+    const productIds = await knex("Product_ProductAttribute_Mapping")
+      .where("ProductAttributeId", id)
+      .select("ProductId");
+
+    // Extract Product IDs into an array
+    const productIdArray = productIds.map((p) => p.ProductId);
+
+    if (productIdArray.length === 0) return [];
+
+    // ✅ Await query execution for fetching product details
+    const products = await knex("Product").whereIn("Id", productIdArray).select("Name");
+    
+    return products;
+  } catch (error) {
+    console.error("Error fetching used products:", error);
+    throw error;
+  }
+}

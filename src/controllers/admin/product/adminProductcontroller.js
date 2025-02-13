@@ -35,6 +35,7 @@ import {
   GetProductImages,
   updateProductPublishedStatus,
   DeleteSelectedProduct,
+  GetUsedProductAttribute,
 } from "../../../repositories/admin/product/adminProductRepository.js";
 import multer from "multer";
 import { queueFileUpload } from "../../../config/ftpsClient.js";
@@ -853,23 +854,33 @@ export async function deleteProductImage(req, res) {
   }
 }
 
-export async function updatePublishedStatus(req,res){
+export async function updatePublishedStatus(req, res) {
   const { productIds, published } = req.body;
 
   if (!Array.isArray(productIds) || productIds.length === 0) {
-    return res.status(400).json({ success: false, message: 'Product IDs must be an array and not empty.' });
+    return res.status(400).json({
+      success: false,
+      message: "Product IDs must be an array and not empty.",
+    });
   }
 
-  if (typeof published !== 'boolean') {
-    return res.status(400).json({ success: false, message: 'Published must be a boolean value.' });
+  if (typeof published !== "boolean") {
+    return res
+      .status(400)
+      .json({ success: false, message: "Published must be a boolean value." });
   }
 
   try {
     const result = await updateProductPublishedStatus(productIds, published);
-    return res.status(200).json({ success: true, message: `${result} products updated.` });
+    return res
+      .status(200)
+      .json({ success: true, message: `${result} products updated.` });
   } catch (error) {
-    console.error('Error updating products:', error);
-    return res.status(500).json({ success: false, message: 'An error occurred while updating the products.' });
+    console.error("Error updating products:", error);
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while updating the products.",
+    });
   }
 }
 
@@ -877,18 +888,137 @@ export async function deleteSelectedProduct(req, res) {
   const { productIds, deleted } = req.body;
 
   if (!Array.isArray(productIds) || productIds.length === 0) {
-    return res.status(400).json({ success: false, message: 'Product IDs must be an array and not empty.' });
+    return res.status(400).json({
+      success: false,
+      message: "Product IDs must be an array and not empty.",
+    });
   }
 
-  if (typeof deleted !== 'boolean') {
-    return res.status(400).json({ success: false, message: 'Published must be a boolean value.' });
+  if (typeof deleted !== "boolean") {
+    return res
+      .status(400)
+      .json({ success: false, message: "Published must be a boolean value." });
   }
 
   try {
     const result = await DeleteSelectedProduct(productIds, deleted);
-    return res.status(200).json({ success: true, message: `${result} products updated.` });
+    return res
+      .status(200)
+      .json({ success: true, message: `${result} products updated.` });
   } catch (error) {
-    console.error('Error updating products:', error);
-    return res.status(500).json({ success: false, message: 'An error occurred while updating the products.' });
+    console.error("Error updating products:", error);
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while updating the products.",
+    });
+  }
+}
+
+//Product Attributes
+export async function getAllProductAttributes(req, res) {
+  try {
+    const result = await knex("ProductAttribute").select("*");
+    res.status(200).json({ success: true, result });
+  } catch (error) {
+    console.error("Error fetching product attributes:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+}
+
+export async function updateProductAttribute(req, res) {
+  console.log("sadasd");
+  const { id } = req.params;
+  const { Name, Description } = req.body;
+  console.log(Name, Description, id);
+
+  if (!id || !Name) {
+    return res.status(400).json({
+      success: false,
+      message: "Id and Name are required fields.",
+    });
+  }
+
+  try {
+    const updatedRows = await knex("ProductAttribute")
+      .where("Id", id)
+      .update({ Name, Description });
+
+    if (updatedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Product attribute not found.",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Product attribute updated successfully.",
+    });
+  } catch (error) {
+    console.error("Error updating product attribute:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+}
+
+export async function getUsedByAttributes(req, res) {
+  const { id } = req.params; 
+  if (!id) {
+    return res.status(400).json({
+      success: false,
+      message: "Id is required.",
+    });
+  }
+  try {
+    const result = await GetUsedProductAttribute(id);
+    res.status(200).json({ success: true, result });
+  } catch (error) {
+    console.error("Error fetching product attribute:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error on product attribute",
+    });
+  }
+}
+
+export async function addProductAttribute(req,res){
+  const { Name, Description } = req.body;
+  if (!Name) {
+    return res.status(400).json({
+      success: false,
+      message: "Name is required.",
+    });
+  }
+  try {
+    const result = await knex("ProductAttribute").insert({ Name, Description });
+    res.status(201).json({ success: true, message: "Product attribute added successfully." });
+  } catch (error) {
+    console.error("Error adding product attribute:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error on product attribute",
+    });
+  }
+}
+
+export async function deleteProductAttribute(req, res) {
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({
+      success: false,
+      message: "Id is required.",
+    });
+  }
+  try {
+    const result = await knex("ProductAttribute").where("Id", id).del();
+    res.status(200).json({ success: true, message: "Product attribute deleted successfully." });
+  } catch (error) {
+    console.error("Error deleting product attribute:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error on product attribute",
+    });
   }
 }
