@@ -65,6 +65,8 @@ import {
   getUsedByAttributes,
   addProductAttribute,
   deleteProductAttribute,
+  getAttributeProduct,
+  addProductAttributeMapping,
 } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
   addCustomerAddress,
@@ -419,6 +421,11 @@ router.patch("/product/updateMapping/:id", adminAccess, updateProductMapping);
 router.put("/product/publish-product", adminAccess, updatePublishedStatus);
 
 router.put("/product/delete-product", adminAccess, deleteSelectedProduct);
+
+
+//proudct Attributes
+router.get("/product/attribute-product/:id", adminAccess, getAttributeProduct)
+router.post("/product/add-product-attribute/:productId", adminAccess, addProductAttributeMapping);
 
 //shipping method
 router.get("/shipping-method/all", adminAccess, getShippingMethods);

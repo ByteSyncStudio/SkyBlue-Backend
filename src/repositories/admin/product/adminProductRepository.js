@@ -1405,3 +1405,45 @@ export async function GetUsedProductAttribute(id) {
     throw error;
   }
 }
+
+export async function GetAttributeProduct(productId) {
+  // Get the ProductAttributeId from the mapping table
+  const mappings = await knex("Product_ProductAttribute_Mapping")
+    .select(
+      "ProductAttributeId",
+      "TextPrompt",
+      "IsRequired",
+      "AttributeControlTypeId",
+      "DisplayOrder",
+      "ValidationMinLength",
+      "ValidationMaxLength",
+      "ValidationFileAllowedExtensions",
+      "ValidationFileMaximumSize",
+      "DefaultValue",
+      "ConditionAttributeXml"
+    )
+    .where("ProductId", productId);
+
+  if (mappings.length === 0) return [];
+
+  // Get the Names from the ProductAttribute table
+  const attributeIds = mappings.map((mapping) => mapping.ProductAttributeId);
+  const attributes = await knex("ProductAttribute")
+    .select("Id", "Name")
+    .whereIn("Id", attributeIds);
+
+  // Combine the mappings with their corresponding attribute names
+  const result = mappings.map((mapping) => {
+    const attribute = attributes.find(
+      (attr) => attr.Id === mapping.ProductAttributeId
+    );
+    return {
+      name: attribute ? attribute.Name : null,
+      textPrompt: mapping.TextPrompt,
+      isRequired: mapping.IsRequired,
+      attributeControlTypeId: mapping.AttributeControlTypeId,
+    };
+  });
+
+  return result;
+}

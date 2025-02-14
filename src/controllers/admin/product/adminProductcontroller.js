@@ -36,6 +36,7 @@ import {
   updateProductPublishedStatus,
   DeleteSelectedProduct,
   GetUsedProductAttribute,
+  GetAttributeProduct,
 } from "../../../repositories/admin/product/adminProductRepository.js";
 import multer from "multer";
 import { queueFileUpload } from "../../../config/ftpsClient.js";
@@ -1021,4 +1022,90 @@ export async function deleteProductAttribute(req, res) {
       message: "Server error on product attribute",
     });
   }
+}
+
+//Product Edit 
+export async function getAttributeProduct(req, res) {
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({
+      success: false,
+      message: "Id is required.",
+    });
+  }
+
+  try {
+    const attributeProduct = await GetAttributeProduct(id);
+    if (!attributeProduct) {
+      return res.status(404).json({
+        success: false,
+        message: "Attribute product not found.",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: attributeProduct,
+    });
+  } catch (error) {
+    console.error("Error on attribute product:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error on attribute product",
+    });
+  }
+}
+
+export async function addProductAttributeMapping(req, res) {
+  const { productId } = req.params;
+  const {attribute, controlType, isRequired,textPrompt} = req.body
+  if(!productId || !attribute){
+    return res.status(400).json({
+      success: false,
+      message: "Product and Attribute are required.",
+    });
+  }
+  try {
+    const existingMapping = await knex("Product_ProductAttribute_Mapping")
+      .where({
+        ProductId: productId,
+        ProductAttributeId: attribute,
+      })
+      .first();
+
+    if (existingMapping) {
+      return res.send({
+        success: false,
+        message: "Attribute mapping already exists.",
+      });
+    }
+    // Insert the new product attribute mapping into the database
+    const result = await knex("Product_ProductAttribute_Mapping").insert({
+      ProductId: productId,
+      ProductAttributeId: attribute,
+      TextPrompt: textPrompt,
+      IsRequired: isRequired,
+      AttributeControlTypeId: controlType,
+      DisplayOrder: 0,
+      ValidationMinLength: null, 
+      ValidationMaxLength: null,
+      ValidationFileAllowedExtensions: null,
+      ValidationFileMaximumSize: null,
+      DefaultValue: null,
+      ConditionAttributeXml: null,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Product attribute mapping added successfully.",
+      data: result,
+    }); 
+  } catch (error) {
+    console.error("Error on adding new attribute product:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error on attribute product",
+    });
+  }
+
 }
