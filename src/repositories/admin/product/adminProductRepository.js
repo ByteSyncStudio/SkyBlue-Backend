@@ -1383,7 +1383,6 @@ export async function DeleteSelectedProduct(productIds, deleted) {
     });
 }
 
-
 export async function GetUsedProductAttribute(id) {
   try {
     // ✅ Await query execution to get product IDs
@@ -1397,8 +1396,10 @@ export async function GetUsedProductAttribute(id) {
     if (productIdArray.length === 0) return [];
 
     // ✅ Await query execution for fetching product details
-    const products = await knex("Product").whereIn("Id", productIdArray).select("Name");
-    
+    const products = await knex("Product")
+      .whereIn("Id", productIdArray)
+      .select("Name");
+
     return products;
   } catch (error) {
     console.error("Error fetching used products:", error);
@@ -1410,6 +1411,7 @@ export async function GetAttributeProduct(productId) {
   // Get the ProductAttributeId from the mapping table
   const mappings = await knex("Product_ProductAttribute_Mapping")
     .select(
+      "Id",
       "ProductAttributeId",
       "TextPrompt",
       "IsRequired",
@@ -1438,6 +1440,8 @@ export async function GetAttributeProduct(productId) {
       (attr) => attr.Id === mapping.ProductAttributeId
     );
     return {
+      id: mapping.Id,
+      attributeid: mapping.ProductAttributeId,
       name: attribute ? attribute.Name : null,
       textPrompt: mapping.TextPrompt,
       isRequired: mapping.IsRequired,

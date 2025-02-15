@@ -965,7 +965,7 @@ export async function updateProductAttribute(req, res) {
 }
 
 export async function getUsedByAttributes(req, res) {
-  const { id } = req.params; 
+  const { id } = req.params;
   if (!id) {
     return res.status(400).json({
       success: false,
@@ -984,7 +984,7 @@ export async function getUsedByAttributes(req, res) {
   }
 }
 
-export async function addProductAttribute(req,res){
+export async function addProductAttribute(req, res) {
   const { Name, Description } = req.body;
   if (!Name) {
     return res.status(400).json({
@@ -994,7 +994,10 @@ export async function addProductAttribute(req,res){
   }
   try {
     const result = await knex("ProductAttribute").insert({ Name, Description });
-    res.status(201).json({ success: true, message: "Product attribute added successfully." });
+    res.status(201).json({
+      success: true,
+      message: "Product attribute added successfully.",
+    });
   } catch (error) {
     console.error("Error adding product attribute:", error);
     res.status(500).json({
@@ -1014,7 +1017,10 @@ export async function deleteProductAttribute(req, res) {
   }
   try {
     const result = await knex("ProductAttribute").where("Id", id).del();
-    res.status(200).json({ success: true, message: "Product attribute deleted successfully." });
+    res.status(200).json({
+      success: true,
+      message: "Product attribute deleted successfully.",
+    });
   } catch (error) {
     console.error("Error deleting product attribute:", error);
     res.status(500).json({
@@ -1024,7 +1030,7 @@ export async function deleteProductAttribute(req, res) {
   }
 }
 
-//Product Edit 
+//Product Edit
 export async function getAttributeProduct(req, res) {
   const { id } = req.params;
   if (!id) {
@@ -1058,8 +1064,8 @@ export async function getAttributeProduct(req, res) {
 
 export async function addProductAttributeMapping(req, res) {
   const { productId } = req.params;
-  const {attribute, controlType, isRequired,textPrompt} = req.body
-  if(!productId || !attribute){
+  const { attribute, controlType, isRequired, textPrompt } = req.body;
+  if (!productId || !attribute) {
     return res.status(400).json({
       success: false,
       message: "Product and Attribute are required.",
@@ -1087,7 +1093,7 @@ export async function addProductAttributeMapping(req, res) {
       IsRequired: isRequired,
       AttributeControlTypeId: controlType,
       DisplayOrder: 0,
-      ValidationMinLength: null, 
+      ValidationMinLength: null,
       ValidationMaxLength: null,
       ValidationFileAllowedExtensions: null,
       ValidationFileMaximumSize: null,
@@ -1099,7 +1105,7 @@ export async function addProductAttributeMapping(req, res) {
       success: true,
       message: "Product attribute mapping added successfully.",
       data: result,
-    }); 
+    });
   } catch (error) {
     console.error("Error on adding new attribute product:", error);
     res.status(500).json({
@@ -1107,5 +1113,111 @@ export async function addProductAttributeMapping(req, res) {
       message: "Server error on attribute product",
     });
   }
-
 }
+
+export async function deleteProductAttributeMapping(req, res) {
+  const { productId } = req.params;
+  const { id } = req.body;
+
+  console.log(req.body);
+
+  if (!productId || !id) {
+    return res.status(400).json({
+      success: false,
+      message: "Product and Attribute ID are required.",
+    });
+  }
+
+  try {
+    // Check if the mapping exists
+    const existingMapping = await knex("Product_ProductAttribute_Mapping")
+      .where({
+        Id: id,
+        ProductId: productId,
+      })
+      .first();
+
+    if (!existingMapping) {
+      return res.status(404).json({
+        success: false,
+        message: "Product attribute mapping not found.",
+      });
+    }
+
+    // Delete the mapping
+    await knex("Product_ProductAttribute_Mapping")
+      .where({
+        Id: id,
+        ProductId: productId,
+      })
+      .del();
+
+    res.status(200).json({
+      success: true,
+      message: "Product attribute mapping deleted successfully.",
+    });
+  } catch (error) {
+    console.error("Error deleting product attribute mapping:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error on product attribute mapping.",
+    });
+  }
+}
+
+export async function updateProductAttributeMapping(req, res) {
+  const { productId } = req.params;
+  const { id, attributeid, isRequired, textPrompt } = req.body;
+  console.log(productId, id, attributeid, isRequired, textPrompt);
+  try {
+    if (!productId || !id || !attributeid) {
+      return res.status(400).json({
+        success: false,
+        message: "Product and Attribute are required.",
+      });
+    }
+
+    // Check if the attributeId already exists for the given productId
+    const existingMapping = await knex("Product_ProductAttribute_Mapping")
+      .where({
+        ProductId: productId,
+        ProductAttributeId: attributeid,
+      })
+      .andWhere("Id", "!=", id)
+      .first();
+
+    if (existingMapping) {
+      return res.status(400).json({
+        success: false,
+        message: "Attribute already exists for this product.",
+      });
+    }
+
+    const updatedRows = await knex("Product_ProductAttribute_Mapping")
+      .where({ Id: id })
+      .update({
+        ProductAttributeId: attributeid,
+        IsRequired: isRequired,
+        TextPrompt: textPrompt,
+      });
+
+    if (updatedRows) {
+      return res.status(200).json({
+        success: true,
+        message: "Product attribute updated successfully",
+      });
+    } else {
+      return res.status(404).json({
+        success: false,
+        message: "Product attribute not found",
+      });
+    }
+  } catch (error) {
+    console.error("Error updating product attribute mapping:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error on product attribute mapping.",
+    });
+  }
+}
+//10230 764 12 false sadasdjjj
