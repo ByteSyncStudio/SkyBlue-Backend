@@ -37,6 +37,7 @@ import {
   DeleteSelectedProduct,
   GetUsedProductAttribute,
   GetAttributeProduct,
+  GetPredefinedAttributes,
 } from "../../../repositories/admin/product/adminProductRepository.js";
 import multer from "multer";
 import { queueFileUpload } from "../../../config/ftpsClient.js";
@@ -1026,6 +1027,126 @@ export async function deleteProductAttribute(req, res) {
     res.status(500).json({
       success: false,
       message: "Server error on product attribute",
+    });
+  }
+}
+
+export async function getPredefinedattribute(req, res) {
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({
+      success: false,
+      message: "Id is required.",
+    });
+  }
+  try {
+    const result = await GetPredefinedAttributes(id);
+    res.status(200).json({ success: true, result });
+  } catch (error) {
+    console.error("Error fetching pre-define-product attribute:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error on pre-define-product attribute",
+    });
+  }
+}
+
+export async function updatePreDefinedProductAttribute(req, res) {
+  const { id } = req.params;
+  const { Name } = req.body;
+  if (!id || !Name) {
+    return res.status(400).json({
+      success: false,
+      message: "Id and Name are required fields.",
+    });
+  }
+  try {
+    const updatedRows = await knex("PredefinedProductAttributeValue")
+      .where("Id", id)
+      .update({ Name });
+
+    if (updatedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Predefined product attribute not found.",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Predefined product attribute updated successfully.",
+    });
+  } catch (error) {
+    console.error("Error updating predefined product attribute:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+}
+
+
+export async function deletePreDefineProductAttribute(req, res) {
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({
+      success: false,
+      message: "Id is required.",
+    });
+  }
+  try {
+    const result = await knex("PredefinedProductAttributeValue")
+      .where("Id", id)
+      .del();
+    res.status(200).json({
+      success: true,
+      message: "Predefined product attribute deleted successfully.",
+    });
+  } catch (error) {
+    console.error("Error deleting predefined product attribute:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error on predefined product attribute",
+    });
+  }
+}
+
+
+
+export async function addPreDefineProductAttribute(req, res) {
+  const { id } = req.params;
+  const { Name, PriceAdjustment, WeightAdjustment, Cost, IsPreSelected, DisplayOrder } = req.body;
+
+
+  if (!id || !Name) {
+    return res.status(400).json({
+      success: false,
+      message: "ProductAttributeId and Name are required.",
+    });
+  }
+
+  try {
+    // Insert the new predefined product attribute value into the database
+    const result = await knex("PredefinedProductAttributeValue").insert({
+      Name,
+      ProductAttributeId: id,
+      PriceAdjustment: PriceAdjustment || 0.0000,
+      WeightAdjustment: WeightAdjustment || 0.0000,
+      Cost: Cost || 0.0000,
+      IsPreSelected: IsPreSelected || 1,
+      DisplayOrder: DisplayOrder || 0,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Predefined product attribute added successfully.",
+      data: result,
+    });
+  } catch (error) {
+    console.log("Error in addPreDefineProductAttribute:", error);
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong on addPreDefinedProductAttribute.",
     });
   }
 }

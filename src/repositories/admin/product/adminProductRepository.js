@@ -1407,6 +1407,24 @@ export async function GetUsedProductAttribute(id) {
   }
 }
 
+
+export async function GetPredefinedAttributes(id) {
+  try {
+    const predefinedAttributes = await knex("PredefinedProductAttributeValue")
+      .where("ProductAttributeId", id)
+      .select("*");
+
+    return predefinedAttributes;
+  } catch (error) {
+    console.error("Error fetching predefined attributes:", error);
+    throw new Error("Database operation failed");
+  }
+}
+
+
+
+
+
 export async function GetAttributeProduct(productId) {
   // Get the ProductAttributeId from the mapping table
   const mappings = await knex("Product_ProductAttribute_Mapping")

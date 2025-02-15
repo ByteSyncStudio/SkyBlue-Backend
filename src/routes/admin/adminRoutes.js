@@ -69,6 +69,10 @@ import {
   addProductAttributeMapping,
   deleteProductAttributeMapping,
   updateProductAttributeMapping,
+  getPredefinedattribute,
+  updatePreDefinedProductAttribute,
+  deletePreDefineProductAttribute,
+  addPreDefineProductAttribute,
 } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
   addCustomerAddress,
@@ -429,6 +433,7 @@ router.put("/product/delete-product", adminAccess, deleteSelectedProduct);
 router.get("/product/attribute-product/:id", adminAccess, getAttributeProduct)
 router.post("/product/add-product-attribute/:productId", adminAccess, addProductAttributeMapping);
 
+
 router.delete("/product/delete-product-attribute/:productId", adminAccess, deleteProductAttributeMapping);
 router.patch(
   "/product/update-product-attribute/:productId",
@@ -452,9 +457,15 @@ router.get(
 //ProductAttribute
 router.get("/product-attributes", adminAccess, getAllProductAttributes);
 router.get("/usedBy-ProductAttribute/:id", adminAccess, getUsedByAttributes)
+router.get("/product/get-predefined-attributes/:id", adminAccess, getPredefinedattribute);
+router.patch("/product/edit-predefined-value/:id", adminAccess, updatePreDefinedProductAttribute);
+router.delete("/product/delete-predefined-value/:id", adminAccess, deletePreDefineProductAttribute);
+router.post("/product/add-predefined-value/:id", adminAccess, addPreDefineProductAttribute);
+
 router.patch("/edit-product-attribute/:id", adminAccess, updateProductAttribute);
 router.post("/add-new-product-attribute", adminAccess, addProductAttribute);
 router.delete("/delete-product-attribute/:id", adminAccess, deleteProductAttribute);
+
 
 //Slider
 router.post("/slider/add", adminAccess, addSlider);
