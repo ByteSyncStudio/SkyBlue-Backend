@@ -1231,7 +1231,7 @@ export const updateGeneralProduct = async (productId, updateData) => {
 
 export const updatePriceDetailProduct = async (productId, updateData) => {
   try {
-    const { Price, OldPrice, ProductCost, TaxCategoryId } = updateData;
+    const { Price, OldPrice, ProductCost, TaxCategoryId, Price1, Price2, Price3, Price4, Price5 } = updateData;
 
     // Update product details in the Product table
     await knex("Product").where("Id", productId).update({
@@ -1242,7 +1242,43 @@ export const updatePriceDetailProduct = async (productId, updateData) => {
       UpdatedOnUtc: new Date(), // Track when it was updated
     });
 
-    return { success: true, message: "Product prices updated successfully." };
+    // Define customer role-price mapping
+    const priceMapping = [
+      { roleId: 6, price: Price1 }, // P1
+      { roleId: 7, price: Price2 }, // P2
+      { roleId: 8, price: Price3 }, // P3
+      { roleId: 9, price: Price4 }, // P4
+      { roleId: 10, price: Price5 } // P5
+    ];
+
+    // Loop through each price level
+    for (const { roleId, price } of priceMapping) {
+    
+        const existingTier = await knex("TierPrice")
+          .where({ ProductId: productId, CustomerRoleId: roleId })
+          .first();
+
+        if (existingTier) {
+          // Update existing price
+          await knex("TierPrice")
+            .where({ Id: existingTier.Id })
+            .update({ Price: price });
+        } else {
+          // Insert new tier price if not exists
+          await knex("TierPrice").insert({
+            ProductId: productId,
+            StoreId: 0, // Assuming default store
+            CustomerRoleId: roleId,
+            Quantity: 1, // Default quantity for tier pricing
+            Price: price,
+            StartDateTimeUtc: null,
+            EndDateTimeUtc: null
+          });
+        
+      }
+    }
+
+    return { success: true, message: "Product and tier prices updated successfully." };
   } catch (error) {
     console.error("Error updating product prices:", error);
     throw new Error("Failed to update product prices.");
