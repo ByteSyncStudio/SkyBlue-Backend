@@ -1,5 +1,5 @@
 import knex from "../../../config/knex.js";
-import { generateImageUrl2 } from "../../../utils/imageUtils.js";
+import { generateImageUrl, generateImageUrl2 } from "../../../utils/imageUtils.js";
 
 export async function AddProduct(product, trx) {
   try {
@@ -1452,11 +1452,20 @@ export async function GetAttributeProduct(productId) {
     .select("Id", "Name")
     .whereIn("Id", attributeIds);
 
-  // Combine the mappings with their corresponding attribute names
+  // Get the ProductAttributeValue data
+  const mappingIds = mappings.map((mapping) => mapping.Id);
+  const attributeValues = await knex("ProductAttributeValue")
+    .select("ProductAttributeMappingId")
+    .whereIn("ProductAttributeMappingId", mappingIds);
+
+  // Combine the mappings with their corresponding attribute names and values length
   const result = mappings.map((mapping) => {
     const attribute = attributes.find(
       (attr) => attr.Id === mapping.ProductAttributeId
     );
+    const valuesLength = attributeValues.filter(
+      (value) => value.ProductAttributeMappingId === mapping.Id
+    ).length;
     return {
       id: mapping.Id,
       attributeid: mapping.ProductAttributeId,
@@ -1464,8 +1473,53 @@ export async function GetAttributeProduct(productId) {
       textPrompt: mapping.TextPrompt,
       isRequired: mapping.IsRequired,
       attributeControlTypeId: mapping.AttributeControlTypeId,
+      valuesLength: valuesLength,
     };
   });
 
   return result;
+}
+
+
+export async function GetProductAttributeValueMapping(id) {
+  try {
+    // Fetch product attribute values
+    const result = await knex("ProductAttributeValue")
+      .where("ProductAttributeMappingId", id)
+      .select("*");
+
+    if (result.length === 0) {
+      return [];
+    }
+
+    // Extract Picture IDs
+    const pictureIds = result.map(item => item.PictureId).filter(id => id > 0);
+
+    let picturesMap = {};
+    if (pictureIds.length > 0) {
+      // Fetch mime types for the corresponding picture IDs
+      const pictures = await knex("Picture")
+        .whereIn("Id", pictureIds)
+        .select("Id", "MimeType");
+
+      // Map picture IDs to their mime types
+      picturesMap = pictures.reduce((acc, pic) => {
+        acc[pic.Id] = pic.MimeType;
+        return acc;
+      }, {});
+    }
+
+    // Attach image URLs to the result
+    const updatedResult = result.map(item => ({
+      ...item,
+      ImageUrl: item.PictureId
+        ? generateImageUrl(item.PictureId, picturesMap[item.PictureId])
+        : null
+    }));
+
+    return updatedResult;
+  } catch (error) {
+    console.error("Error fetching product attribute values:", error);
+    throw new Error("Database operation failed");
+  }
 }

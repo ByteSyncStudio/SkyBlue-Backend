@@ -38,6 +38,7 @@ import {
   GetUsedProductAttribute,
   GetAttributeProduct,
   GetPredefinedAttributes,
+  GetProductAttributeValueMapping,
 } from "../../../repositories/admin/product/adminProductRepository.js";
 import multer from "multer";
 import { queueFileUpload } from "../../../config/ftpsClient.js";
@@ -1085,7 +1086,6 @@ export async function updatePreDefinedProductAttribute(req, res) {
   }
 }
 
-
 export async function deletePreDefineProductAttribute(req, res) {
   const { id } = req.params;
   if (!id) {
@@ -1111,12 +1111,16 @@ export async function deletePreDefineProductAttribute(req, res) {
   }
 }
 
-
-
 export async function addPreDefineProductAttribute(req, res) {
   const { id } = req.params;
-  const { Name, PriceAdjustment, WeightAdjustment, Cost, IsPreSelected, DisplayOrder } = req.body;
-
+  const {
+    Name,
+    PriceAdjustment,
+    WeightAdjustment,
+    Cost,
+    IsPreSelected,
+    DisplayOrder,
+  } = req.body;
 
   if (!id || !Name) {
     return res.status(400).json({
@@ -1130,9 +1134,9 @@ export async function addPreDefineProductAttribute(req, res) {
     const result = await knex("PredefinedProductAttributeValue").insert({
       Name,
       ProductAttributeId: id,
-      PriceAdjustment: PriceAdjustment || 0.0000,
-      WeightAdjustment: WeightAdjustment || 0.0000,
-      Cost: Cost || 0.0000,
+      PriceAdjustment: PriceAdjustment || 0.0,
+      WeightAdjustment: WeightAdjustment || 0.0,
+      Cost: Cost || 0.0,
       IsPreSelected: IsPreSelected || 1,
       DisplayOrder: DisplayOrder || 0,
     });
@@ -1341,4 +1345,204 @@ export async function updateProductAttributeMapping(req, res) {
     });
   }
 }
-//10230 764 12 false sadasdjjj
+
+export async function getProductAttributeValueMapping(req, res) {
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({
+      success: false,
+      message: "Id is required.",
+    });
+  }
+  try {
+    const result = await GetProductAttributeValueMapping(id);
+    res.status(200).json({ success: true, result });
+  } catch (error) {
+    console.error("Error fetching product attribute value mapping:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error on product attribute value mapping",
+    });
+  }
+}
+
+export async function getImageForProductValue(req, res) {
+  const { id } = req.params;
+  console.log(id);
+
+  if (!id) {
+    return res.status(400).json({
+      success: false,
+      message: "Id is required.",
+    });
+  }
+
+  try {
+    // Fetch the product attribute mapping
+    const mapping = await knex("Product_ProductAttribute_Mapping")
+      .select("ProductId")
+      .where("Id", id)
+      .first();
+
+    if (!mapping) {
+      return res.status(404).json({
+        success: false,
+        message: "Product attribute mapping not found.",
+      });
+    }
+
+    const { ProductId } = mapping;
+
+    const result = await GetProductImages(ProductId);
+    res.status(200).json({ success: true, result });
+  } catch (error) {
+    console.error("Error fetching product attribute mapping:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error on fetching product attribute mapping.",
+    });
+  }
+}
+
+
+export async function addPreDefineProductAttributeValues(req, res) {
+  try {
+    const { id } = req.params; // ProductAttributeMappingId
+    const {
+      AttributeValueTypeId,
+      DisplayOrder,
+      Name,
+      PictureId,
+      IsPreSelected,
+      PriceAdjustment,
+      WeightAdjustment,
+    } = req.body;
+
+
+
+    if (!id || !Name) {
+      return res.send({ success: false, message: "ProductAttributeMappingId and Name are required." });
+    }
+
+    const [insertedId] = await knex("ProductAttributeValue").insert({
+      ProductAttributeMappingId: id,
+      AttributeValueTypeId: AttributeValueTypeId || 0,
+      Name,
+      DisplayOrder,
+      PictureId: PictureId || 0,
+      ImageSquaresPictureId: 0,
+      Cost: 0,
+      CustomerEntersQty: false,
+      Quantity: 0,
+      PriceAdjustment: PriceAdjustment ||0.0000,
+      WeightAdjustment: WeightAdjustment|| 0.0000,
+      IsPreSelected: IsPreSelected || true,
+      AssociatedProductId: 0,
+    });
+
+    return res.status(200).json({ success: true, message: "Attribute value added successfully", id: insertedId });
+  } catch (error) {
+    console.error("Error adding attribute value:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+}
+
+export async function deletePreDefineProductAttributeFromProduct(req, res) {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.send({
+        success: false,
+        message: "Id is required.",
+      });
+    }
+
+    const deletedRows = await knex("ProductAttributeValue")
+      .where("Id", id)
+      .del();
+
+    if (deletedRows === 0) {
+      return res.send({
+        success: false,
+        message: "Attribute value not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Attribute value deleted successfully.",
+    });
+  } catch (error) {
+    console.error("Error deleting attribute value:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error.",
+    });
+  }
+}
+
+export async function updatePreDefinedProductAttributeFromProduct(req, res) {
+  const { id } = req.params;
+  const {
+    AttributeValueTypeId,
+    DisplayOrder,
+    Name,
+    PictureId,
+    IsPreSelected,
+    PriceAdjustment,
+    WeightAdjustment,
+  } = req.body;
+
+
+  console.log(IsPreSelected)
+
+  try {
+    if (!id || !Name) {
+      return res.send({
+        success: false,
+        message: "Id and Name are required.",
+      });
+    }
+
+    const updatedRows = await knex("ProductAttributeValue")
+      .where("Id", id)
+      .update({
+        AttributeValueTypeId: AttributeValueTypeId || 0,
+        Name,
+        DisplayOrder,
+        PictureId: PictureId || 0,
+        ImageSquaresPictureId: 0,
+        Cost: 0,
+        CustomerEntersQty: false,
+        Quantity: 0,
+        PriceAdjustment: PriceAdjustment || 0.0000,
+        WeightAdjustment: WeightAdjustment || 0.0000,
+        IsPreSelected: IsPreSelected,
+        AssociatedProductId: 0,
+      });
+
+      console.log(updatedRows)
+
+    if (updatedRows === 0) {
+      return res.send({
+        success: false,
+        message: "Attribute value not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Attribute value updated successfully.",
+    });
+    
+  } catch (error) {
+    console.error("Error updating attribute value:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error.",
+    });
+    
+  }
+
+}

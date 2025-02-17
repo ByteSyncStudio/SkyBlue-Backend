@@ -73,6 +73,11 @@ import {
   updatePreDefinedProductAttribute,
   deletePreDefineProductAttribute,
   addPreDefineProductAttribute,
+  getProductAttributeValueMapping,
+  getImageForProductValue,
+  addPreDefineProductAttributeValues,
+  deletePreDefineProductAttributeFromProduct,
+  updatePreDefinedProductAttributeFromProduct,
 } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
   addCustomerAddress,
@@ -433,6 +438,8 @@ router.put("/product/delete-product", adminAccess, deleteSelectedProduct);
 router.get("/product/attribute-product/:id", adminAccess, getAttributeProduct)
 router.post("/product/add-product-attribute/:productId", adminAccess, addProductAttributeMapping);
 
+router.get("/product/get-product-attribute-values/:id", adminAccess, getProductAttributeValueMapping);
+
 
 router.delete("/product/delete-product-attribute/:productId", adminAccess, deleteProductAttributeMapping);
 router.patch(
@@ -458,9 +465,17 @@ router.get(
 router.get("/product-attributes", adminAccess, getAllProductAttributes);
 router.get("/usedBy-ProductAttribute/:id", adminAccess, getUsedByAttributes)
 router.get("/product/get-predefined-attributes/:id", adminAccess, getPredefinedattribute);
+
+router.get("/product/predefined-attribute-images-product/:id", adminAccess, getImageForProductValue)
+
 router.patch("/product/edit-predefined-value/:id", adminAccess, updatePreDefinedProductAttribute);
 router.delete("/product/delete-predefined-value/:id", adminAccess, deletePreDefineProductAttribute);
 router.post("/product/add-predefined-value/:id", adminAccess, addPreDefineProductAttribute);
+router.post("/product/add-predefined-product-value/:id", adminAccess, addPreDefineProductAttributeValues);
+
+router.delete("/product/delete-predefined-product-value/:id", adminAccess, deletePreDefineProductAttributeFromProduct);
+
+router.patch("/product/update-predefined-product-value/:id", adminAccess, updatePreDefinedProductAttributeFromProduct);
 
 router.patch("/edit-product-attribute/:id", adminAccess, updateProductAttribute);
 router.post("/add-new-product-attribute", adminAccess, addProductAttribute);
