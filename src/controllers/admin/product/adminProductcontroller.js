@@ -1404,7 +1404,6 @@ export async function getImageForProductValue(req, res) {
   }
 }
 
-
 export async function addPreDefineProductAttributeValues(req, res) {
   try {
     const { id } = req.params; // ProductAttributeMappingId
@@ -1418,10 +1417,11 @@ export async function addPreDefineProductAttributeValues(req, res) {
       WeightAdjustment,
     } = req.body;
 
-
-
     if (!id || !Name) {
-      return res.send({ success: false, message: "ProductAttributeMappingId and Name are required." });
+      return res.send({
+        success: false,
+        message: "ProductAttributeMappingId and Name are required.",
+      });
     }
 
     const [insertedId] = await knex("ProductAttributeValue").insert({
@@ -1434,16 +1434,24 @@ export async function addPreDefineProductAttributeValues(req, res) {
       Cost: 0,
       CustomerEntersQty: false,
       Quantity: 0,
-      PriceAdjustment: PriceAdjustment ||0.0000,
-      WeightAdjustment: WeightAdjustment|| 0.0000,
+      PriceAdjustment: PriceAdjustment || 0.0,
+      WeightAdjustment: WeightAdjustment || 0.0,
       IsPreSelected: IsPreSelected || true,
       AssociatedProductId: 0,
     });
 
-    return res.status(200).json({ success: true, message: "Attribute value added successfully", id: insertedId });
+    return res
+      .status(200)
+      .json({
+        success: true,
+        message: "Attribute value added successfully",
+        id: insertedId,
+      });
   } catch (error) {
     console.error("Error adding attribute value:", error);
-    return res.status(500).json({ success: false, message: "Internal server error" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
   }
 }
 
@@ -1494,8 +1502,7 @@ export async function updatePreDefinedProductAttributeFromProduct(req, res) {
     WeightAdjustment,
   } = req.body;
 
-
-  console.log(IsPreSelected)
+  console.log(IsPreSelected);
 
   try {
     if (!id || !Name) {
@@ -1516,13 +1523,13 @@ export async function updatePreDefinedProductAttributeFromProduct(req, res) {
         Cost: 0,
         CustomerEntersQty: false,
         Quantity: 0,
-        PriceAdjustment: PriceAdjustment || 0.0000,
-        WeightAdjustment: WeightAdjustment || 0.0000,
+        PriceAdjustment: PriceAdjustment || 0.0,
+        WeightAdjustment: WeightAdjustment || 0.0,
         IsPreSelected: IsPreSelected,
         AssociatedProductId: 0,
       });
 
-      console.log(updatedRows)
+    console.log(updatedRows);
 
     if (updatedRows === 0) {
       return res.send({
@@ -1535,14 +1542,11 @@ export async function updatePreDefinedProductAttributeFromProduct(req, res) {
       success: true,
       message: "Attribute value updated successfully.",
     });
-    
   } catch (error) {
     console.error("Error updating attribute value:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error.",
     });
-    
   }
-
 }
