@@ -78,6 +78,9 @@ import {
   addPreDefineProductAttributeValues,
   deletePreDefineProductAttributeFromProduct,
   updatePreDefinedProductAttributeFromProduct,
+  getRelatedProducts,
+  addRelatedProducts,
+  deleteRelatedProducts,
 } from "../../controllers/admin/product/adminProductcontroller.js";
 import {
   addCustomerAddress,
@@ -410,6 +413,11 @@ router.get(
   adminAccess,
   getProductPurchasedWithOrder
 );
+
+
+router.get("/product/related-products/:id", adminAccess, getRelatedProducts);
+router.post("/product/add-related-products/:id", adminAccess, addRelatedProducts);
+router.delete("/product/delete-related-products/:id", adminAccess, deleteRelatedProducts);
 
 router.patch("/product/generalinfo/:id", adminAccess, updateGeneralInfoProduct);
 

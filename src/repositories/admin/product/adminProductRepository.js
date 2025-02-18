@@ -1253,11 +1253,18 @@ export const updatePriceDetailProduct = async (productId, updateData) => {
 
     // Loop through each price level
     for (const { roleId, price } of priceMapping) {
-    
-        const existingTier = await knex("TierPrice")
-          .where({ ProductId: productId, CustomerRoleId: roleId })
-          .first();
+      const existingTier = await knex("TierPrice")
+        .where({ ProductId: productId, CustomerRoleId: roleId })
+        .first();
 
+      if (price === 0) {
+        // Delete the tier price if the price is 0
+        if (existingTier) {
+          await knex("TierPrice")
+            .where({ Id: existingTier.Id })
+            .del();
+        }
+      } else {
         if (existingTier) {
           // Update existing price
           await knex("TierPrice")
@@ -1274,7 +1281,7 @@ export const updatePriceDetailProduct = async (productId, updateData) => {
             StartDateTimeUtc: null,
             EndDateTimeUtc: null
           });
-        
+        }
       }
     }
 
@@ -1418,6 +1425,93 @@ export async function DeleteSelectedProduct(productIds, deleted) {
       throw error;
     });
 }
+
+
+export async function GetRelatedProducts(productId) {
+  try {
+    const relatedProducts = await knex("RelatedProduct as rp")
+      .select("rp.ProductId2", "p.Name as ProductName")
+      .leftJoin("Product as p", "rp.ProductId2", "p.Id")
+      .where("rp.ProductId1", productId)
+      .orderBy("rp.DisplayOrder")
+      .limit(1000);
+
+    if (relatedProducts.length === 0) {
+      return [];
+    }
+
+    // Filter out related products with null names
+    const filteredProducts = relatedProducts.filter(
+      (product) => product.ProductName !== null
+    );
+
+    return filteredProducts;
+  } catch (error) {
+    console.error("Error fetching related products:", error);
+    throw error;
+  }
+}
+
+export async function AddRelatedProducts(productId, relatedProductId) {
+  try {
+    console.log(productId, relatedProductId);
+    // Check if the related product already exists
+    const existingRelatedProduct = await knex("RelatedProduct")
+      .where({
+        ProductId1: productId,
+        ProductId2: relatedProductId,
+      })
+      .first();
+
+    if (existingRelatedProduct) {
+      return {
+        success: false,
+        message: "Related product already exists.",
+      };
+    }
+    console.log("productId", existingRelatedProduct);
+
+    // Insert the new related product
+    await knex("RelatedProduct").insert({
+      ProductId1: productId,
+      ProductId2: relatedProductId,
+      DisplayOrder: 0, // Default display order
+    });
+
+    return {
+      success: true,
+      message: "Related product added successfully.",
+    };
+  } catch (error) {
+    console.error("Error adding related product:", error);
+    throw new Error("Failed to add related product.");
+  }
+}
+
+export async function DeleteRelatedProducts(productId, relatedProductId) { 
+  try {
+    console.log(productId, relatedProductId);
+    // Delete the related product
+    await knex("RelatedProduct")
+      .where({
+        ProductId1: productId,
+        ProductId2: relatedProductId,
+      })
+      .del();
+
+    return {
+      success: true,
+      message: "Related product deleted successfully.",
+    };
+  } catch (error) {
+    console.error("Error deleting related product:", error);
+    throw new Error("Failed to delete related product.");
+  }
+}
+
+
+
+//Product Attributes
 
 export async function GetUsedProductAttribute(id) {
   try {

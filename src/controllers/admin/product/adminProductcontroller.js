@@ -39,6 +39,9 @@ import {
   GetAttributeProduct,
   GetPredefinedAttributes,
   GetProductAttributeValueMapping,
+  GetRelatedProducts,
+  AddRelatedProducts,
+  DeleteRelatedProducts,
 } from "../../../repositories/admin/product/adminProductRepository.js";
 import multer from "multer";
 import { queueFileUpload } from "../../../config/ftpsClient.js";
@@ -916,6 +919,58 @@ export async function deleteSelectedProduct(req, res) {
     });
   }
 }
+
+
+export async function getRelatedProducts(req,res){
+  const productId = req.params.id;
+  try {
+    const result = await GetRelatedProducts(productId);
+    res.status(200).send({success:true,result});
+  } catch (error) {
+    console.error("Error updating products:", error);
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while updating the products.",
+    });
+  }
+}
+
+export async function addRelatedProducts(req,res){
+  const productId = req.params.id;
+  const relatedProductId = req.body.relatedProductId;
+
+  console.log(productId,relatedProductId);
+  try {
+    const result = await AddRelatedProducts(productId,relatedProductId);
+    res.status(200).send({success:true,result});
+  } catch (error) {
+    console.error("Error updating products:", error);
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while updating the products.",
+    });
+  }
+}
+
+export async function deleteRelatedProducts(req,res){
+  const productId = req.params.id;  // This is the product you're deleting from
+  const relatedProductId = req.body.relatedProductId;  // Ensure the key matches the client-side property
+
+  console.log(req.body);  // For debugging purposes
+  console.log(productId, relatedProductId);  // For debugging
+
+  try {
+    const result = await DeleteRelatedProducts(productId, relatedProductId);  // Ensure correct function
+    res.status(200).send({ success: true, result });
+  } catch (error) {
+    console.error("Error updating products:", error);
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while updating the products.",
+    });
+  }
+}
+
 
 //Product Attributes
 export async function getAllProductAttributes(req, res) {
