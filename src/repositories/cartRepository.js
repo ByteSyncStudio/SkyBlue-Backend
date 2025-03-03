@@ -95,9 +95,12 @@ async function getCartItems(user) {
         if (discountCategory) {
           const discount = discounts.find(d => d.Id === discountCategory.Discount_Id);
           if (discount) {
-            discountAmount += discount.UsePercentage 
+            const calculatedDiscount = discount.UsePercentage 
               ? (price * discount.DiscountPercentage) / 100 
               : discount.DiscountAmount;
+            if (calculatedDiscount < price) {
+              discountAmount += calculatedDiscount;
+            }
           }
         }
       }
@@ -106,9 +109,12 @@ async function getCartItems(user) {
       if (discountProduct) {
         const discount = discounts.find(d => d.Id === discountProduct.Discount_Id);
         if (discount) {
-          discountAmount += discount.UsePercentage 
+          const calculatedDiscount = discount.UsePercentage 
             ? (price * discount.DiscountPercentage) / 100 
             : discount.DiscountAmount;
+          if (calculatedDiscount < price) {
+            discountAmount += calculatedDiscount;
+          }
         }
       }
 
@@ -129,6 +135,7 @@ async function getCartItems(user) {
     throw new Error("Failed to retrieve cart items.");
   }
 }
+
 
 // Update cart with tax calculation
 async function updateCart(id, updateData, user) {
