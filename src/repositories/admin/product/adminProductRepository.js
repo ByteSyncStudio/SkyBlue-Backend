@@ -1308,27 +1308,30 @@ export const DeleteTierPriceProduct = async (productId, customerRoleId) => {
 
 export const UpdateProductInventory = async (productId, updateData) => {
   try {
+
+    console.log("UpdateData", updateData);
+
     // Map updateData to database column names
     const updateFields = {
       ManageInventoryMethodId: updateData.inventoryMethod,
       StockQuantity: updateData.stockQuantity,
-      DisplayStockAvailability: updateData.displayStockAvailability,
+      DisplayStockAvailability: updateData.displayStockAvailability ,
       DisplayStockQuantity: updateData.displayStockQuantity,
       MinStockQuantity: updateData.minStockQuantity,
-      LowStockActivityId: updateData.lowStockActivity,
-      NotifyAdminForQuantityBelow: updateData.notifyAdminForQuantityBelow,
-      BackorderModeId: updateData.backorderMode,
-      AllowBackInStockSubscriptions: updateData.allowBackInStockSubscriptions,
+      LowStockActivityId: updateData.lowStockActivity || 0,
+      NotifyAdminForQuantityBelow: updateData.notifyAdminForQuantityBelow || 0,
+      BackorderModeId: updateData.backorderMode || 0,
+      AllowBackInStockSubscriptions: updateData.allowBackInStockSubscriptions || 0,
       OrderMinimumQuantity: updateData.minCartQuantity,
       OrderMaximumQuantity: updateData.maxCartQuantity,
       AllowedQuantities: updateData.allowedQuantities,
       NotReturnable: updateData.notReturnable,
-      ProductAvailabilityRangeId:
-        updateData.productAvailabilityRange === "None"
-          ? 0
-          : parseInt(updateData.productAvailabilityRange),
+      ProductAvailabilityRangeId:0,
+        
       UpdatedOnUtc: new Date(), // Track last updated timestamp
     };
+
+    console.log("UpdateFields", updateFields);
 
     // Execute update query
     const result = await knex("Product")

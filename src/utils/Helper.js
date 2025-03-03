@@ -36,7 +36,6 @@ export const fetchCartItems = async (userId) => {
     )
     .groupBy(
       "ShoppingCartItem.ProductId", "ShoppingCartItem.ShoppingCartTypeId",
-
       "Product.Name",
       "Product.Price",
       "Product.OrderMinimumQuantity",

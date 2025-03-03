@@ -61,7 +61,7 @@ async function createCheckoutOrder(
     ];
     const discounts = (await getDiscounts(discountIds)) || [];
 
-    console.log("Discounts:", discounts);
+    console.log("Discountsssssssssssssssssssss:", discounts);
 
     const tierPrices = (await getTierPrices(productIds, customerRoles)) || [];
     const tierPriceMap = new Map();
@@ -94,11 +94,18 @@ async function createCheckoutOrder(
           ),
         ];
 
+
+        console.log("ITEMS", item)
+
         // Calculate the maximum applicable discount
-        const discountAmount = applicableDiscounts.reduce(
-          (acc, d) => Math.max(acc, d.DiscountAmount || 0),
-          0
-        );
+        const discountAmount = applicableDiscounts.reduce((acc, d) => {
+          if (d.UsePercentage) {
+            console.log("DISOCUNTAMOUNT", d.DiscountPercentage,acc, (d.DiscountPercentage / 100) * item.Price)
+            return Math.max(acc, (d.DiscountPercentage / 100) * item.Price); // Apply percentage discount
+          }
+          return Math.max(acc, d.DiscountAmount || 0); // Apply fixed discount
+        }, 0);
+        
 
         // Apply the discount to the item price
         const discountedPrice = item.Price - discountAmount;
@@ -258,6 +265,10 @@ async function createCheckoutOrder(
           })
           .returning("*");
 
+          // Update the product stock
+          await updateProductStock(item.ProductId, item.Quantity);
+
+
         return {
           ...orderItem,
           ProductName: product.Name,
@@ -281,6 +292,8 @@ async function createCheckoutOrder(
     const emailTemplate = await getOrderPlacedEmailTemplate(orderData);
     await SendEmail(customerEmail, 'Order Placed', emailTemplate);
 
+    
+
     return {
       order,
       orderItems,
@@ -289,3 +302,36 @@ async function createCheckoutOrder(
 }
 
 export { createCheckoutOrder };
+
+
+async function updateProductStock(productId, quantity) {
+  try {
+    // Fetch the TrackInventoryMethod for the given product
+    const product = await knex("Product")
+      .where({ Id: productId })
+      .select("ManageInventoryMethodId", "StockQuantity")
+      .first();
+
+      console.log("PRODUCT", product)
+
+    if (!product) {
+      throw new Error("Product not found.");
+    }
+
+    // Check the TrackInventoryMethod
+    if (product.ManageInventoryMethodId === 1) {
+      // Update the stock quantity
+      const newStockQuantity = product.StockQuantity - quantity;
+      await knex("Product")
+        .where({ Id: productId })
+        .update({ StockQuantity: newStockQuantity });
+
+      console.log(`Updated stock quantity for productsssssssssssssssssssssssssssssssss ${productId}: ${newStockQuantity}`);
+    } else {
+      console.log(`TrackInventoryMethod is 0 for product ${productId}, no stock update needed.`);
+    }
+  } catch (error) {
+    console.error("Error updating product stock:", error);
+    throw new Error("Failed to update product stock.");
+  }
+}

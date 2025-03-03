@@ -229,6 +229,8 @@ async function listProductsFromCategory(categoryId, page = 1, size = 10, user, m
 
         const products = await query;
 
+        console.log("products",products)
+
         // Fetch tier prices for all products at once
         const productIds = products.filter(p => p.HasTierPrices).map(p => p.Id);
         const tierPrices = await getTierPrices(productIds, user.roles);

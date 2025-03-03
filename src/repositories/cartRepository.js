@@ -1,7 +1,13 @@
 import knex from "../config/knex.js";
-import { fetchCartItems, getCategoryMappings, getDiscountCategories, getDiscountProducts, getDiscounts, getTierPrices } from "../utils/Helper.js";
+import {
+  fetchCartItems,
+  getCategoryMappings,
+  getDiscountCategories,
+  getDiscountProducts,
+  getDiscounts,
+  getTierPrices,
+} from "../utils/Helper.js";
 //import { calculateFinalPrice, extractRoleIds, getCategoryMappings, getDiscountCategories, getDiscountProducts, getDiscounts } from "../utils/Helper.js";
-
 
 import { generateImageUrl2 } from "../utils/imageUtils.js";
 import { calculateTotalPriceWithTax } from "../utils/taxUtils.js";
@@ -54,16 +60,10 @@ async function addToCart(cartData, user) {
 
 async function getCartItems(user) {
   try {
-    // Fetch cart items using the new function
     const cartItems = await fetchCartItems(user.id);
-
     const productIds = cartItems.map(item => item.ProductId);
-
-    // Ensure customerRoles is an array of IDs
     const customerRoles = user.roles.map(role => role.Id);
-    console.log("customerRoles:", customerRoles);
 
-    // Use helper functions to fetch data
     const [tierPrices, categoryMappings] = await Promise.all([
       getTierPrices(productIds, customerRoles),
       getCategoryMappings(productIds)
@@ -84,78 +84,51 @@ async function getCartItems(user) {
 
     const cartItemsWithPrices = cartItems.map(item => {
       let price = item.Price;
-
-      // Find the lowest tier price for the product
       const tierPrice = tierPrices.find(tp => tp.ProductId === item.ProductId);
-      if (tierPrice) {
-        price = tierPrice.Price;
-      }
-
-      // Find the category mapping for the product
+      if (tierPrice) price = tierPrice.Price;
+      
       const categoryMapping = categoryMappings.find(cm => cm.ProductId === item.ProductId);
-
       let discountAmount = 0;
 
       if (categoryMapping) {
-        // Find the discount applied to the category
         const discountCategory = discountCategories.find(dc => dc.Category_Id === categoryMapping.CategoryId);
         if (discountCategory) {
           const discount = discounts.find(d => d.Id === discountCategory.Discount_Id);
           if (discount) {
-            discountAmount += discount.DiscountAmount;
+            discountAmount += discount.UsePercentage 
+              ? (price * discount.DiscountPercentage) / 100 
+              : discount.DiscountAmount;
           }
         }
       }
 
-      // Find the discount applied directly to the product
       const discountProduct = discountProducts.find(dp => dp.Product_Id === item.ProductId);
       if (discountProduct) {
         const discount = discounts.find(d => d.Id === discountProduct.Discount_Id);
         if (discount) {
-          discountAmount += discount.DiscountAmount;
+          discountAmount += discount.UsePercentage 
+            ? (price * discount.DiscountPercentage) / 100 
+            : discount.DiscountAmount;
         }
       }
 
-      const finalPrice = price - discountAmount;
-      const imageUrl = item.PictureId
-        ? generateImageUrl2(item.PictureId, item.MimeType, item.SeoFileName)
+      const finalPrice = Math.max(price - discountAmount, 0);
+      const imageUrl = item.PictureId 
+        ? generateImageUrl2(item.PictureId, item.MimeType, item.SeoFileName) 
         : "";
 
-      return {
-        ...item,
-        Price: price,
-        Discount: discountAmount,
-        FinalPrice: finalPrice > 0 ? finalPrice : 0,
-        images: imageUrl,
-      };
+      return { ...item, Price: price, Discount: discountAmount, FinalPrice: finalPrice, images: imageUrl };
     });
 
-    const customerEmail = await knex("Customer")
-      .where({ Id: user.id })
-      .select("Email")
-      .first();
-
+    const customerEmail = await knex("Customer").where({ Id: user.id }).select("Email").first();
     const { totalPrice, taxAmount, finalPrice } = await calculateTotalPriceWithTax(customerEmail, cartItemsWithPrices);
 
-    return {
-      success: true,
-      cartItems: cartItemsWithPrices,
-      length: cartItemsWithPrices.length,
-      totalPrice,
-      taxAmount,
-      finalPrice,
-    };
+    return { success: true, cartItems: cartItemsWithPrices, length: cartItemsWithPrices.length, totalPrice, taxAmount, finalPrice };
   } catch (error) {
     console.error("Error retrieving cart items:", error);
     throw new Error("Failed to retrieve cart items.");
   }
 }
-
-
-
-
-
-
 
 // Update cart with tax calculation
 async function updateCart(id, updateData, user) {
@@ -344,11 +317,11 @@ export async function allItemRemove(userId) {
 
 export async function GetCartCount(user) {
   try {
-    const items = await knex('ShoppingCartItem')
-      .select('*')
-      .where({ CustomerId: user.id })
+    const items = await knex("ShoppingCartItem")
+      .select("*")
+      .where({ CustomerId: user.id });
 
-    return { count: items.length }
+    return { count: items.length };
   } catch (error) {
     console.error("Error in cart count: ", error);
     return { success: false, message: "Failed to remove all cart items." };
