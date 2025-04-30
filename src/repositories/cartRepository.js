@@ -15,20 +15,29 @@ import { calculateTotalPriceWithTax } from "../utils/taxUtils.js";
 // Add product to cart with validation
 async function addToCart(cartData, user) {
   try {
+    // Ensure ProductId is provided
+    if (!cartData.ProductId) {
+      throw new Error("ProductId is required.");
+    }
+
+    // Log cartData and ProductId to check if it's being passed correctly
+    console.log("Cart Data:", cartData);
+    console.log("ProductId:", cartData.ProductId);
+
+    // Fetch the product details
     const product = await knex("Product")
-      .where({ Id: cartData.ProductId })
+      .where("Id", cartData.ProductId)  // Ensure correct column name here
       .select("StockQuantity", "OrderMaximumQuantity", "OrderMinimumQuantity")
       .first();
 
     if (!product) throw new Error("Product not found.");
 
-    //validate if product already exits
+    // Validate if product already exists in the cart
     const existingCartItems = await knex("ShoppingCartItem").where({
       ProductId: cartData.ProductId,
       CustomerId: user.id,
     });
-    
-    // Check if the array has any items
+
     if (existingCartItems.length > 0) {
       return {
         success: false,
@@ -58,16 +67,19 @@ async function addToCart(cartData, user) {
       };
     }
 
+    // Add product to cart
     cartData.CustomerId = user.id; // Use CustomerId from authenticated user
     const [cart] = await knex("ShoppingCartItem")
       .insert(cartData)
       .returning("*");
+
     return { success: true, message: "Product added to cart", cart };
   } catch (error) {
     console.error("Error adding product to cart:", error);
     throw new Error("Failed to add product to cart.");
   }
 }
+
 
 // Get Cart Items with Price and Tax
 
