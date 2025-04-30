@@ -1,6 +1,7 @@
 import express from "express";
 import { getCustomerInfo, changePassword, updateCustomerInfo, getCountryList, getStateList, getCustomerOrders, getSingleCustomerOrders, getWishListItems, addToWishList, removeFromWishList, wishlistCheck, addToNewsLetter } from "../controllers/customerController.js";
 import { authenticateToken, authorizeRoles } from '../middleware/authMiddleware.js';
+import { orderSheet } from "../controllers/admin/sales/adminSalesController.js";
 
 const router = express.Router();
 
@@ -468,5 +469,7 @@ router.delete('/wishlist/:id', removeFromWishList);
 router.get('/check-wishlist/:id', wishlistCheck);
 
 router.post('/newsletter', addToNewsLetter);
+
+router.get('/order-sheets', orderSheet) //from admin
 
 export default router;
