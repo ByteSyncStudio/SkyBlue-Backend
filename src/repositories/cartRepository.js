@@ -22,7 +22,6 @@ async function addToCart(cartData, user) {
 
     if (!product) throw new Error("Product not found.");
 
-    console.log("cartData", cartData);
     //validate if product already exits
     const existingCartItems = await knex("ShoppingCartItem").where({
       ProductId: cartData.ProductId,
