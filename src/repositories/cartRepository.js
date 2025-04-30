@@ -22,6 +22,21 @@ async function addToCart(cartData, user) {
 
     if (!product) throw new Error("Product not found.");
 
+    console.log("cartData", cartData);
+    //validate if product already exits
+    const existingCartItems = await knex("ShoppingCartItem").where({
+      ProductId: cartData.ProductId,
+      CustomerId: user.id,
+    });
+    
+    // Check if the array has any items
+    if (existingCartItems.length > 0) {
+      return {
+        success: false,
+        message: "Product already exists in the cart.",
+      };
+    }
+
     // Validate quantity against product-specific limits
     if (cartData.Quantity < product.OrderMinimumQuantity) {
       return {
@@ -45,7 +60,6 @@ async function addToCart(cartData, user) {
     }
 
     cartData.CustomerId = user.id; // Use CustomerId from authenticated user
-    //cartData.CustomerId = 46097;
     const [cart] = await knex("ShoppingCartItem")
       .insert(cartData)
       .returning("*");
@@ -61,42 +75,50 @@ async function addToCart(cartData, user) {
 async function getCartItems(user) {
   try {
     const cartItems = await fetchCartItems(user.id);
-    const productIds = cartItems.map(item => item.ProductId);
-    const customerRoles = user.roles.map(role => role.Id);
+    const productIds = cartItems.map((item) => item.ProductId);
+    const customerRoles = user.roles.map((role) => role.Id);
 
     const [tierPrices, categoryMappings] = await Promise.all([
       getTierPrices(productIds, customerRoles),
-      getCategoryMappings(productIds)
+      getCategoryMappings(productIds),
     ]);
 
-    const categoryIds = categoryMappings.map(mapping => mapping.CategoryId);
+    const categoryIds = categoryMappings.map((mapping) => mapping.CategoryId);
     const [discountCategories, discountProducts] = await Promise.all([
       getDiscountCategories(categoryIds),
-      getDiscountProducts(productIds)
+      getDiscountProducts(productIds),
     ]);
 
     const discountIds = [
-      ...discountCategories.map(dc => dc.Discount_Id),
-      ...discountProducts.map(dp => dp.Discount_Id)
+      ...discountCategories.map((dc) => dc.Discount_Id),
+      ...discountProducts.map((dp) => dp.Discount_Id),
     ];
 
     const discounts = await getDiscounts(discountIds);
 
-    const cartItemsWithPrices = cartItems.map(item => {
+    const cartItemsWithPrices = cartItems.map((item) => {
       let price = item.Price;
-      const tierPrice = tierPrices.find(tp => tp.ProductId === item.ProductId);
+      const tierPrice = tierPrices.find(
+        (tp) => tp.ProductId === item.ProductId
+      );
       if (tierPrice) price = tierPrice.Price;
-      
-      const categoryMapping = categoryMappings.find(cm => cm.ProductId === item.ProductId);
+
+      const categoryMapping = categoryMappings.find(
+        (cm) => cm.ProductId === item.ProductId
+      );
       let discountAmount = 0;
 
       if (categoryMapping) {
-        const discountCategory = discountCategories.find(dc => dc.Category_Id === categoryMapping.CategoryId);
+        const discountCategory = discountCategories.find(
+          (dc) => dc.Category_Id === categoryMapping.CategoryId
+        );
         if (discountCategory) {
-          const discount = discounts.find(d => d.Id === discountCategory.Discount_Id);
+          const discount = discounts.find(
+            (d) => d.Id === discountCategory.Discount_Id
+          );
           if (discount) {
-            const calculatedDiscount = discount.UsePercentage 
-              ? (price * discount.DiscountPercentage) / 100 
+            const calculatedDiscount = discount.UsePercentage
+              ? (price * discount.DiscountPercentage) / 100
               : discount.DiscountAmount;
             if (calculatedDiscount < price) {
               discountAmount += calculatedDiscount;
@@ -105,12 +127,16 @@ async function getCartItems(user) {
         }
       }
 
-      const discountProduct = discountProducts.find(dp => dp.Product_Id === item.ProductId);
+      const discountProduct = discountProducts.find(
+        (dp) => dp.Product_Id === item.ProductId
+      );
       if (discountProduct) {
-        const discount = discounts.find(d => d.Id === discountProduct.Discount_Id);
+        const discount = discounts.find(
+          (d) => d.Id === discountProduct.Discount_Id
+        );
         if (discount) {
-          const calculatedDiscount = discount.UsePercentage 
-            ? (price * discount.DiscountPercentage) / 100 
+          const calculatedDiscount = discount.UsePercentage
+            ? (price * discount.DiscountPercentage) / 100
             : discount.DiscountAmount;
           if (calculatedDiscount < price) {
             discountAmount += calculatedDiscount;
@@ -119,23 +145,39 @@ async function getCartItems(user) {
       }
 
       const finalPrice = Math.max(price - discountAmount, 0);
-      const imageUrl = item.PictureId 
-        ? generateImageUrl2(item.PictureId, item.MimeType, item.SeoFileName) 
+      const imageUrl = item.PictureId
+        ? generateImageUrl2(item.PictureId, item.MimeType, item.SeoFileName)
         : "";
 
-      return { ...item, Price: price, Discount: discountAmount, FinalPrice: finalPrice, images: imageUrl };
+      return {
+        ...item,
+        Price: price,
+        Discount: discountAmount,
+        FinalPrice: finalPrice,
+        images: imageUrl,
+      };
     });
 
-    const customerEmail = await knex("Customer").where({ Id: user.id }).select("Email").first();
-    const { totalPrice, taxAmount, finalPrice } = await calculateTotalPriceWithTax(customerEmail, cartItemsWithPrices);
+    const customerEmail = await knex("Customer")
+      .where({ Id: user.id })
+      .select("Email")
+      .first();
+    const { totalPrice, taxAmount, finalPrice } =
+      await calculateTotalPriceWithTax(customerEmail, cartItemsWithPrices);
 
-    return { success: true, cartItems: cartItemsWithPrices, length: cartItemsWithPrices.length, totalPrice, taxAmount, finalPrice };
+    return {
+      success: true,
+      cartItems: cartItemsWithPrices,
+      length: cartItemsWithPrices.length,
+      totalPrice,
+      taxAmount,
+      finalPrice,
+    };
   } catch (error) {
     console.error("Error retrieving cart items:", error);
     throw new Error("Failed to retrieve cart items.");
   }
 }
-
 
 // Update cart with tax calculation
 async function updateCart(id, updateData, user) {
