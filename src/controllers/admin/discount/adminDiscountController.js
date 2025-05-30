@@ -36,29 +36,30 @@ export const getAllDiscounts = async (req, res) => {
 export const postDiscounts = async (req, res) => {
   try {
     console.log("body: ", req.body);
-    const { Name, DiscountAmount, AppliedToSubCategories, DiscountTypeId } =
+    const { Name, DiscountAmount, AppliedToSubCategories, DiscountTypeId,DiscountPercentage,UsePercentage } =
       req.body; // Extracting necessary fields from the request body
 
     //DiscountTYpeId = 1 for fixed amount discount, 2 after checkout, 5 subcategory
 
     // Constructing the discount data with default values
-    const discountData = {
-      Name,
-      DiscountTypeId, // Use the DiscountTypeId from the request body
-      UsePercentage: 0,
-      DiscountPercentage: 0.0,
-      DiscountAmount,
-      MaximumDiscountAmount: null,
-      StartDateUtc: new Date().toISOString(), // Automatically set StartDateUtc to current date and time in UTC
-      EndDateUtc: null,
-      RequiresCouponCode: 0,
-      CouponCode: null,
-      IsCumulative: 0,
-      DiscountLimitationId: 0,
-      LimitationTimes: 1,
-      MaximumDiscountedQuantity: null,
-      AppliedToSubCategories: AppliedToSubCategories ? 1 : 0, // Convert boolean to integer
-    };
+   const discountData = {
+  Name,
+  DiscountTypeId,
+  UsePercentage: UsePercentage ? 1 : 0,
+  DiscountPercentage: DiscountPercentage || 0,
+  DiscountAmount: UsePercentage ? 0 : DiscountAmount || 0, // ✅ always a number
+  MaximumDiscountAmount: null,
+  StartDateUtc: new Date().toISOString(),
+  EndDateUtc: null,
+  RequiresCouponCode: 0,
+  CouponCode: null,
+  IsCumulative: 0,
+  DiscountLimitationId: 0,
+  LimitationTimes: 1,
+  MaximumDiscountedQuantity: null,
+  AppliedToSubCategories: AppliedToSubCategories ? 1 : 0,
+};
+
 
     // Call the function to insert the discount and return the full discount details
     const newDiscount = await PostDiscounts(discountData);

@@ -1,3 +1,4 @@
+import knex from "../config/knex.js";
 import {
   addToCart,
   allItemRemove,
@@ -140,5 +141,16 @@ export async function getCartCount(req, res) {
     res.status(200).json(await GetCartCount(req.user));
   } catch (error) {
     console.error("Error in allItemRemoveController:", error);
+  }
+}
+
+export async function getDiscountOrderTotal(req, res) {
+  try {
+     const discounts = await knex("Discount").where("DiscountTypeId", 1).first();
+    res.json(discounts);
+  } catch (error) {
+    console.error("Error in getDiscountOrderTotal:", error);
+    res.status(500).json({ message: "Failed to retrieve discount order total." });
+    
   }
 }

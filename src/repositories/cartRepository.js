@@ -15,70 +15,99 @@ import { calculateTotalPriceWithTax } from "../utils/taxUtils.js";
 // Add product to cart with validation
 async function addToCart(cartData, user) {
   try {
-    // Ensure ProductId is provided
     if (!cartData.ProductId) {
       throw new Error("ProductId is required.");
     }
 
-    // Log cartData and ProductId to check if it's being passed correctly
     console.log("Cart Data:", cartData);
     console.log("ProductId:", cartData.ProductId);
 
-    // Fetch the product details
     const product = await knex("Product")
-      .where("Id", cartData.ProductId)  // Ensure correct column name here
+      .where("Id", cartData.ProductId)
       .select("StockQuantity", "OrderMaximumQuantity", "OrderMinimumQuantity")
       .first();
 
     if (!product) throw new Error("Product not found.");
 
-    // Validate if product already exists in the cart
-    const existingCartItems = await knex("ShoppingCartItem").where({
-      ProductId: cartData.ProductId,
-      CustomerId: user.id,
-    });
+    // Check if the product is already in the cart
+    const existingCartItem = await knex("ShoppingCartItem")
+      .where({
+        ProductId: cartData.ProductId,
+        CustomerId: user.id,
+      })
+      .first();
 
-    if (existingCartItems.length > 0) {
+    if (existingCartItem) {
+      // Calculate new quantity
+      const newQuantity = existingCartItem.Quantity + cartData.Quantity;
+
+      // Validate new quantity
+      if (newQuantity < product.OrderMinimumQuantity) {
+        return {
+          success: false,
+          message: `Below minimum order limit. Please enter a quantity of at least ${product.OrderMinimumQuantity}.`,
+        };
+      }
+      if (newQuantity > product.OrderMaximumQuantity) {
+        return {
+          success: false,
+          message: `Exceeds maximum order limit. Please enter a quantity below ${product.OrderMaximumQuantity}.`,
+        };
+      }
+      if (newQuantity > product.StockQuantity) {
+        return {
+          success: false,
+          message: `Out of stock. Please enter a quantity below ${product.StockQuantity}.`,
+        };
+      }
+
+      // Update the existing cart item quantity
+      const updatedCartItem = await knex("ShoppingCartItem")
+        .where({ Id: existingCartItem.Id })
+        .update({ Quantity: newQuantity })
+        .returning("*");
+
       return {
-        success: false,
-        message: "Product already exists in the cart.",
+        success: true,
+        message: "Product quantity updated in cart",
+        cart: updatedCartItem[0],
+        alreadyInCart: true,  // Optional flag you can use in frontend
       };
+    } else {
+      // Validate quantity for new cart item
+      if (cartData.Quantity < product.OrderMinimumQuantity) {
+        return {
+          success: false,
+          message: `Below minimum order limit. Please enter a quantity of at least ${product.OrderMinimumQuantity}.`,
+        };
+      }
+      if (cartData.Quantity > product.OrderMaximumQuantity) {
+        return {
+          success: false,
+          message: `Exceeds maximum order limit. Please enter a quantity below ${product.OrderMaximumQuantity}.`,
+        };
+      }
+      if (cartData.Quantity > product.StockQuantity) {
+        return {
+          success: false,
+          message: `Out of stock. Please enter a quantity below ${product.StockQuantity}.`,
+        };
+      }
+
+      // Add product to cart
+      cartData.CustomerId = user.id;
+      const [cart] = await knex("ShoppingCartItem")
+        .insert(cartData)
+        .returning("*");
+
+      return { success: true, message: "Product added to cart", cart };
     }
-
-    // Validate quantity against product-specific limits
-    if (cartData.Quantity < product.OrderMinimumQuantity) {
-      return {
-        success: false,
-        message: `Below minimum order limit. Please enter a quantity of at least ${product.OrderMinimumQuantity}.`,
-      };
-    }
-
-    if (cartData.Quantity > product.OrderMaximumQuantity) {
-      return {
-        success: false,
-        message: `Exceeds maximum order limit. Please enter a quantity below ${product.OrderMaximumQuantity}.`,
-      };
-    }
-
-    if (cartData.Quantity > product.StockQuantity) {
-      return {
-        success: false,
-        message: `Out of stock. Please enter a quantity below ${product.StockQuantity}.`,
-      };
-    }
-
-    // Add product to cart
-    cartData.CustomerId = user.id; // Use CustomerId from authenticated user
-    const [cart] = await knex("ShoppingCartItem")
-      .insert(cartData)
-      .returning("*");
-
-    return { success: true, message: "Product added to cart", cart };
   } catch (error) {
     console.error("Error adding product to cart:", error);
     throw new Error("Failed to add product to cart.");
   }
 }
+
 
 
 // Get Cart Items with Price and Tax

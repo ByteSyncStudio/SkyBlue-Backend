@@ -346,17 +346,19 @@ export async function DeleteCustomerAddress(addressId) {
 
 
 
-export async function UpdateCustomerRoles(
-  customerId,
-  rolesToAdd,
-  rolesToRemove
-) {
+export async function UpdateCustomerRoles(customerId, rolesToAdd, rolesToRemove) {
   const trx = await knex.transaction();
 
   try {
-    // Add new roles
+    // Step 1: Remove overlapping roles from rolesToRemove
+    if (rolesToAdd && rolesToRemove) {
+      rolesToRemove = rolesToRemove.filter(
+        (roleId) => !rolesToAdd.includes(roleId)
+      );
+    }
+
+    // Step 2: Add new roles
     if (rolesToAdd && rolesToAdd.length > 0) {
-      // First, get existing roles for the customer
       const existingRoles = await trx("Customer_CustomerRole_Mapping")
         .where("Customer_Id", customerId)
         .select("CustomerRole_Id");
@@ -368,7 +370,6 @@ export async function UpdateCustomerRoles(
         (roleId) => !existingRoleIds.includes(roleId)
       );
 
-      // Insert new roles
       if (newRoles.length > 0) {
         const rolesToInsert = newRoles.map((roleId) => ({
           Customer_Id: customerId,
@@ -379,7 +380,7 @@ export async function UpdateCustomerRoles(
       }
     }
 
-    // Remove roles
+    // Step 3: Remove roles
     if (rolesToRemove && rolesToRemove.length > 0) {
       await trx("Customer_CustomerRole_Mapping")
         .where("Customer_Id", customerId)
@@ -387,18 +388,20 @@ export async function UpdateCustomerRoles(
         .delete();
     }
 
+    // Commit the transaction
     await trx.commit();
 
     return {
       success: true,
-      message: "Customer updated successfully",
+      message: "Customer roles updated successfully",
     };
   } catch (error) {
     await trx.rollback();
-    console.error(error);
+    console.error("Error updating customer roles:", error);
     throw error;
   }
 }
+
 
 export async function EditCustomerDetails(customerId, updateFields) {
   const trx = await knex.transaction();

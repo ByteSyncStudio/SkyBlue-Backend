@@ -4,6 +4,7 @@ import {
   allItemRemoveController,
   getCartCount,
   getCartItemsController,
+  getDiscountOrderTotal,
   removeSingleCartItemController,
   updateCartController,
 } from "../controllers/cartController.js";
@@ -160,5 +161,7 @@ router.delete("/remove/:id", cartAccess, removeSingleCartItemController);
 router.delete("/remove-all", cartAccess, allItemRemoveController);
 
 router.get('/count', getCartCount);
+
+router.get('/discount-value', getDiscountOrderTotal)
 
 export default router;
