@@ -160,8 +160,8 @@ router.delete("/remove/:id", cartAccess, removeSingleCartItemController);
  */
 router.delete("/remove-all", cartAccess, allItemRemoveController);
 
-router.get('/count', getCartCount);
+router.get("/count", getCartCount);
 
-router.get('/discount-value', getDiscountOrderTotal)
+router.get("/discount-value", getDiscountOrderTotal);
 
 export default router;

@@ -1,5 +1,8 @@
 import knex from "../../../config/knex.js";
-import { generateImageUrl, generateImageUrl2 } from "../../../utils/imageUtils.js";
+import {
+  generateImageUrl,
+  generateImageUrl2,
+} from "../../../utils/imageUtils.js";
 
 export async function AddProduct(product, trx) {
   try {
@@ -1231,7 +1234,7 @@ export const updateGeneralProduct = async (productId, updateData) => {
 
 export const updatePriceDetailProduct = async (productId, updateData) => {
   try {
-    const { Price, OldPrice, ProductCost, TaxCategoryId, Price1, Price2, Price3, Price4, Price5 } = updateData;
+    const { Price, OldPrice, ProductCost, TaxCategoryId, Price1, Price2, Price3, Price4, Price5,discounts } = updateData;
 
     // Update product details in the Product table
     await knex("Product").where("Id", productId).update({
@@ -1279,10 +1282,21 @@ export const updatePriceDetailProduct = async (productId, updateData) => {
             Quantity: 1, // Default quantity for tier pricing
             Price: price,
             StartDateTimeUtc: null,
-            EndDateTimeUtc: null
+            EndDateTimeUtc: null,
           });
         }
       }
+
+      await knex("Discount_AppliedToProducts").where("Product_Id", productId).del();
+
+    for (const discountId of discounts) {
+      if (discountId !== 0) {
+        await knex("Discount_AppliedToProducts").insert({
+          Discount_Id: discountId,
+          Product_Id: productId,
+        });
+      }
+    }
     }
 
     return { success: true, message: "Product and tier prices updated successfully." };
@@ -1308,7 +1322,6 @@ export const DeleteTierPriceProduct = async (productId, customerRoleId) => {
 
 export const UpdateProductInventory = async (productId, updateData) => {
   try {
-
     console.log("UpdateData", updateData);
 
     // Map updateData to database column names
@@ -1327,7 +1340,6 @@ export const UpdateProductInventory = async (productId, updateData) => {
       AllowedQuantities: updateData.allowedQuantities,
       NotReturnable: updateData.notReturnable,
       ProductAvailabilityRangeId:0,
-        
       UpdatedOnUtc: new Date(), // Track last updated timestamp
     };
 
@@ -1429,7 +1441,6 @@ export async function DeleteSelectedProduct(productIds, deleted) {
     });
 }
 
-
 export async function GetRelatedProducts(productId) {
   try {
     const relatedProducts = await knex("RelatedProduct as rp")
@@ -1512,8 +1523,6 @@ export async function DeleteRelatedProducts(productId, relatedProductId) {
   }
 }
 
-
-
 //Product Attributes
 
 export async function GetUsedProductAttribute(id) {
@@ -1540,7 +1549,6 @@ export async function GetUsedProductAttribute(id) {
   }
 }
 
-
 export async function GetPredefinedAttributes(id) {
   try {
     const predefinedAttributes = await knex("PredefinedProductAttributeValue")
@@ -1553,10 +1561,6 @@ export async function GetPredefinedAttributes(id) {
     throw new Error("Database operation failed");
   }
 }
-
-
-
-
 
 export async function GetAttributeProduct(productId) {
   // Get the ProductAttributeId from the mapping table
@@ -1613,7 +1617,6 @@ export async function GetAttributeProduct(productId) {
   return result;
 }
 
-
 export async function GetProductAttributeValueMapping(id) {
   try {
     // Fetch product attribute values
@@ -1626,7 +1629,9 @@ export async function GetProductAttributeValueMapping(id) {
     }
 
     // Extract Picture IDs
-    const pictureIds = result.map(item => item.PictureId).filter(id => id > 0);
+    const pictureIds = result
+      .map((item) => item.PictureId)
+      .filter((id) => id > 0);
 
     let picturesMap = {};
     if (pictureIds.length > 0) {
@@ -1643,11 +1648,11 @@ export async function GetProductAttributeValueMapping(id) {
     }
 
     // Attach image URLs to the result
-    const updatedResult = result.map(item => ({
+    const updatedResult = result.map((item) => ({
       ...item,
       ImageUrl: item.PictureId
         ? generateImageUrl(item.PictureId, picturesMap[item.PictureId])
-        : null
+        : null,
     }));
 
     return updatedResult;

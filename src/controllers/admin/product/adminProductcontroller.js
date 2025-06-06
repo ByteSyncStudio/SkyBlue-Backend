@@ -610,6 +610,7 @@ export async function updatePriceDetailsProduct(req, res) {
     const productId = req.params.id;
     const updateData = req.body;
 
+
     // Validate the request body
     if (!productId || !updateData) {
       return res.status(400).send({ success: false, message: "Invalid data." });
@@ -619,8 +620,8 @@ export async function updatePriceDetailsProduct(req, res) {
 
     res.status(200).send(result);
   } catch (error) {
-    console.error(error);
-    res.status(500).send({ success: false, message: "Server error." });
+    console.error("Error in update price detail controller:", error.message);
+    return res.status(400).json({ success: false, message: error.message });
   }
 }
 

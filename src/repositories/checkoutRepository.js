@@ -61,7 +61,7 @@ async function createCheckoutOrder(
     ];
     const discounts = (await getDiscounts(discountIds)) || [];
 
-    console.log("Discountsssssssssssssssssssss:", discounts);
+    //console.log("Discountsssssssssssssssssssss:", discounts);
 
     const tierPrices = (await getTierPrices(productIds, customerRoles)) || [];
     const tierPriceMap = new Map();
@@ -95,7 +95,7 @@ async function createCheckoutOrder(
         ];
 
 
-        console.log("ITEMS", item)
+        //console.log("ITEMS", item)
 
         // Calculate the maximum applicable discount
         const discountAmount = applicableDiscounts.reduce((acc, d) => {
@@ -169,6 +169,8 @@ async function createCheckoutOrder(
       .where({ DiscountTypeId: 1 })
       .select("DiscountAmount")
       .first();
+
+      console.log("specialDiscount", specialDiscount)
 
     const specialDiscountAmount = specialDiscount
       ? specialDiscount.DiscountAmount
