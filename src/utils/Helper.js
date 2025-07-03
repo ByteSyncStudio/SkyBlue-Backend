@@ -82,4 +82,78 @@ export const getTierPrices = async (productIds, customerRoles) => {
     .orderBy("Price", "asc");
 };
 
+export const fetchCartItemscheckout = async (userId, customerRoles = []) => {
+  const subquery = knex("Product_Picture_Mapping")
+    .select(
+      "Product_Picture_Mapping.ProductId",
+      knex.raw("MIN(Picture.Id) as PictureId"),
+      knex.raw("MIN(Picture.MimeType) as MimeType"),
+      knex.raw("MIN(Picture.SeoFileName) as SeoFileName")
+    )
+    .leftJoin("Picture", "Product_Picture_Mapping.PictureId", "Picture.Id")
+    .groupBy("Product_Picture_Mapping.ProductId")
+    .as("PictureData");
+
+  const cartItemsRaw = await knex("ShoppingCartItem")
+    .where("ShoppingCartItem.CustomerId", userId)
+    .join("Product", "ShoppingCartItem.ProductId", "Product.Id")
+    .leftJoin(subquery, "ShoppingCartItem.ProductId", "PictureData.ProductId")
+    .select(
+      knex.raw("MIN(ShoppingCartItem.Id) as Id"),
+      "ShoppingCartItem.ProductId",
+      "Product.Name",
+      knex.raw("SUM(ShoppingCartItem.Quantity) as Quantity"),
+      "Product.Price",
+      "Product.OrderMinimumQuantity",
+      "Product.OrderMaximumQuantity",
+      "Product.AllowedQuantities",
+      "PictureData.PictureId",
+      "PictureData.MimeType",
+      "PictureData.SeoFileName",
+      "ShoppingCartItem.ShoppingCartTypeId",
+      knex.raw("Product.StockQuantity as Stock")
+    )
+    .groupBy(
+      "ShoppingCartItem.ProductId", "ShoppingCartItem.ShoppingCartTypeId",
+      "Product.Name",
+      "Product.Price",
+      "Product.OrderMinimumQuantity",
+      "Product.OrderMaximumQuantity",
+      "Product.AllowedQuantities",
+      "PictureData.PictureId",
+      "PictureData.MimeType",
+      "PictureData.SeoFileName",
+      "Product.StockQuantity"
+    );
+
+  // Fetch tier prices
+  const productIds = cartItemsRaw.map(item => item.ProductId);
+  const tierPrices = await getTierPrices(productIds, customerRoles); // assumed to exist
+  const tierPriceMap = new Map();
+
+  tierPrices.forEach((tp) => {
+    tierPriceMap.set(`${tp.ProductId}-${tp.CustomerRoleId}`, tp.Price);
+  });
+
+  // Apply tier price (fallback to original price if none matched)
+  const updatedCartItems = cartItemsRaw.map((item) => {
+    let bestTierPrice = Infinity;
+
+    customerRoles.forEach(roleId => {
+      const tier = tierPriceMap.get(`${item.ProductId}-${roleId}`);
+      if (tier !== undefined) {
+        bestTierPrice = Math.min(bestTierPrice, tier);
+      }
+    });
+
+    const finalPrice = isFinite(bestTierPrice) ? bestTierPrice : item.Price;
+
+    return {
+      ...item,
+      Price: finalPrice,
+    };
+  });
+
+  return updatedCartItems;
+};
 

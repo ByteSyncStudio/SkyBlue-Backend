@@ -5,6 +5,7 @@ import { SendEmail } from "../config/emailService.js";
 import { getOrderPlacedEmailTemplate } from "../utils/emailTemplates.js";
 import {
   fetchCartItems,
+  fetchCartItemscheckout,
   getCategoryMappings,
   getDiscountCategories,
   getDiscountProducts,
@@ -31,6 +32,12 @@ async function createCheckoutOrder(
       .pluck("CustomerRole_Id"),
   ]);
 
+  console.log(
+    "this is the role of the customer  Customer:",
+    customer,
+    customerRoles
+  );
+
   if (!customer) throw new Error("Customer not found.");
   if (customerRoles.length === 0) throw new Error("Customer roles not found.");
 
@@ -42,8 +49,10 @@ async function createCheckoutOrder(
   if (!store) throw new Error("Store not found.");
 
   return await knex.transaction(async (trx) => {
-    const cartItems = await fetchCartItems(customerId);
+    const cartItems = await fetchCartItemscheckout(customerId, customerRoles);
     if (cartItems.length === 0) throw new Error("No items in cart.");
+
+    console.log("Cart Items with enw function:", cartItems);
 
     const productIds = cartItems.map((item) => item.ProductId);
     const categoryMappings = (await getCategoryMappings(productIds)) || [];
@@ -70,11 +79,15 @@ async function createCheckoutOrder(
         `${tierPrice.ProductId}-${tierPrice.CustomerRoleId}`,
         tierPrice.Price
       );
-      console.log("tierPriceMap:", tierPriceMap);
+      console.log(
+        "This is tier price mapping wrt customer role :",
+        tierPriceMap
+      );
     });
 
     const updatedCartItems = await Promise.all(
       cartItems.map(async (item) => {
+        console.log("these are the items in cart before the mapping:", item);
         // Filter applicable discounts for the current product
         const applicableDiscounts = [
           ...discounts.filter((d) =>
@@ -94,18 +107,25 @@ async function createCheckoutOrder(
           ),
         ];
 
-
         //console.log("ITEMS", item)
 
         // Calculate the maximum applicable discount
         const discountAmount = applicableDiscounts.reduce((acc, d) => {
           if (d.UsePercentage) {
-            console.log("DISOCUNTAMOUNT", d.DiscountPercentage,acc, (d.DiscountPercentage / 100) * item.Price)
+            console.log("This is D lol", d);
+            console.log(
+              "DISOCUNTAMOUNT",
+              d.DiscountPercentage,
+              acc,
+              (d.DiscountPercentage / 100) * item.Price
+            );
             return Math.max(acc, (d.DiscountPercentage / 100) * item.Price); // Apply percentage discount
           }
           return Math.max(acc, d.DiscountAmount || 0); // Apply fixed discount
         }, 0);
-        
+        console.log("These are items in the cart:", item);
+
+        console.log("Discount Amount:", discountAmount);
 
         // Apply the discount to the item price
         const discountedPrice = item.Price - discountAmount;
@@ -121,12 +141,16 @@ async function createCheckoutOrder(
           ? Math.min(price, discountedPrice)
           : discountedPrice;
 
+        console.log("Resolved Price:", resolvedPrice);
+
         return {
           ...item,
           Price: resolvedPrice,
         };
       })
     );
+
+    console.log("Updated Cart Items:", updatedCartItems);
 
     const { totalPrice, taxAmount, finalPrice, taxRate } =
       await calculateTotalPriceWithTax(customerEmail, updatedCartItems);
@@ -170,7 +194,7 @@ async function createCheckoutOrder(
       .select("DiscountAmount")
       .first();
 
-      console.log("specialDiscount", specialDiscount)
+    console.log("specialDiscount", specialDiscount);
 
     const specialDiscountAmount = specialDiscount
       ? specialDiscount.DiscountAmount
@@ -267,9 +291,8 @@ async function createCheckoutOrder(
           })
           .returning("*");
 
-          // Update the product stock
-          await updateProductStock(item.ProductId, item.Quantity);
-
+        // Update the product stock
+        await updateProductStock(item.ProductId, item.Quantity);
 
         return {
           ...orderItem,
@@ -281,9 +304,7 @@ async function createCheckoutOrder(
     console.log("Inserted Order Items:", orderItems);
 
     // Delete items from the shopping cart
-    await trx("ShoppingCartItem")
-      .where({ CustomerId: customerId })
-      .del();
+    await trx("ShoppingCartItem").where({ CustomerId: customerId }).del();
 
     // Send order placed email
     const orderData = {
@@ -292,9 +313,7 @@ async function createCheckoutOrder(
       customerEmail,
     };
     const emailTemplate = await getOrderPlacedEmailTemplate(orderData);
-    await SendEmail(customerEmail, 'Order Placed', emailTemplate);
-
-    
+    await SendEmail(customerEmail, "Order Placed", emailTemplate);
 
     return {
       order,
@@ -305,7 +324,6 @@ async function createCheckoutOrder(
 
 export { createCheckoutOrder };
 
-
 async function updateProductStock(productId, quantity) {
   try {
     // Fetch the TrackInventoryMethod for the given product
@@ -314,7 +332,7 @@ async function updateProductStock(productId, quantity) {
       .select("ManageInventoryMethodId", "StockQuantity")
       .first();
 
-      console.log("PRODUCT", product)
+    console.log("PRODUCT", product);
 
     if (!product) {
       throw new Error("Product not found.");
@@ -328,9 +346,13 @@ async function updateProductStock(productId, quantity) {
         .where({ Id: productId })
         .update({ StockQuantity: newStockQuantity });
 
-      console.log(`Updated stock quantity for productsssssssssssssssssssssssssssssssss ${productId}: ${newStockQuantity}`);
+      console.log(
+        `Updated stock quantity for productsssssssssssssssssssssssssssssssss ${productId}: ${newStockQuantity}`
+      );
     } else {
-      console.log(`TrackInventoryMethod is 0 for product ${productId}, no stock update needed.`);
+      console.log(
+        `TrackInventoryMethod is 0 for product ${productId}, no stock update needed.`
+      );
     }
   } catch (error) {
     console.error("Error updating product stock:", error);
