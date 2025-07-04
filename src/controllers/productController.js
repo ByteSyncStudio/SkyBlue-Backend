@@ -10,6 +10,7 @@ async function getCategory(req, res) {
     }
 }
 
+
 async function getProductsFromCategories(req, res) {
     console.log(req.user)
     try {
